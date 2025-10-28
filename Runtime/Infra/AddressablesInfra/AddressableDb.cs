@@ -486,7 +486,14 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
                 {
                     var subAssets = AssetDatabase.LoadAllAssetRepresentationsAtPath(mainAssetPath);
                     string subAssetNameAndType = parts[1];
-                    var nameAndType = subAssetNameAndType.Split('.');
+
+                    int lastIndex = subAssetNameAndType.LastIndexOf('.');
+
+                    var nameAndType = new string[]
+                    {
+                        subAssetNameAndType.Substring(0, lastIndex),
+                        subAssetNameAndType.Substring(lastIndex + 1)
+                    };
 
                     asset = subAssets.FirstOrDefault(sub => sub.name == nameAndType[0] && sub.GetType().Name == nameAndType[1]);
                 }
