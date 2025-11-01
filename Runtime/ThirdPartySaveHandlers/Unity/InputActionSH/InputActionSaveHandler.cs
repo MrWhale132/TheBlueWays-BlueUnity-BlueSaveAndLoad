@@ -6,10 +6,11 @@ using Assets._Project.Scripts.SaveAndLoad;
 using Assets._Project.Scripts.UtilScripts;
 using UnityEngine.InputSystem;
 using System;
+using UnityEngine;
 namespace Assets._Project.Scripts.SaveHandlers.Manuals.InputActionSH
 {
 
-    [SaveHandler(366884624243324234, nameof(InputAction), typeof(InputAction))]
+    [SaveHandler(366884624243324234, nameof(InputAction), typeof(InputAction), order: -98, dependsOn: new[] { typeof(InputActionMap) })]
     public class InputActionSaveHandler : UnmanagedSaveHandler<InputAction, InputActionSaveData>
     {
 
@@ -17,9 +18,21 @@ namespace Assets._Project.Scripts.SaveHandlers.Manuals.InputActionSH
         {
             base.Init(instance);
 
+            __saveData.name = __instance.name;
+            if (string.IsNullOrEmpty(__saveData.name))
+                Debug.Log("empty");
 
-            __saveData.InputAssetId = GetAssetId(__instance.actionMap.asset);
-            __saveData.InputActionGuid = __instance.id;
+            if (__instance.actionMap != null)
+            {
+                __saveData.InputActionMapName = __instance.actionMap.name;
+                __saveData.actionMap = GetObjectId(__instance.actionMap);
+
+                if (__instance.actionMap.asset != null)
+                {
+                    __saveData.InputActionAssetName = __instance.actionMap.asset.name;
+                    __saveData.InputActionAssetId = GetObjectId(__instance.actionMap.asset);
+                }
+            }
         }
 
         public override void WriteSaveData()
@@ -29,17 +42,29 @@ namespace Assets._Project.Scripts.SaveHandlers.Manuals.InputActionSH
             __saveData.enabled = __instance.enabled;
         }
 
-        public override void CreateObject()
+
+        public override void _AssignInstance()
         {
-            var inputAsset = AddressableDb.Singleton.GetAssetByIdOrFallback<InputActionAsset>(null, ref __saveData.InputAssetId);
-
-            __instance = inputAsset.FindAction(__saveData.InputActionGuid);
-
-            HandledObjectId = __saveData._ObjectId_;
-
-            Infra.Singleton.RegisterReference(__instance, HandledObjectId);
+            {
+                if (__saveData.actionMap.IsNotDefault)
+                {
+                    var map = GetObjectById<InputActionMap>(__saveData.actionMap);
+                    var action = map.FindAction(__saveData.name);
+                    if (action != null)
+                        __instance = action;
+                    else
+                        __instance = InputSystem.actions.FindAction(__saveData.name).Clone();
+                }
+                else
+                {
+                    __instance = InputSystem.actions.FindAction(__saveData.name).Clone();
+                }
+            }
+            //else
+            //{
+            //    __instance = InputSystem.actions.FindActionMap(__saveData.InputActionMapName).FindAction(__saveData.name);
+            //}
         }
-
         public override void LoadReferences()
         {
             base.LoadReferences();
@@ -54,8 +79,13 @@ namespace Assets._Project.Scripts.SaveHandlers.Manuals.InputActionSH
 
     public class InputActionSaveData : SaveDataBase
     {
-        public RandomId InputAssetId;
-        public Guid InputActionGuid;
+        public string InputActionAssetName;
+        public string InputActionMapName;
+        public string name;
+
+        public RandomId InputActionAssetId;
+        public RandomId actionMap;
+
         public bool enabled;
     }
 }

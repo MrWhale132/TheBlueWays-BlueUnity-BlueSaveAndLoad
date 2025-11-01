@@ -8,13 +8,16 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
         where TScriptable : ScriptableObject
         where TSaveData : SaveDataBase, new()
     {
+        public override bool IsValid => __instance != null;
+
+
         public override void CreateObject()
         {
             base.CreateObject();
 
             SaveAndLoadManager.Singleton.ExpectingIsObjectLoadingRequest = true;
 
-            __instance = ScriptableObject.CreateInstance<TScriptable>();
+            _AssignInstance();
 
             SaveAndLoadManager.Singleton.ExpectingIsObjectLoadingRequest = false;
 
@@ -22,6 +25,13 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
             HandledObjectId = __saveData._ObjectId_;
 
             Infra.Singleton.RegisterReference(__instance, __saveData._ObjectId_,rootObject:true);
+        }
+
+        public override void _AssignInstance()
+        {
+            base._AssignInstance();
+
+            __instance = ScriptableObject.CreateInstance<TScriptable>();
         }
     }
 }

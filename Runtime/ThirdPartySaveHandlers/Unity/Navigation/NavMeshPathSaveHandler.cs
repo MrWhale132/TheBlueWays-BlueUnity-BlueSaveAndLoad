@@ -8,13 +8,11 @@ using System.Reflection;
 
 namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.UnitySHs.Navigation
 {
-    [SaveHandler(748707611468881488, "NavMeshPath", typeof(UnityEngine.AI.NavMeshPath), order: -4, dependsOn: new[] { typeof(NavMeshAgent) })]
+    //[SaveHandler(748707611468881488, "NavMeshPath", typeof(UnityEngine.AI.NavMeshPath), order: -4, dependsOn: new[] { typeof(NavMeshAgent) })]
     public class NavMeshPathSaveHandler : UnmanagedSaveHandler<NavMeshPath, NavMeshPathSaveData>
     {
-        public override void CreateObject()
+        public override void _AssignInstance()
         {
-            HandledObjectId = __saveData._ObjectId_;
-
             __instance = GetObjectById<NavMeshPath>(__saveData._ObjectId_);
         }
 

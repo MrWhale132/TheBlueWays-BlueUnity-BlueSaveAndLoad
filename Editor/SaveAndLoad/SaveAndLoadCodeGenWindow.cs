@@ -628,7 +628,7 @@ public class SaveAndLoadCodeGenWindow : EditorWindow
 
         foreach (var go in gameObjects)
         {
-            go.GetComponentsInChildren(components);
+            go.GetComponentsInChildren(includeInactive:true, components);
             allComponentsOfAllGameObjects.AddRange(components);
         }
 
@@ -1200,6 +1200,7 @@ public class SaveAndLoadCodeGenWindow : EditorWindow
             }
 
 
+
             //Debug.LogWarning(type);
 
             var binding = BindingFlags.Public | BindingFlags.Static;
@@ -1213,6 +1214,10 @@ public class SaveAndLoadCodeGenWindow : EditorWindow
                 binding |= BindingFlags.Instance;
                 binding &= ~BindingFlags.Static;
 
+                if(type == typeof(UnityEngine.UI.MaskableGraphic))
+                {
+
+                }
                 var instanceReport = CreateTypeReport(type, binding);
 
                 var staticReport = typeReport;
@@ -1225,11 +1230,13 @@ public class SaveAndLoadCodeGenWindow : EditorWindow
             discoveredTypes[type] = typeReport;
 
 
+            if(type == typeof(UnityEngine.UI.MaskableGraphic.CullStateChangedEvent))
+            {
 
+            }
             List<Type> GetDependencies(TypeReport typeReport)
             {
                 var deps = new List<Type>();
-
                 deps.AddRange(typeReport.FieldsReport.ValidFields.Select(f => f.FieldInfo.FieldType));
                 deps.AddRange(typeReport.Properties.Select(p => p.PropertyType));
                 deps.AddRange(typeReport.Events.Select(e => e.EventHandlerType));
@@ -1547,32 +1554,6 @@ prop.GetCustomAttributes(typeof(CompilerGeneratedAttribute), false).Any() ||
     public static Type ResolveType(string assemblyName, string namespaceName, string typeName)
     {
         return CodeGenUtils.ResolveType(assemblyName, namespaceName, typeName);
-        //left here in case of roll back
-        if (string.IsNullOrEmpty(assemblyName))
-        {
-            Debug.LogError("Assembly name is null or empty.");
-            return null;
-        }
-        if (string.IsNullOrEmpty(typeName))
-        {
-            Debug.LogError("Typename name is null or empty.");
-            return null;
-        }
-
-        var assembly = AppDomain.CurrentDomain.GetAssemblies()
-            .FirstOrDefault(a => a.GetName().Name == assemblyName);
-
-        if (assembly == null)
-        {
-            Debug.Log($"Assembly '{assemblyName}' not found in current AppDomain.");
-            return null;
-        }
-
-        string fullName = string.IsNullOrEmpty(namespaceName)
-            ? typeName
-            : namespaceName + "." + typeName;
-
-        return assembly.GetType(fullName, throwOnError: false);
     }
 
 

@@ -39,40 +39,46 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.UnitySHs
             __saveData.lightProbeProxyVolumeOverride = GetObjectId(__instance.lightProbeProxyVolumeOverride);
             __saveData.probeAnchor = GetObjectId(__instance.probeAnchor);
             __saveData.hideFlags = __instance.hideFlags;
+            //__saveData.sharedMaterials = GetObjectId(__instance.sharedMaterials);
+            //__saveData.materials = GetObjectId(__instance.materials);
+            GetAssetIdList(__instance.sharedMaterials,__saveData.sharedMaterials);
+            GetAssetIdList(__instance.materials,__saveData.materials);
+            //__saveData.sharedMaterials.Clear();
 
-            __saveData.sharedMaterials.Clear();
-
-            for (int i = 0; i < __instance.sharedMaterials.Length; i++)
-            {
-                var material = __instance.sharedMaterials[i];
-                if (material != null)
-                {
-                    var assetId = AddressableDb.Singleton.GetAssetIdByAssetName(material);
-                    __saveData.sharedMaterials.Add(assetId);
-                }
-            }
+            //for (int i = 0; i < __instance.sharedMaterials.Length; i++)
+            //{
+            //    var material = __instance.sharedMaterials[i];
+            //    if (material != null)
+            //    {
+            //        var assetId = AddressableDb.Singleton.GetAssetIdByAssetName(material);
+            //        __saveData.sharedMaterials.Add(assetId);
+            //    }
+            //}
         }
 
         public override void LoadReferences()
         {
             base.LoadReferences();
 
-            List<Material> materials = new List<Material>();
+            //List<Material> materials = new List<Material>();
 
-            foreach (var assetId in __saveData.sharedMaterials)
-            {
-                var id = assetId;
+            //foreach (var assetId in __saveData.sharedMaterials)
+            //{
+            //    var id = assetId;
 
-                var material = AddressableDb.Singleton.GetAssetByIdOrFallback<Material>(null, ref id);
+            //    var material = AddressableDb.Singleton.GetAssetByIdOrFallback<Material>(null, ref id);
 
-                if (material != null)
-                {
-                    materials.Add(material);
-                }
-            }
+            //    if (material != null)
+            //    {
+            //        materials.Add(material);
+            //    }
+            //}
 
-            __instance.sharedMaterials = materials.ToArray();
-
+            //__instance.sharedMaterials = materials.ToArray();
+            //__instance.sharedMaterials = GetObjectById<UnityEngine.Material[]>(__saveData.sharedMaterials);
+            //__instance.materials = GetObjectById<UnityEngine.Material[]>(__saveData.materials);
+            __instance.sharedMaterials = GetAssetList<UnityEngine.Material>(__saveData.sharedMaterials);
+            __instance.materials = GetAssetList<UnityEngine.Material>(__saveData.materials);
             __instance.additionalVertexStreams = GetAssetById(__saveData.additionalVertexStreams, __instance.additionalVertexStreams);
             __instance.enlightenVertexStream = GetAssetById(__saveData.enlightenVertexStream, __instance.enlightenVertexStream);
             __instance.scaleInLightmap = __saveData.scaleInLightmap;
@@ -104,7 +110,8 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.UnitySHs
 
     public class MeshRendererSaveData : MonoSaveDataBase
     {
-        public List<RandomId> sharedMaterials = new();
+        public List<RandomId> sharedMaterials=new();
+        public List<RandomId> materials=new();
         public RandomId additionalVertexStreams;
         public RandomId enlightenVertexStream;
         public System.Single scaleInLightmap;

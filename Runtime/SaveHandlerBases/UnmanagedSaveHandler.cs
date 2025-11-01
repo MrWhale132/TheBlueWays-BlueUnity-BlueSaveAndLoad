@@ -11,6 +11,7 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
         where TSavable : class
         where TSaveData : SaveDataBase, new()
     {
+        public override bool IsValid => __instance != null;
 
 
         public override void CreateObject()
@@ -20,7 +21,38 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
 
             HandledObjectId = __saveData._ObjectId_;
 
+            SaveAndLoadManager.Singleton.ExpectingIsObjectLoadingRequest = true;
 
+            //todo: replace this with something else
+            //update: take into account il2cpp
+            try
+            {
+                _AssignInstance();
+            }
+            catch
+            {
+                Debug.Log(__saveData._ObjectId_);
+                Debug.Log(__saveData._AssemblyQualifiedName_);
+                throw;
+            }
+
+            SaveAndLoadManager.Singleton.ExpectingIsObjectLoadingRequest = false;
+
+            Infra.Singleton.RegisterReference(__instance, HandledObjectId);
+
+
+            if (__instance.GetType().IsAssignableTo(typeof(IGameLoopIntegrator)))
+            {
+                SaveAndLoadManager.Singleton.RegisterIntegrator(__instance as IGameLoopIntegrator);
+            }
+        }
+
+
+        public override void _AssignInstance()
+        {
+            base._AssignInstance();
+
+            //todo: GetType can be cached somewhere
             Type instanceType = Type.GetType(__saveData._AssemblyQualifiedName_);
 
             if (instanceType == null)
@@ -30,46 +62,7 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
                     $"Cant do anything so let it go on.");
             }
 
-
-            bool notArrayType = !typeof(Array).IsAssignableFrom(instanceType);
-
-            if (notArrayType)
-            {
-                SaveAndLoadManager.Singleton.ExpectingIsObjectLoadingRequest = true;
-
-                //todo: replace this with something else
-                //update: take into account il2cpp
-                try
-                {
-                    _AssignInstance();
-                }
-                catch
-                {
-                    Debug.Log(__saveData._ObjectId_);
-                    Debug.Log(__saveData._AssemblyQualifiedName_);
-                    throw;
-                }
-
-                SaveAndLoadManager.Singleton.ExpectingIsObjectLoadingRequest = false;
-
-                Infra.Singleton.RegisterReference(__instance, HandledObjectId);
-
-
-                if (__instance.GetType().IsAssignableTo(typeof(IGameLoopIntegrator)))
-                {
-                    SaveAndLoadManager.Singleton.RegisterIntegrator(__instance as IGameLoopIntegrator);
-                }
-            }
-        }
-
-
-        public override void _AssignInstance()
-        {
-            base._AssignInstance();
-
-            Type instanceType = Type.GetType(__saveData._AssemblyQualifiedName_);
-
-                __instance = (TSavable)Activator.CreateInstance(instanceType);
+            __instance = (TSavable)Activator.CreateInstance(instanceType);
         }
     }
 }

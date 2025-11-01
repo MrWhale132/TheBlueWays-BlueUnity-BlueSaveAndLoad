@@ -10,6 +10,8 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
         where TSavable : UnityEngine.Component
         where TSaveData : MonoSaveDataBase, new()
     {
+        public override bool IsValid => __instance != null;
+
         public override void Init(object instance)
         {
             base.Init(instance);

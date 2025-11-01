@@ -44,7 +44,7 @@ namespace Assets._Project.Scripts.SaveAndLoad
                 _setter = (value) => _AssetId = AddressableDb.Singleton.GetAssetIdByAssetName((UnityEngine.Object)(object)value);
                 _getter = () =>
                 {
-                    return (T)(object)AddressableDb.Singleton.GetAssetById<Object>(_AssetId);
+                    return (T)(object)AddressableDb.Singleton.GetAssetByIdOrFallback<Object>(null, ref _AssetId);
                 };
             }
             else if (SaveAndLoadManager.Singleton.HasSaveHandlerForType(typeof(T))

@@ -1660,6 +1660,8 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
             Infra.Singleton.StartNewReferenceGraph();
 
+            var handlersToRemove = new List<ISaveAndLoad>();
+
 
             _ResetSaveStateMachine();
             _MoveToNextState();
@@ -1675,6 +1677,12 @@ namespace Assets._Project.Scripts.SaveAndLoad
                         continue;
                     }
 
+                    if (!handler.IsValid)
+                    {
+                        handlersToRemove.Add(handler);
+                        continue;
+                    }
+
                     handler.WriteSaveData();
                 }
 
@@ -1687,8 +1695,6 @@ namespace Assets._Project.Scripts.SaveAndLoad
             IsIteratingSaveHandlers = false;
 
 
-
-
             if (__currentSaveState == SaveState.Terminate)
             {
                 Debug.LogError($"The saving of the objects was terminated. Going to skip the rest of process.");
@@ -1696,6 +1702,13 @@ namespace Assets._Project.Scripts.SaveAndLoad
             }
 
 
+            foreach(var handler in handlersToRemove)
+            {
+                __mainSaveHandlers.Remove(handler);
+            }
+
+
+            ////////////////////////////////////////////////////
 
             HashSet<RandomId> referencedObjects = Infra.Singleton.GetReferencedObjects();
 
@@ -1722,10 +1735,11 @@ namespace Assets._Project.Scripts.SaveAndLoad
             }
             //Debug.LogWarning("discover "+stopwatch.ElapsedMilliseconds / 1000f);
 
+            ////////////////////////////////////////////////////
+
 
 
             var saveData = new Dictionary<string, List<string>>();
-
 
 
             foreach (var handler in processedHandlers)
@@ -1820,33 +1834,43 @@ namespace Assets._Project.Scripts.SaveAndLoad
             int i = 0;
 
 
-            foreach (var obj in objects)
+            try
             {
-                var saveInfo = JsonConvert.DeserializeObject<SavedObject>(obj);
-
-                if (saveInfo == null || saveInfo._MetaData_ == null)
+                foreach (var obj in objects)
                 {
-                    Debug.LogError($"SaveObject or its MetaData is null at {i} th object. Skipping this object.");
-                    continue;
+                    var saveInfo = JsonConvert.DeserializeObject<SavedObject>(obj);
+
+                    if (saveInfo == null || saveInfo._MetaData_ == null)
+                    {
+                        Debug.LogError($"SaveObject or its MetaData is null at {i} th object. Skipping this object.");
+                        continue;
+                    }
+
+                    var handler = GetSaveHandlerById(saveInfo._MetaData_);
+
+                    if (handler == null)
+                    {
+                        Debug.LogError($"No SaveHandler found for id {saveInfo._MetaData_.SaveHandlerId}. Skipping this object.");
+                        continue;
+                    }
+
+                    handler.Deserialize(obj);
+                    saveHandlers.Add(handler);
+
+                    SetObjectLoading(saveInfo._MetaData_.ObjectId, true);
+
+                    i++;
                 }
-
-                var handler = GetSaveHandlerById(saveInfo._MetaData_);
-
-                if (handler == null)
-                {
-                    Debug.LogError($"No SaveHandler found for id {saveInfo._MetaData_.SaveHandlerId}. Skipping this object.");
-                    continue;
-                }
-
-                handler.Deserialize(obj);
-                saveHandlers.Add(handler);
-
-                SetObjectLoading(saveInfo._MetaData_.ObjectId, true);
-
-                i++;
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Error during loading from save file at object index {i}: {e.Message}. The object that caused the error:\n{objects[i]}");
+                throw;
             }
 
 
+
+            
 
             var ordered = saveHandlers.GroupBy(handler => handler.MetaData.Order).OrderBy(group => group.Key);
 
@@ -1930,6 +1954,8 @@ namespace Assets._Project.Scripts.SaveAndLoad
             //let collisions and everything else we dont have control over trigger
             //our components should filter these if they are loading
             //update: this logic I think could be handled by integrators
+            yield return null;
+            yield return null;
             yield return null;
 
 

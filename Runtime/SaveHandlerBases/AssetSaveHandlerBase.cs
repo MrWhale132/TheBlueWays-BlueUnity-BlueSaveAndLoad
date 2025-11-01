@@ -1,5 +1,6 @@
 ﻿
 using Assets._Project.Scripts.Infrastructure;
+using Assets._Project.Scripts.Infrastructure.AddressableInfra;
 using Assets._Project.Scripts.UtilScripts;
 using Assets._Project.Scripts.UtilScripts.Misc;
 using UnityEngine;
@@ -10,29 +11,38 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
         where TAsset : UnityEngine.Object
         where TSaveData : AssetSaveData, new()
     {
-        public bool _isRuntimeGenerated;
-        public bool _isClone;
+        public bool IsProbablyUnmodifiedCopyOfOriginalAsset;
+        public override bool IsValid => __instance != null;
 
 
         public override void Init(object instance)
         {
             base.Init(instance);
 
-            _isRuntimeGenerated = __instance.IsProbablyRuntimeGenerated(out var _isClone);
+            IsProbablyUnmodifiedCopyOfOriginalAsset = __instance.IsProbablyUnmodifiedCopyOfOriginalAsset();
 
-            __saveData._isRuntimeGenerated = _isRuntimeGenerated;
-            __saveData._isClone = _isClone;
+            __saveData.IsProbablyUnmodifiedCopyOfOriginalAsset = IsProbablyUnmodifiedCopyOfOriginalAsset;
 
-            __saveData._AssetId_ = GetAssetId(__instance);
+            if (__saveData.IsProbablyUnmodifiedCopyOfOriginalAsset)
+                __saveData._AssetId_ = AddressableDb.Singleton.GetAssetIdOfOriginalAssetFromCopy(__instance);
         }
+
+        public override void WriteSaveData()
+        {
+            base.WriteSaveData();
+            __saveData.assetName = __instance.name;
+        }
+
 
         public override void CreateObject()
         {
             base.CreateObject();
 
-            if (!__saveData._isRuntimeGenerated)
+            IsProbablyUnmodifiedCopyOfOriginalAsset = __saveData.IsProbablyUnmodifiedCopyOfOriginalAsset;
+
+            if (IsProbablyUnmodifiedCopyOfOriginalAsset)
             {
-                __saveData._AssetId_.AssignAssetById(ref __instance);
+                _AssignInstance();
 
                 HandledObjectId = __saveData._ObjectId_;
 
@@ -43,13 +53,28 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
                 Debug.LogError($"Recreating runtime generated asset is not supported currently. AssetId: {__saveData._AssetId_}");
             }
         }
+
+        public override void _AssignInstance()
+        {
+            if (IsProbablyUnmodifiedCopyOfOriginalAsset)
+            {
+                var orig = GetAssetById<TAsset>(__saveData._AssetId_, null);
+
+                if (orig != null)
+                {
+                    var copy = Object.Instantiate(orig);
+
+                    __instance = copy;
+                }
+            }
+        }
     }
 
 
     public class AssetSaveData : SaveDataBase
     {
         public RandomId _AssetId_;
-        public bool _isRuntimeGenerated;
-        public bool _isClone;
+        public bool IsProbablyUnmodifiedCopyOfOriginalAsset;
+        public string assetName;
     }
 }

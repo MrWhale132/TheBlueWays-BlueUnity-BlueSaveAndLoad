@@ -60,9 +60,9 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
         public T GetAssetById<T>(RandomId id, T fallback) where T : UnityEngine.Object
         {
-            var asset = AddressableDb.Singleton.GetAssetById<T>(id);
+            var asset = AddressableDb.Singleton.GetAssetByIdOrFallback<T>(fallback, ref id);
 
-            return asset == null ? fallback : asset;
+            return asset;
         }
 
         public T GetDelegate<T>(InvocationList list) where T : Delegate

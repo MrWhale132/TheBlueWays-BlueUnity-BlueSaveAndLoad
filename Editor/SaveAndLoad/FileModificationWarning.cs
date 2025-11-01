@@ -22,7 +22,7 @@ public static class CodegenWatcher
         if (watcher != null) return;
 
         // Watch your Scripts folder (change as needed)
-        string path = Path.Combine(Application.dataPath,"_Project"/*, "Scripts"*/);
+        string path = Path.Combine(Application.dataPath/*, "Scripts"*/);
         if (!Directory.Exists(path)) return;
 
         watcher = new FileSystemWatcher(path, "*.cs")

@@ -11,6 +11,8 @@ using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
 using System.Threading;
 using Object = UnityEngine.Object;
+using Assets._Project.Scripts.UtilScripts.Misc;
+
 
 
 
@@ -32,7 +34,7 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
         {
             public RandomId id;
             public string address;
-            public string typedAddress ="";
+            public string typedAddress = "";
             public string assetName;
         }
 
@@ -186,7 +188,7 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
                 }
                 entries.AddRange(subs);
             }
-            
+
 
             List<AddressableAssetEntry> distinct = new List<AddressableAssetEntry>();
             Dictionary<string, AddressableAssetEntry> byAddress = new Dictionary<string, AddressableAssetEntry>();
@@ -511,10 +513,58 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
 
 
 
+        public RandomId GetAssetIdOfOriginalAssetFromCopy(UnityEngine.Object unityObj)
+        {
+            if (unityObj == null) return RandomId.Default;
+
+            //assume its name ends with " Instance" or " (Instance)"
+            string name = unityObj.name.Substring(0,unityObj.name.LastIndexOf(' '));
+
+            string extendedName = _service.GetExtendedAssetName(name, unityObj.GetType());
+
+
+            RandomId id = _GetIdByAssetName(extendedName);
+
+            if (id.IsDefault && !string.IsNullOrEmpty(unityObj.name))
+            {
+                if (unityObj.name != "Default UI Material"
+                )
+                {
+                    Debug.LogWarning($"AddressableDb: Did not find the ID of the original asset of copy: {unityObj.name}. Type: {unityObj.GetType().FullName}. Going to return a default value.");
+                    return RandomId.Default;
+                }
+            }
+
+            return id;
+        }
+
 
         public RandomId GetAssetIdByAssetName(UnityEngine.Object unityObj)
         {
             if (unityObj == null) return RandomId.Default;
+
+            //if ((unityObj.name.EndsWith(" Instance", System.StringComparison.Ordinal))
+            //    || (unityObj.name.EndsWith(" (Instance)", System.StringComparison.Ordinal))
+            //    )
+            if (unityObj.name.StartsWith("Plane"))
+            {
+                //Debug.Log(unityObj.name);
+            }
+            if (unityObj.IsProbablyUnmodifiedCopyOfOriginalAsset())
+            {
+                string name = unityObj.name.Substring(0, unityObj.name.LastIndexOf(' '));
+                string extendedName2 = _service.GetExtendedAssetName(name,unityObj.GetType());
+
+                if (_unityBuiltInResourceExtendedNamesToObjectIdsMap.TryGetValue(extendedName2, out var id3))
+                {
+                    return id3;
+                }
+
+                id3 = Infra.Singleton.GetObjectId(unityObj, Infra.Singleton.GlobalReferencing); //todo: GlobalReferencing should be a quick temp solution
+                return id3;
+            }
+
+
 
             string extendedName = GetExtendedAssetName(unityObj);
 
@@ -524,7 +574,7 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
             }
 
 
-            RandomId id = GetIdByAssetName(extendedName);
+            RandomId id = _GetIdByAssetName(extendedName);
 
             if (id.IsDefault && !string.IsNullOrEmpty(unityObj.name))
             {
@@ -540,22 +590,12 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
             return id;
         }
 
-        public RandomId GetIdByAssetName(string assetName)
+        public RandomId _GetIdByAssetName(string assetName)
         {
             if (string.IsNullOrEmpty(assetName))
             {
                 return RandomId.Default;
             }
-
-            //if (assetName.EndsWith(" Instance", System.StringComparison.Ordinal))
-            //{
-            //    assetName = assetName.Substring(0, assetName.Length - " Instance".Length);
-            //}
-            //else if (assetName.EndsWith(" (Instance)", System.StringComparison.Ordinal))
-            //{
-            //    assetName = assetName.Substring(0, assetName.Length - " (Instance)".Length);
-            //}
-
 
             if (__db._assetName.TryGetValue(assetName, out var dto))
             {
@@ -573,7 +613,7 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
 
 
 
-        private string GetAddressById(RandomId id)
+        private string _GetAddressById(RandomId id)
         {
             if (id.IsDefault)
             {
@@ -588,13 +628,13 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
             }
             else
             {
-                Debug.LogWarning($"AddressableDb: No address found for ID {id}. Going to return a default value.");
+                //Debug.LogWarning($"AddressableDb: No address found for ID {id}. Going to return a default value.");
                 return null;
             }
         }
 
 
-        public T GetAssetById<T>(RandomId id) where T : UnityEngine.Object
+        public T _GetAssetById<T>(RandomId id) where T : UnityEngine.Object
         {
             if (_unityBuiltInResourceObjectIdsToExtendedNameMap.TryGetValue(id, out var extendedName))
             {
@@ -619,17 +659,23 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
 
 
 
-            string address = GetAddressById(id);
+
+            string address = _GetAddressById(id);
 
             if (string.IsNullOrEmpty(address))
             {
-                return default;
+                var asset = Infra.Singleton.GetObjectById<T>(id);
+
+                if (asset != null)
+                {
+                    return asset;
+                }
             }
 
 
-            if (address == null)
+            if (string.IsNullOrEmpty(address))
             {
-                Debug.LogError($"AddressableDb: No address found for ID {id}. Cannot get asset.");
+                Debug.LogError($"AddressableDb: Neither an address nor a registered object found for ID {id}. Cannot get asset.");
                 return null;
             }
             new ManualResetEvent(false);
@@ -664,7 +710,7 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
                 return fallbackAsset;
             }
 
-            return GetAssetById<T>(id);
+            return _GetAssetById<T>(id);
         }
 
 

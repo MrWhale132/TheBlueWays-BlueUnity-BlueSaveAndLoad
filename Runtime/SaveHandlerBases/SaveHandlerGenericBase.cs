@@ -1,7 +1,12 @@
 ﻿using Assets._Project.Scripts.Infrastructure;
+using Assets._Project.Scripts.Infrastructure.AddressableInfra;
 using Assets._Project.Scripts.SaveAndLoad.SavableDelegates;
+using Assets._Project.Scripts.UtilScripts;
 using Newtonsoft.Json;
+using NUnit.Framework;
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
 
@@ -120,5 +125,40 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
             return Infra.Singleton.GetInvocationList(dlg);
         }
 
+
+
+        //these are quick fixes because dynamic object load order setting is not ready yet
+        public void GetAssetIdList(IEnumerable<UnityEngine.Object> objs, List<RandomId> ids)
+        {
+            ids.Clear();
+            int i = 0;
+            foreach (var obj in objs)
+            {
+                var material = obj;
+                if (material != null)
+                {
+                    var assetId = AddressableDb.Singleton.GetAssetIdByAssetName(material);
+                    ids.Add(assetId);
+                }
+                i++;
+            }
+        }
+
+        public T[] GetAssetList<T>(List<RandomId> ids) where T : UnityEngine.Object
+        {
+            T[] assets = new T[ids.Count];
+
+            for (int i = 0; i < ids.Count; i++)
+            {
+                var id = ids[i];
+
+                var asset = AddressableDb.Singleton.GetAssetByIdOrFallback<T>(null, ref id);
+
+                if (asset != null)
+                    assets[i] = asset;
+            }
+
+            return assets;
+        }
     }
 }

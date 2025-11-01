@@ -13,6 +13,7 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.UnitySHs
 	{
 		public override void WriteSaveData()
 		{
+			if (IsProbablyUnmodifiedCopyOfOriginalAsset) return;
 			base.WriteSaveData();
 			__saveData.indexFormat = __instance.indexFormat;
 			__saveData.vertexBufferTarget = __instance.vertexBufferTarget;
@@ -23,6 +24,7 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.UnitySHs
 
 		public override void LoadReferences()
 		{
+			if (IsProbablyUnmodifiedCopyOfOriginalAsset) return;
 			base.LoadReferences();
 			__instance.indexFormat = __saveData.indexFormat;
 			__instance.vertexBufferTarget = __saveData.vertexBufferTarget;
@@ -30,7 +32,8 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.UnitySHs
 			__instance.bindposes = GetObjectById<UnityEngine.Matrix4x4[]>(__saveData.bindposes);
 			__instance.subMeshCount = __saveData.subMeshCount;
 		}
-		static MeshSaveHandler()
+
+        static MeshSaveHandler()
 		{
 			Dictionary<string, long> methodToId = new()
 			{

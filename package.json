@@ -6,7 +6,7 @@
         "com.unity.nuget.newtonsoft-json": "3.2.1",
         "com.unity.addressables": "2.2.2",
         "com.blueutils.core": "1.0.0",
-        "com.blueutils.codegen": "1.0.0",
+        "com.blueutils.codegen": "1.0.1",
         "com.blueutils.addressables": "1.0.0",
         "com.blueutils.newtonsoft": "1.0.0"
     }

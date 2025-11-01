@@ -38,13 +38,9 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.Dotnet.Coll
         }
 
 
-        public override void CreateObject()
+        public override void _AssignInstance()
         {
-            base.CreateObject();
-
             __instance = new TElement[__saveData.elements.Length];
-
-            Infra.Singleton.RegisterReference(__instance, HandledObjectId);
         }
 
         public override void LoadReferences()
@@ -67,7 +63,7 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.Dotnet.Coll
 
 
 
-    //maybe we can use this is somewhy we would need to save Array type
+    //maybe we can use this if somewhy we would need to save Array type
     public class ArraySaveHandler : UnmanagedSaveHandler<Array, ArraySaveData>
     {
         public ArraySaveHandler()

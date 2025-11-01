@@ -14,12 +14,13 @@ namespace Assets._Project.Scripts.Infrastructure
     {
         public RandomId ObjectId { get; set; }//id for this component
 
-
-        [field: SerializeField]
+        //any of these are unused currently
+        //[field: SerializeField]
         public bool IsNetworked { get; set; }
 
-        [field: SerializeField]
+        //[field: SerializeField]
         public bool IsUIElement { get; set; }
+        [HideInInspector]
         public bool prefab;
 
         //[Obsolete]
@@ -68,7 +69,6 @@ namespace Assets._Project.Scripts.Infrastructure
 
             ObjectId = Infra.Singleton.GetObjectId(this, Infra.Singleton.GlobalReferencing);
         }
-
 
 
         public void OnDestroy()

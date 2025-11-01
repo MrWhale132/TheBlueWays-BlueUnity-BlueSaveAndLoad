@@ -21,6 +21,9 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
         where TSubstitute : StaticSubtitute, new()
         where TSaveData : StaticSaveDataBase, new()
     {
+        public override bool IsValid => true;
+
+
         //static handlers are called with null
         public override void Init(object instance)
         {

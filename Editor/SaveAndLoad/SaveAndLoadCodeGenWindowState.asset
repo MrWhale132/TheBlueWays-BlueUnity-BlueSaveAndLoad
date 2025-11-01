@@ -15,246 +15,75 @@ MonoBehaviour:
   _scrollPos: {x: 0, y: 0}
   _eventqueue:
   - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Runtime\Infra\AddressablesInfra\Editor\AddressableDbEditor.cs
-    Name: Scripts\SaveAndLoad\Runtime\Infra\AddressablesInfra\Editor\AddressableDbEditor.cs
+    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\FbxPostprocessor.cs
+    Name: _Project\Scripts\FbxPostprocessor.cs
   - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Editor\SaveAndLoad\BulkAssetEditor.cs
-    Name: Scripts\SaveAndLoad\Editor\SaveAndLoad\BulkAssetEditor.cs
+    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\FbxPostprocessor.cs
+    Name: _Project\Scripts\FbxPostprocessor.cs
+  - ChangeType: 2
+    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\FbxPostprocessor.cs
+    Name: _Project\Scripts\FbxPostprocessor.cs
   - ChangeType: 1
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Editor\Infrastructure\AddressableDbEditor.cs
-    Name: Scripts\SaveAndLoad\Editor\Infrastructure\AddressableDbEditor.cs
+    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Tanks\Art\Models\NewMonoBehaviourScript.cs
+    Name: _Tanks\Art\Models\NewMonoBehaviourScript.cs
   - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Runtime\Infra\AddressablesInfra\AddressableDb.cs
-    Name: Scripts\SaveAndLoad\Runtime\Infra\AddressablesInfra\AddressableDb.cs
+    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Tanks\Scripts\Tank\TankMovement.cs
+    Name: _Tanks\Scripts\Tank\TankMovement.cs
   - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Editor\SaveAndLoad\BulkAssetEditor.cs
-    Name: Scripts\SaveAndLoad\Editor\SaveAndLoad\BulkAssetEditor.cs
+    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Tanks\Scripts\Tank\TankMovement.cs
+    Name: _Tanks\Scripts\Tank\TankMovement.cs
   - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Editor\SaveAndLoad\BulkAssetEditor.cs
-    Name: Scripts\SaveAndLoad\Editor\SaveAndLoad\BulkAssetEditor.cs
+    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\MaterialSaveHandler.cs
+    Name: _Project\Scripts\SaveHandlers\DevTest\MaterialSaveHandler.cs
+  - ChangeType: 2
+    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\MaterialSaveHandler.cs
+    Name: _Project\Scripts\SaveHandlers\DevTest\MaterialSaveHandler.cs
   - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Editor\SaveAndLoad\BulkAssetEditor.cs
-    Name: Scripts\SaveAndLoad\Editor\SaveAndLoad\BulkAssetEditor.cs
+    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\WaitForSecondsSaveHandler.cs
+    Name: _Project\Scripts\SaveHandlers\DevTest\WaitForSecondsSaveHandler.cs
+  - ChangeType: 2
+    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\WaitForSecondsSaveHandler.cs
+    Name: _Project\Scripts\SaveHandlers\DevTest\WaitForSecondsSaveHandler.cs
   - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Editor\SaveAndLoad\BulkAssetEditor.cs
-    Name: Scripts\SaveAndLoad\Editor\SaveAndLoad\BulkAssetEditor.cs
-  - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Editor\SaveAndLoad\BulkAssetEditor.cs
-    Name: Scripts\SaveAndLoad\Editor\SaveAndLoad\BulkAssetEditor.cs
-  - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Editor\SaveAndLoad\BulkAssetEditor.cs
-    Name: Scripts\SaveAndLoad\Editor\SaveAndLoad\BulkAssetEditor.cs
-  - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Editor\SaveAndLoad\BulkAssetEditor.cs
-    Name: Scripts\SaveAndLoad\Editor\SaveAndLoad\BulkAssetEditor.cs
-  - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Runtime\Infra\AddressablesInfra\AddressableDb.cs
-    Name: Scripts\SaveAndLoad\Runtime\Infra\AddressablesInfra\AddressableDb.cs
-  - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Editor\SaveAndLoad\BulkAssetEditor.cs
-    Name: Scripts\SaveAndLoad\Editor\SaveAndLoad\BulkAssetEditor.cs
-  - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Editor\SaveAndLoad\BulkAssetEditor.cs
-    Name: Scripts\SaveAndLoad\Editor\SaveAndLoad\BulkAssetEditor.cs
-  - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Editor\SaveAndLoad\BulkAssetEditor.cs
-    Name: Scripts\SaveAndLoad\Editor\SaveAndLoad\BulkAssetEditor.cs
-  - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Runtime\Infra\AddressablesInfra\AddressableDb.cs
-    Name: Scripts\SaveAndLoad\Runtime\Infra\AddressablesInfra\AddressableDb.cs
-  - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\UtilScripts\Addressables\Editor\AddressableUtils.cs
-    Name: Scripts\UtilScripts\Addressables\Editor\AddressableUtils.cs
-  - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Runtime\Infra\AddressablesInfra\AddressableDb.cs
-    Name: Scripts\SaveAndLoad\Runtime\Infra\AddressablesInfra\AddressableDb.cs
-  - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Runtime\Infra\AddressablesInfra\AddressableDb.cs
-    Name: Scripts\SaveAndLoad\Runtime\Infra\AddressablesInfra\AddressableDb.cs
-  - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Runtime\Infra\AddressablesInfra\AddressableDb.cs
-    Name: Scripts\SaveAndLoad\Runtime\Infra\AddressablesInfra\AddressableDb.cs
-  - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Runtime\Infra\AddressablesInfra\AddressableDb.cs
-    Name: Scripts\SaveAndLoad\Runtime\Infra\AddressablesInfra\AddressableDb.cs
-  - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Runtime\Infra\AddressablesInfra\AddressableDb.cs
-    Name: Scripts\SaveAndLoad\Runtime\Infra\AddressablesInfra\AddressableDb.cs
-  - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Runtime\Infra\AddressablesInfra\AddressableDb.cs
-    Name: Scripts\SaveAndLoad\Runtime\Infra\AddressablesInfra\AddressableDb.cs
-  - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Runtime\Infra\AddressablesInfra\AddressableDb.cs
-    Name: Scripts\SaveAndLoad\Runtime\Infra\AddressablesInfra\AddressableDb.cs
-  - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Runtime\Infra\AddressablesInfra\AddressableDb.cs
-    Name: Scripts\SaveAndLoad\Runtime\Infra\AddressablesInfra\AddressableDb.cs
-  - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Runtime\Infra\Infra.cs
-    Name: Scripts\SaveAndLoad\Runtime\Infra\Infra.cs
-  - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Runtime\Infra\AddressablesInfra\AddressableDb.cs
-    Name: Scripts\SaveAndLoad\Runtime\Infra\AddressablesInfra\AddressableDb.cs
-  - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Editor\SaveAndLoad\SaveAndLoadCodeGenWindow.cs
-    Name: Scripts\SaveAndLoad\Editor\SaveAndLoad\SaveAndLoadCodeGenWindow.cs
-  - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Runtime\Infra\AddressablesInfra\AddressableDb.cs
-    Name: Scripts\SaveAndLoad\Runtime\Infra\AddressablesInfra\AddressableDb.cs
-  - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Runtime\Infra\Infra.cs
-    Name: Scripts\SaveAndLoad\Runtime\Infra\Infra.cs
-  - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\JoinManager.cs
-    Name: Scripts\JoinManager.cs
-  - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Editor\SaveAndLoad\SaveAndLoadCodeGenWindow.cs
-    Name: Scripts\SaveAndLoad\Editor\SaveAndLoad\SaveAndLoadCodeGenWindow.cs
-  - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Samples\UI\LoadWorldSaveUI.cs
-    Name: Scripts\SaveAndLoad\Samples\UI\LoadWorldSaveUI.cs
-  - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Runtime\Infra\GOInfra.cs
-    Name: Scripts\SaveAndLoad\Runtime\Infra\GOInfra.cs
-  - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Runtime\Infra\GOInfra.cs
-    Name: Scripts\SaveAndLoad\Runtime\Infra\GOInfra.cs
-  - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Runtime\Infra\GOInfra.cs
-    Name: Scripts\SaveAndLoad\Runtime\Infra\GOInfra.cs
+    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\Slider_SliderEventSaveHandler.cs
+    Name: _Project\Scripts\SaveHandlers\DevTest\Slider_SliderEventSaveHandler.cs
+  - ChangeType: 2
+    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\Slider_SliderEventSaveHandler.cs
+    Name: _Project\Scripts\SaveHandlers\DevTest\Slider_SliderEventSaveHandler.cs
+  _changedFiles:
   - ChangeType: 1
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Runtime\ThirdPartySaveHandlers\Unity\UnityEngineSHs\ParticleSystemRendererSaveHandler.cs
-    Name: Scripts\SaveAndLoad\Runtime\ThirdPartySaveHandlers\Unity\UnityEngineSHs\ParticleSystemRendererSaveHandler.cs
+    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\Test.cs
+    Name: _Project\Scripts\Test.cs
   - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Runtime\ThirdPartySaveHandlers\Unity\UnityEngineSHs\ParticleSystemRendererSaveHandler.cs
-    Name: Scripts\SaveAndLoad\Runtime\ThirdPartySaveHandlers\Unity\UnityEngineSHs\ParticleSystemRendererSaveHandler.cs
+    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\Test.cs
+    Name: _Project\Scripts\Test.cs
   - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Runtime\ThirdPartySaveHandlers\Unity\UnityEngineSHs\ParticleSystemRendererSaveHandler.cs
-    Name: Scripts\SaveAndLoad\Runtime\ThirdPartySaveHandlers\Unity\UnityEngineSHs\ParticleSystemRendererSaveHandler.cs
-  - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Runtime\SaveHandlerBases\GameObjectSaveHandler.cs
-    Name: Scripts\SaveAndLoad\Runtime\SaveHandlerBases\GameObjectSaveHandler.cs
-  - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Runtime\SaveHandlerBases\MonoSaveHandler.cs
-    Name: Scripts\SaveAndLoad\Runtime\SaveHandlerBases\MonoSaveHandler.cs
-  - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Runtime\SaveAndLoadManager.cs
-    Name: Scripts\SaveAndLoad\Runtime\SaveAndLoadManager.cs
-  - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Runtime\SaveHandlerBases\GameObjectSaveHandler.cs
-    Name: Scripts\SaveAndLoad\Runtime\SaveHandlerBases\GameObjectSaveHandler.cs
+    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\ObjectSaveHandler.cs
+    Name: _Project\Scripts\SaveHandlers\DevTest\ObjectSaveHandler.cs
   - ChangeType: 1
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Runtime\Tests\RequireCompTestA.cs
-    Name: Scripts\SaveAndLoad\Runtime\Tests\RequireCompTestA.cs
+    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\TestSaveHandler.cs
+    Name: _Project\Scripts\SaveHandlers\DevTest\TestSaveHandler.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\TestSaveHandler.cs
+    Name: _Project\Scripts\SaveHandlers\DevTest\TestSaveHandler.cs
   - ChangeType: 1
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Runtime\Tests\RequireCompTestB.cs
-    Name: Scripts\SaveAndLoad\Runtime\Tests\RequireCompTestB.cs
-  - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Runtime\Tests\RequireCompTestA.cs
-    Name: Scripts\SaveAndLoad\Runtime\Tests\RequireCompTestA.cs
-  - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Runtime\Tests\RequireCompTestB.cs
-    Name: Scripts\SaveAndLoad\Runtime\Tests\RequireCompTestB.cs
-  - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Runtime\SaveHandlerBases\GameObjectSaveHandler.cs
-    Name: Scripts\SaveAndLoad\Runtime\SaveHandlerBases\GameObjectSaveHandler.cs
-  - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Runtime\SaveHandlerBases\MonoSaveHandler.cs
-    Name: Scripts\SaveAndLoad\Runtime\SaveHandlerBases\MonoSaveHandler.cs
-  - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Runtime\ThirdPartySaveHandlers\Unity\UnityEngineSHs\ParticleSystemRendererSaveHandler.cs
-    Name: Scripts\SaveAndLoad\Runtime\ThirdPartySaveHandlers\Unity\UnityEngineSHs\ParticleSystemRendererSaveHandler.cs
-  - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Runtime\SaveHandlerBases\MonoSaveHandler.cs
-    Name: Scripts\SaveAndLoad\Runtime\SaveHandlerBases\MonoSaveHandler.cs
-  - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Runtime\SaveAndLoadManager.cs
-    Name: Scripts\SaveAndLoad\Runtime\SaveAndLoadManager.cs
+    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\GraphicSaveHandler.cs
+    Name: _Project\Scripts\SaveHandlers\DevTest\GraphicSaveHandler.cs
   - ChangeType: 1
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Runtime\ThirdPartySaveHandlers\Unity\UnityEngineSHs\ParticleSystemSaveHandler.cs
-    Name: Scripts\SaveAndLoad\Runtime\ThirdPartySaveHandlers\Unity\UnityEngineSHs\ParticleSystemSaveHandler.cs
+    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\MaskableGraphicSaveHandler.cs
+    Name: _Project\Scripts\SaveHandlers\DevTest\MaskableGraphicSaveHandler.cs
+  - ChangeType: 1
+    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\ImageSaveHandler.cs
+    Name: _Project\Scripts\SaveHandlers\DevTest\ImageSaveHandler.cs
   - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Runtime\ThirdPartySaveHandlers\Unity\UnityEngineSHs\ParticleSystemSaveHandler.cs
-    Name: Scripts\SaveAndLoad\Runtime\ThirdPartySaveHandlers\Unity\UnityEngineSHs\ParticleSystemSaveHandler.cs
+    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\MaskableGraphicSaveHandler.cs
+    Name: _Project\Scripts\SaveHandlers\DevTest\MaskableGraphicSaveHandler.cs
+  - ChangeType: 1
+    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\MaskableGraphic_CullStateChangedEventSaveHandler.cs
+    Name: _Project\Scripts\SaveHandlers\DevTest\MaskableGraphic_CullStateChangedEventSaveHandler.cs
   - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Runtime\SaveHandlerBases\GameObjectSaveHandler.cs
-    Name: Scripts\SaveAndLoad\Runtime\SaveHandlerBases\GameObjectSaveHandler.cs
-  - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Runtime\SaveHandlerBases\GameObjectSaveHandler.cs
-    Name: Scripts\SaveAndLoad\Runtime\SaveHandlerBases\GameObjectSaveHandler.cs
-  - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Runtime\SaveHandlerBases\GameObjectSaveHandler.cs
-    Name: Scripts\SaveAndLoad\Runtime\SaveHandlerBases\GameObjectSaveHandler.cs
-  - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Runtime\SaveHandlerBases\GameObjectSaveHandler.cs
-    Name: Scripts\SaveAndLoad\Runtime\SaveHandlerBases\GameObjectSaveHandler.cs
-  - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Runtime\SaveHandlerBases\GameObjectSaveHandler.cs
-    Name: Scripts\SaveAndLoad\Runtime\SaveHandlerBases\GameObjectSaveHandler.cs
-  - ChangeType: 4
-    FullPath: C:\Users\Roli\OneDrive\Dokumentumok\Unity Projects\sot clone\wave sim\HDRP
-      Water System\Assets\_Project\Scripts\SaveAndLoad\Runtime\SaveHandlerBases\GameObjectSaveHandler.cs
-    Name: Scripts\SaveAndLoad\Runtime\SaveHandlerBases\GameObjectSaveHandler.cs
-  _changedFiles: []
-  _selectedIndices: 
+    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\MaskableGraphic_CullStateChangedEventSaveHandler.cs
+    Name: _Project\Scripts\SaveHandlers\DevTest\MaskableGraphic_CullStateChangedEventSaveHandler.cs
+  _selectedIndices: 00000000
   _userSettings: {fileID: 11400000, guid: 8b67b65e7aed92246b93ac4b59be0137, type: 2}
-  _selectedFolderToScan: _Project
+  _selectedFolderToScan: 

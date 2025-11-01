@@ -121,6 +121,7 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
 
         public ComponentAddingTracker ComponentAddingTracker { get; set; }
 
+        public override bool IsValid => __instance != null;
 
 
         public T AddComponent<T>() where T : Component
@@ -214,7 +215,7 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
 
             if (__saveData.IsPrefab)
             {
-                __instance = AddressableDb.Singleton.GetAssetById<GameObject>(__saveData.GameObjectId);
+                __instance = AddressableDb.Singleton.GetAssetByIdOrFallback<GameObject>(null, ref __saveData.GameObjectId);
 
 
                 _components.Clear();

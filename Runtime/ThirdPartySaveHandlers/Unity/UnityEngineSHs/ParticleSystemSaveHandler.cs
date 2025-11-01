@@ -26,6 +26,7 @@ namespace DevTest
         public override void LoadReferences()
         {
             base.LoadReferences();
+            __instance.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             __instance.time = __saveData.time;
             __instance.randomSeed = __saveData.randomSeed;
             __instance.useAutoRandomSeed = __saveData.useAutoRandomSeed;

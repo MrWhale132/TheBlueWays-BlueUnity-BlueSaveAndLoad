@@ -148,7 +148,7 @@ namespace Assets._Project.Scripts.Infrastructure
 
             if (isNull)
             {
-                Debug.LogError("Can not register null reference.");
+                Debug.LogError("Can not register null reference. Key: "+key.ToString());
                 return;
             }
 
@@ -451,7 +451,8 @@ namespace Assets._Project.Scripts.Infrastructure
             }
             else
             {
-                Debug.LogWarning($"[Infra][{UnregisteredObjectTypeLogCode}] A type has no savehandler registered for it. {TypeAnnotation} {obj.GetType().CleanAssemblyQualifiedName()}");
+                var msg = $"[Infra][{UnregisteredObjectTypeLogCode}] A type has no savehandler registered for it. {TypeAnnotation} {obj.GetType().CleanAssemblyQualifiedName()}";
+                Debug.LogWarning(msg);
             }
         }
 

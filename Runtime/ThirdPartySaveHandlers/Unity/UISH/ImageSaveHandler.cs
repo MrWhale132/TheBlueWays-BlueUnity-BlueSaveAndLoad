@@ -9,7 +9,7 @@ using System.Collections.Generic;
 using System;
 using System.Reflection;
 using UnityEngine;
-namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.UnitySHs.UI
+namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.UnitySHs.UISH
 {
     [SaveHandler(389237057858509605, "Image", typeof(Image))]
     public class ImageSaveHandler : MonoSaveHandler<UnityEngine.UI.Image, ImageSaveData>
@@ -75,9 +75,9 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.UnitySHs.UI
                 {"CalculateLayoutInputVertical():mscorlib System.Void", 957575805488319767},
                 {"IsRaycastLocationValid(UnityEngine.CoreModule UnityEngine.Vector2,UnityEngine.CoreModule UnityEngine.Camera):mscorlib System.Boolean", 450617479394199084}
             };
-            Infra.Singleton.__methodIdsByMethodSignaturePerType.Add(_typeReference, methodToId);
-            Infra.Singleton.__methodGetterFactoryPerType.Add(_typeReference, _idToMethod);
-            Infra.Singleton.__methodInfoGettersPerType.Add(_typeReference, _idToMethodInfo);
+            Infra.Singleton.AddMethodSignatureToMethodIdMap(_typeReference, methodToId);
+            Infra.Singleton.AddMethodIdToMethodMap(_typeReference, _idToMethod);
+            Infra.Singleton.AddMethodIdToMethodInfoMap(_typeReference, _idToMethodInfo);
         }
         static Type _typeReference = typeof(UnityEngine.UI.Image);
         static Type _typeDefinition = typeof(UnityEngine.UI.Image);

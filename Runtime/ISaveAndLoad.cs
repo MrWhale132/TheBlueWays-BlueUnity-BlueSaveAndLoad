@@ -15,6 +15,7 @@ namespace Assets._Project.Scripts.SaveAndLoad
         public string DataGroupId { get; }
         public Type HandledType { get; }
         public int Order { get; set; }
+        public bool IsValid { get; }
         public void ReleaseObject();
         //save
         public void WriteSaveData();
