@@ -1,13 +1,10 @@
-﻿//auto-generated
-using UnityEngine;
-using Assets._Project.Scripts.UtilScripts;
-using Assets._Project.Scripts.Infrastructure;
-using Assets._Project.Scripts.SaveAndLoad;
+﻿using Assets._Project.Scripts.Infrastructure;
 using Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases;
-using Assets._Project.Scripts.SaveAndLoad.SavableDelegates;
-using System.Collections.Generic;
+using Assets._Project.Scripts.UtilScripts;
 using System;
+using System.Collections.Generic;
 using System.Reflection;
+using UnityEngine;
 namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.Unity
 {
     [SaveHandler(746022504230144684, "RectTransform", typeof(UnityEngine.RectTransform), order:-9)]
@@ -72,9 +69,9 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.Unity
                 {"SetInsetAndSizeFromParentEdge(UnityEngine.CoreModule UnityEngine.RectTransform+Edge,mscorlib System.Single,mscorlib System.Single):mscorlib System.Void", 261595903766769992},
                 {"SetSizeWithCurrentAnchors(UnityEngine.CoreModule UnityEngine.RectTransform+Axis,mscorlib System.Single):mscorlib System.Void", 651510094482297483}
             };
-            Infra.Singleton.__methodIdsByMethodSignaturePerType.Add(_typeReference, methodToId);
-            Infra.Singleton.__methodGetterFactoryPerType.Add(_typeReference, _idToMethod);
-            Infra.Singleton.__methodInfoGettersPerType.Add(_typeReference, _idToMethodInfo);
+            Infra.Singleton.AddMethodSignatureToMethodIdMap(_typeReference, methodToId);
+            Infra.Singleton.AddMethodIdToMethodMap(_typeReference, _idToMethod);
+            Infra.Singleton.AddMethodIdToMethodInfoMap(_typeReference, _idToMethodInfo);
         }
         static Type _typeReference = typeof(RectTransform);
         static Type _typeDefinition = typeof(UnityEngine.RectTransform);

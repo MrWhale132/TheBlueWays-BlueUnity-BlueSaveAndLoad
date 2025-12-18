@@ -60,7 +60,15 @@ public class SaveAndLoadCodeGenSettings : ScriptableObject
             {
                 TypeExclusionRule.From(t => t.IsStruct() && t.IsGenericType),
                 TypeExclusionRule.From(t => t.Namespace?.StartsWith(typeof(Infra).Namespace) ?? false),
-                TypeExclusionRule.From(t => IgnoreAnyObsolete ? t.IsDefined(typeof(ObsoleteAttribute)) : false),
+                TypeExclusionRule.From(t =>
+                {
+                    var obsolete = t.GetCustomAttribute<ObsoleteAttribute>(false);
+
+                    if (obsolete != null && (obsolete.IsError|| IgnoreAnyObsolete))
+                        return true;
+
+                    return false;
+                }),
                 TypeExclusionRule.From(t => t.Assembly.GetName().Name == "SaveAndLoad"),
             }
         };
@@ -78,9 +86,31 @@ public class SaveAndLoadCodeGenSettings : ScriptableObject
 
     public bool IgnoreAnyObsolete;
 
-    [Tooltip("Paths should start from Assets folder, e.x: Assets/path/to/my/dir")]
+    [Tooltip("Only for types you have access to.")]
+    public bool GenerateSaveHandlersAsNestedClassesInsideHandledType;
+
+    public bool ForceGenerateForUnchangedTypesToo;
+
+    public TypeDiscoverySettings TypeDiscoverySettings;
+
+    [Tooltip("Paths should start from Assets folder, e.g.: Assets/path/to/my/dir")]
     public List<string> PrefabFolderPaths;
 }
+
+
+
+[Serializable]
+public class TypeDiscoverySettings
+{
+    public bool IgnoreAllDependencyTypes_TargetTypeOnly;
+
+    public bool IgnoreGenericTypeArguments => IgnoreAllDependencyTypes_TargetTypeOnly;
+    public bool IgnoreGenericTypeConstraints => IgnoreAllDependencyTypes_TargetTypeOnly;
+    public bool IgnoreImplementOrInherit => IgnoreAllDependencyTypes_TargetTypeOnly;
+    public bool IgnoreDirectDependencies => IgnoreAllDependencyTypes_TargetTypeOnly;
+    public bool IgnoreBaseType => IgnoreAllDependencyTypes_TargetTypeOnly;
+}
+
 
 [Serializable]
 public class ExclusionSettings

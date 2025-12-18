@@ -15,6 +15,8 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
         {
             base.CreateObject();
 
+            HandledObjectId = __saveData._ObjectId_;
+
             SaveAndLoadManager.Singleton.ExpectingIsObjectLoadingRequest = true;
 
             _AssignInstance();
@@ -22,7 +24,6 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
             SaveAndLoadManager.Singleton.ExpectingIsObjectLoadingRequest = false;
 
 
-            HandledObjectId = __saveData._ObjectId_;
 
             Infra.Singleton.RegisterReference(__instance, __saveData._ObjectId_,rootObject:true);
         }

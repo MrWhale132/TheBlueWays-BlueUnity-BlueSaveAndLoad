@@ -1,6 +1,7 @@
 ﻿
 using Assets._Project.Scripts.Infrastructure;
 using Assets._Project.Scripts.UtilScripts.CodeGen;
+using Assets._Project.Scripts.UtilScripts.Extensions;
 using System.Reflection;
 using UnityEngine;
 
@@ -16,8 +17,9 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
         {
             base.Init(instance);
 
-            
+
             __saveData.GameObjectId = GetObjectId(__instance.gameObject);
+            __saveData.IsFromPrefabAsset = __instance.gameObject.IsProbablyPrefabAsset();
         }
 
 
@@ -25,12 +27,19 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
         {
             base.CreateObject();
 
-
-            _AssignInstance();
-
             HandledObjectId = __saveData._ObjectId_;
 
-            Infra.Singleton.RegisterReference(__instance, __saveData._ObjectId_);
+
+            if (__saveData.IsFromPrefabAsset)
+            {
+                __instance = Infra.Singleton.GetObjectById<TSavable>(__saveData._ObjectId_);
+            }
+            else
+            {
+                _AssignInstance();
+
+                Infra.Singleton.RegisterReference(__instance, __saveData._ObjectId_);
+            }
 
 
             if (__instance.GetType().IsAssignableTo(typeof(IGameLoopIntegrator)))
@@ -41,10 +50,15 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
 
         public override void _AssignInstance()
         {
+            if (SaveAndLoadManager.Singleton.IsPartOfPrefabOrScenePlaced<TSavable>(HandledObjectId, out var instance))
+            {
+                __instance = instance;
+            }
+            else
+            {
             var goSH = SaveAndLoadManager.Singleton.GetSaveHandlerById<GameObjectSaveHandler>(__saveData.GameObjectId);
-            //var go = Infra.Singleton.GetObjectById<GameObject>(__saveData.GameObjectId);
-
-            __instance = goSH.AddComponent<TSavable>();
+                __instance = goSH.AddComponent<TSavable>();
+            }
         }
     }
 }

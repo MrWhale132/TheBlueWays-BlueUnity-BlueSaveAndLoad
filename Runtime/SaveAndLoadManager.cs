@@ -1,8 +1,9 @@
 using Assets._Project.Scripts.Infrastructure;
+using Assets._Project.Scripts.Infrastructure.AddressableInfra;
 using Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases;
 using Assets._Project.Scripts.UtilScripts;
 using Assets._Project.Scripts.UtilScripts.CodeGen;
-using Assets._Project.Scripts.UtilScripts.Misc;
+using Assets._Project.Scripts.UtilScripts.Extensions;
 using Eflatun.SceneReference;
 using Newtonsoft.Json;
 using System;
@@ -12,6 +13,7 @@ using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using Theblueway.SaveAndLoad.Packages.com.theblueway.saveandload.Runtime.InfraScripts;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
@@ -25,6 +27,8 @@ namespace Assets._Project.Scripts.SaveAndLoad
     public class SaveAndLoadManager : MonoBehaviour
     {
         public static SaveAndLoadManager Singleton { get; private set; }
+        public static PrefabDescriptionRegistry PrefabDescriptionRegistry { get; set; } = new PrefabDescriptionRegistry();
+        public static ScenePlacedObjectRegistry ScenePlacedObjectRegistry { get; set; } = new ScenePlacedObjectRegistry();
 
 
         public enum SaveState
@@ -89,6 +93,13 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
             BuildCustomSaveDataLookUp();
             BuildCustomSaveDataFactories(__isTypesHandledByCustomSaveDataLookup.Keys, __isTypesHandledByCustomSaveDataLookup.Values);
+        }
+
+
+        private void Start()
+        {
+            Infra.Singleton.Register(PrefabDescriptionRegistry, rootObject: true, createSaveHandler: true);
+            Infra.Singleton.Register(ScenePlacedObjectRegistry, rootObject: true, createSaveHandler: true);
         }
 
 
@@ -312,8 +323,8 @@ namespace Assets._Project.Scripts.SaveAndLoad
             //todo: test this out
             return Expression.Lambda<Func<TBase>>(castExpr).Compile(preferInterpretation: true);
         }
-        public static class CtorFactory<T>
-    where T : new()
+
+        public static class CtorFactory<T> where T : new()
         {
             public static T Create() => new T();
         }
@@ -334,6 +345,7 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
 
 
+        public static Service Service_ { get; } = new Service();
 
         public class Service
         {
@@ -349,6 +361,7 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
 
             public HashSet<Type> __serializeableTypes;
+            public Dictionary<Type, Type> __saveHandlerTypeByHandledObjectTypeLookUp = new();
 
 
 
@@ -373,7 +386,13 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
                     if (!baseType.IsGenericType || baseType.GetGenericTypeDefinition() != typeof(JsonConverter<>))
                     {
-                        Debug.LogWarning("There is a json converter that does not directly inherits from JsonConverter<>. It may not be a problem." +
+                        if (converter.GetType().Assembly.GetName() == typeof(JsonConverter).Assembly.GetName())
+                        {
+                            continue;
+                        }
+                        Debug.LogWarning("There is a json converter that does not directly inherits from JsonConverter<>. " +
+                            $"Type: {converter.GetType().CleanAssemblyQualifiedName()}. " +
+                            "It may not be a problem." +
                             "This is just notice to know about.");
                         continue;
                     }
@@ -389,32 +408,91 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
 
 
-            public bool HasSaveHandlerForType(Type type, bool isStatic)
+
+
+
+
+            public void InitServiceIfNeeded()
             {
-                if (isStatic)
+#if UNITY_EDITOR
+                if (!__hadInit)
                 {
-                    if (type.IsArray) return true;
-                    if (type.IsGenericType) type = type.GetGenericTypeDefinition();
-
-                    if (__staticSaveHandlerAttributesByHandledType.ContainsKey(type))
-                    {
-                        return true;
-                    }
+                    __hadInit = true;
+                    CollectSaveHandlers(fromEditor: true);
                 }
-
-                if (type.IsGenericType)
-                    return __genericSaveHandlerCreatorsByTypePerTypeDef.ContainsKey(type.GetGenericTypeDefinition());
-
-                else if (type.IsArray)
-                    return __arraySaveHandlerCreatorsByTypePerDimension.ContainsKey(type.GetArrayRank());
-
-                return __saveHandlerCreatorsByType.ContainsKey(type);
+#endif
             }
 
 
 
 #if UNITY_EDITOR
             public bool __hadInit;
+
+
+
+            //todo: this covers savehandlers only. Add customdatas and serializables
+            public bool IsTypeHandled_Editor(Type type, bool isStatic, out Type handlerType)
+            {
+                if (type.IsGenericType && !type.IsGenericTypeDefinition)
+                {
+                    Debug.LogError($"This api is not designed to work on close constructed generic types. It expects generic type definitions only. " +
+                        $"It will use the gen type def anyway. " +
+                        $"Type: {type.CleanAssemblyQualifiedName()}, isStatic:{isStatic}");
+                }
+
+
+                InitServiceIfNeeded();
+
+
+                if (type.IsGenericType) type = type.GetGenericTypeDefinition();
+
+                if (isStatic)
+                {
+                    if (type.IsArray)
+                    {
+                        //todo:
+                        throw new NotSupportedException("in progeress");
+                    }
+
+                    if (__staticSaveHandlerAttributesByHandledType.TryGetValue(type, out var attr2))
+                    {
+                        handlerType = attr2.HandlerType;
+                        return true;
+                    }
+
+                    handlerType = null;
+                    return false;
+                }
+
+
+                if (type.IsArray)
+                {
+                    if (__arraySaveHandlerCreatorsByTypePerDimension.TryGetValue(type.GetArrayRank(), out var lookup))
+                    {
+                        handlerType = lookup.saveHandlerTypeDef;
+                        return true;
+                    }
+
+                    handlerType = null;
+                    return false;
+                }
+
+
+                if (__saveHandlerAttributesByHandledType.TryGetValue(type, out var attr))
+                {
+                    handlerType = attr.HandlerType;
+                    return true;
+                }
+
+                if(__customSaveDataAttributesByType.TryGetValue(type, out var customSaveDataAttribute))
+                {
+                    handlerType = customSaveDataAttribute.SaveHandlerType;
+                    return true;
+                }
+
+                handlerType = null;
+                return false;
+            }
 
 
             public bool IsTypeHandled_Editor(Type type, bool isStatic)
@@ -514,33 +592,6 @@ namespace Assets._Project.Scripts.SaveAndLoad
             }
 
 
-            public bool HasManualSaveHandlerForType_Editor(Type type, bool isStatic)
-            {
-                InitServiceIfNeeded();
-
-
-                if (type.IsArray) return true;
-
-                if (type.IsGenericType) type = type.GetGenericTypeDefinition();
-
-                if (isStatic)
-                {
-                    if (__staticSaveHandlerAttributesByHandledType.TryGetValue(type, out var attribute2))
-                    {
-                        return attribute2.GenerationMode is SaveHandlerGenerationMode.Manual;
-                    }
-
-                    return false;
-                }
-
-                if (__saveHandlerAttributesByHandledType.TryGetValue(type, out var attribute))
-                {
-                    return attribute.GenerationMode is SaveHandlerGenerationMode.Manual;
-                }
-
-                return false;
-            }
-
 
             public bool HasSaveHandlerForType_Editor(Type type)
             {
@@ -551,16 +602,26 @@ namespace Assets._Project.Scripts.SaveAndLoad
             {
                 InitServiceIfNeeded();
 
-                return HasSaveHandlerForType(type, isStatic);
-            }
-
-            public void InitServiceIfNeeded()
-            {
-                if (!__hadInit)
+                if (isStatic)
                 {
-                    __hadInit = true;
-                    CollectSaveHandlers(fromEditor: true);
+                    if (type.IsArray) return true;
+                    if (type.IsGenericType) type = type.GetGenericTypeDefinition();
+
+                    if (__staticSaveHandlerAttributesByHandledType.ContainsKey(type))
+                    {
+                        return true;
+                    }
+
+                    return false;
                 }
+
+                if (type.IsGenericType)
+                    return __genericSaveHandlerCreatorsByTypePerTypeDef.ContainsKey(type.GetGenericTypeDefinition());
+
+                else if (type.IsArray)
+                    return __arraySaveHandlerCreatorsByTypePerDimension.ContainsKey(type.GetArrayRank());
+
+                return __saveHandlerCreatorsByType.ContainsKey(type);
             }
 
 
@@ -604,9 +665,100 @@ namespace Assets._Project.Scripts.SaveAndLoad
                 }
             }
 
+
+
+
+
+
+            public SaveHandlerBase.TypeMetaData GetSaveHandlerMetaData_Editor(Type handledType, bool isStaticHandler)
+            {
+                InitServiceIfNeeded();
+
+                if (!HasSaveHandlerForType_Editor(handledType, isStaticHandler)) { return null; }
+
+                var handlerType = GetSaveHandlerTypeFrom(handledType);
+
+                var methodName = nameof(SaveHandlerBase._methodToId);
+
+                var methodInfo = handlerType.GetMethod(methodName, BindingFlags.Public | BindingFlags.Static);
+                var methods = handlerType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
+                if (methodInfo == null)
+                {
+                    Debug.LogError($"SaveHandler {handlerType.FullName} does not have a public static method named {methodName}. " +
+                        $"Cannot get method id mapping for this SaveHandler.");
+                    return null;
+                }
+
+                var methodMapping = (Dictionary<string, long>)methodInfo.Invoke(null, null);
+
+                if (methodMapping == null)
+                {
+                    Debug.LogError($"SaveHandler {handlerType.FullName} {methodName} method returned null. " +
+                        $"Cannot get method id mapping for this SaveHandler.");
+                    return null;
+                }
+
+                return new SaveHandlerBase.TypeMetaData()
+                {
+                    MethodSignatureToMethodId = methodMapping,
+                };
+            }
+
 #endif
 
 
+
+
+            public Type GetSaveHandlerTypeFrom(Type objectType)
+            {
+                InitServiceIfNeeded();
+
+                if (__saveHandlerTypeByHandledObjectTypeLookUp.TryGetValue(objectType, out var handlerType))
+                {
+                    return handlerType;
+                }
+
+                if (objectType.IsGenericType)
+                {
+                    Type objectTypeDef = objectType.GetGenericTypeDefinition();
+
+
+                    if (__genericSaveHandlerCreatorsByTypePerTypeDef.TryGetValue(objectTypeDef, out var tuple))
+                    {
+                        Type handlerTypeDef = tuple.typeDef;
+
+                        var objectTypeArgs = objectType.GetGenericArguments();
+
+                        Type constructedGenericHandlerType = handlerTypeDef.MakeGenericType(objectTypeArgs);
+
+                        __saveHandlerTypeByHandledObjectTypeLookUp.Add(objectType, constructedGenericHandlerType);
+
+                        return constructedGenericHandlerType;
+                    }
+                }
+                else if (objectType.IsArray)
+                {
+                    Type elementType = objectType.GetElementType();
+                    int dimRank = objectType.GetArrayRank();
+
+
+                    if (__arraySaveHandlerCreatorsByTypePerDimension.TryGetValue(dimRank, out var tuple))
+                    {
+                        Type handlerTypeDef = tuple.saveHandlerTypeDef;
+
+                        var objectTypeArgs = new Type[] { elementType };
+
+                        Type constructedGenericHandlerType = handlerTypeDef.MakeGenericType(objectTypeArgs);
+
+                        __saveHandlerTypeByHandledObjectTypeLookUp.Add(objectType, constructedGenericHandlerType);
+
+                        return constructedGenericHandlerType;
+                    }
+                }
+
+                return null;
+
+            }
 
 
 
@@ -631,10 +783,17 @@ namespace Assets._Project.Scripts.SaveAndLoad
             public Dictionary<Type, SaveHandlerAttribute> __staticSaveHandlerAttributesByHandledType = new();
 
             public Dictionary<Type, SaveHandlerAttribute> __saveHandlerAttributesByHandledType = new();
-            public Dictionary<Type, SaveHandlerAttribute> SaveHandlerAttributesByHandledType {
-                get
-                { InitServiceIfNeeded(); return __saveHandlerAttributesByHandledType; }
-            }
+
+            //todo:remove if no problems
+            //            public Dictionary<Type, SaveHandlerAttribute> SaveHandlerAttributesByHandledType {
+            //                get
+            //                {
+            //#if UNITY_EDITOR
+            //                    InitServiceIfNeeded();
+            //#endif
+            //                    return __saveHandlerAttributesByHandledType;
+            //                }
+            //            }
 
 
 
@@ -654,16 +813,19 @@ namespace Assets._Project.Scripts.SaveAndLoad
                 //todo: find all relevant assemblies
                 var types = AppDomain.CurrentDomain.GetUserAssemblies().SelectMany(asm => asm.GetTypes());
 
-                foreach (Type saveHandlerType in types)
+                foreach (Type type in types)
                 {
-                    if (saveHandlerType.IsInterface || saveHandlerType.IsAbstract)
+                    if (type.IsInterface || type.IsAbstract)
                         continue;
 
-                    var attr = saveHandlerType.GetCustomAttribute<SaveHandlerAttribute>();
+                    var attr = type.GetCustomAttribute<SaveHandlerAttribute>();
                     if (attr == null)
                     {
                         continue;
                     }
+
+                    Type saveHandlerType = type;
+
 
                     if (attr.RequiresManualAttributeCreation)
                     {
@@ -686,6 +848,9 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
                         attr = manualAttr;
                     }
+
+
+                    attr.HandlerType = saveHandlerType;
 
 
 
@@ -783,17 +948,22 @@ namespace Assets._Project.Scripts.SaveAndLoad
                         __saveHandlerCreatorsById[attr.Id.ToString()] = ctor;
                         __saveHandlerCreatorsByType[attr.HandledType] = ctor;
 
+                        __saveHandlerTypeByHandledObjectTypeLookUp.Add(attr.HandledType, saveHandlerType);
+
 
 
                         if (attr.IsStatic)
                         {
                             if (attr.StaticHandlerOf is not null)//todo: tmp fix
                                 __staticSaveHandlerAttributesByHandledType[attr.StaticHandlerOf] = attr;
-
+                            else
+                            {
+                                Debug.LogError($"Savehandler {attr.Id} isStatic but still does not use the {nameof(SaveHandlerAttribute.StaticHandlerOf)} property.");
+                            }
 
                             if (!fromEditor)
                             {
-                                ///dont forget about generic static classes. <see cref="GenericWithStaticExampleClass{T}"/>
+                                ///todo: dont forget about generic static classes. <see cref="GenericWithStaticExampleClass{T}"/>
                                 var handler = ctor();
                                 handler.Init(null);
                                 AddSaveHandler(handler);
@@ -846,6 +1016,120 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
                 __currentSaveHandlers.Add(saveHandler);
             }
+
+
+
+
+
+
+            public Dictionary<long, SaveHandlerAttribute> __saveHandlerAttributesById;
+            public Dictionary<long, SaveHandlerAttribute> __staticSaveHandlerAttributesById;
+            public bool HadBuiltSaveHandlerIdByTypeLookups => __saveHandlerAttributesById != null && __staticSaveHandlerAttributesById != null;
+
+            public Type GetHandledTypeByHandlerId(long id)
+            {
+                return GetHandledTypeByHandlerId(id,out var _);
+            }
+
+            public Type GetHandledTypeByHandlerId(long id, out bool isStatic)
+            {
+                InitServiceIfNeeded();
+
+                if (!HadBuiltSaveHandlerIdByTypeLookups)
+                {
+                    var handlers = __saveHandlerAttributesByHandledType.Values;
+
+                    __saveHandlerAttributesById = new();
+
+                    foreach (var handler in handlers)
+                    {
+                        __saveHandlerAttributesById[handler.Id] = handler;
+                    }
+
+
+                    handlers = __staticSaveHandlerAttributesByHandledType.Values;
+
+                    __staticSaveHandlerAttributesById = new();
+
+                    foreach (var handler in handlers)
+                    {
+                        __staticSaveHandlerAttributesById[handler.Id] = handler;
+                    }
+                }
+
+                if (__staticSaveHandlerAttributesById.TryGetValue(id, out var attr))
+                {
+                    isStatic = true;
+                    return attr.StaticHandlerOf;
+                }
+                if (__saveHandlerAttributesById.TryGetValue(id, out attr))
+                {
+                    isStatic = false;
+                    return attr.HandledType;
+                }
+
+                Debug.LogError($"No savehandler found with id {id}.");
+                //Debug.LogError($"No handled type found for id {id}");
+                isStatic = false;
+                return null;
+            }
+
+
+
+            public Dictionary<long, (string handledTypeName, bool isStatic)> GetHandledTypeNameByHandlerIdLookup()
+            {
+                InitServiceIfNeeded();
+
+
+                var handlerIdsByTypeName = new Dictionary<long, (string handledTypeName, bool isStatic)>();
+
+                var handlers = __saveHandlerAttributesByHandledType.Values;
+
+                foreach (var handler in handlers)
+                {
+                    handlerIdsByTypeName[handler.Id] = (handler.HandledType.CleanAssemblyQualifiedName(), isStatic: false);
+                }
+
+                handlers = __staticSaveHandlerAttributesByHandledType.Values;
+
+                foreach (var handler in handlers)
+                {
+                    //todo: here the handled type is the subtitue type. Get the subtituted type
+                    handlerIdsByTypeName[handler.Id] = (handler.HandledType.CleanAssemblyQualifiedName(), isStatic: true);
+                }
+
+                return handlerIdsByTypeName;
+            }
+
+
+
+            public long GetHandlerIdByHandledType(Type handledType, bool isStatic)
+            {
+                InitServiceIfNeeded();
+
+                if (isStatic)
+                {
+                    if (__staticSaveHandlerAttributesByHandledType.TryGetValue(handledType, out var attr2))
+                    {
+                        return attr2.Id;
+                    }
+                    else
+                    {
+                        return -1;
+                    }
+                }
+
+                if (__saveHandlerAttributesByHandledType.TryGetValue(handledType, out var attr))
+                {
+                    return attr.Id;
+                }
+                else
+                {
+                    return -1;
+                }
+            }
+
+
 
 
 
@@ -933,9 +1217,14 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
                         var attr = type.GetCustomAttribute<CustomSaveDataAttribute>();
 
+                        //todo: swtich to this when the times come
+                        //handledType = attr.HandledType;
+
+
                         if (attr != null)
                         {
-                            __customSaveDataAttributesByType[type] = attr;
+                            attr.SaveHandlerType = type;
+                            __customSaveDataAttributesByType[handledType] = attr;
                         }
 
 
@@ -1004,7 +1293,7 @@ namespace Assets._Project.Scripts.SaveAndLoad
             if (__saveHandlerByHandledObjectIdLookUp.TryGetValue(id, out var saveHandler))
             {
                 var handler = saveHandler as T;
-                
+
                 if (handler == null)
                 {
                     Debug.LogError($"SaveHandler with id {id} is not of type {typeof(T).CleanAssemblyQualifiedName()}. " +
@@ -1015,8 +1304,8 @@ namespace Assets._Project.Scripts.SaveAndLoad
             }
             else
             {
-                    Debug.LogError($"No SaveHandler found for id {id}. " +
-                        $"This means that this id does not have a SaveHandler registered for it. ");
+                Debug.LogError($"No SaveHandler found for id {id}. " +
+                    $"This means that this id does not have a SaveHandler registered for it. ");
                 return default;
             }
         }
@@ -1656,7 +1945,7 @@ namespace Assets._Project.Scripts.SaveAndLoad
         public void Save()
         {
             IsIteratingSaveHandlers = true;
-            //var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
             Infra.Singleton.StartNewReferenceGraph();
 
@@ -1690,7 +1979,7 @@ namespace Assets._Project.Scripts.SaveAndLoad
             }
             while (!_ShouldStopIteratingSaveHandlers());
 
-            //Debug.LogWarning("write "+stopwatch.ElapsedMilliseconds / 1000f);
+            Debug.LogWarning("write " + stopwatch.ElapsedMilliseconds / 1000f);
 
             IsIteratingSaveHandlers = false;
 
@@ -1702,7 +1991,7 @@ namespace Assets._Project.Scripts.SaveAndLoad
             }
 
 
-            foreach(var handler in handlersToRemove)
+            foreach (var handler in handlersToRemove)
             {
                 __mainSaveHandlers.Remove(handler);
             }
@@ -1733,7 +2022,7 @@ namespace Assets._Project.Scripts.SaveAndLoad
                     Debug.LogWarning($"removing handler, datagroup: {handler.DataGroupId}, handled object id: {handler.HandledObjectId}");
                 }
             }
-            //Debug.LogWarning("discover "+stopwatch.ElapsedMilliseconds / 1000f);
+            Debug.LogWarning("discover " + stopwatch.ElapsedMilliseconds / 1000f);
 
             ////////////////////////////////////////////////////
 
@@ -1764,7 +2053,7 @@ namespace Assets._Project.Scripts.SaveAndLoad
                     saveData[handler.DataGroupId].Add(data);
                 }
             }
-            //Debug.LogWarning("serialize "+stopwatch.ElapsedMilliseconds / 1000f);
+            Debug.LogWarning("serialize " + stopwatch.ElapsedMilliseconds / 1000f);
 
 
             IEnumerable<string> flatList = saveData.SelectMany(x => x.Value);
@@ -1780,9 +2069,9 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
             JsonUtil.WriteObjects(path, flatList);
 
-            //stopwatch.Stop();
-            //Debug.LogWarning("save to disk "+stopwatch.ElapsedMilliseconds / 1000f);
-            //Debug.LogWarning(stopwatch.ElapsedMilliseconds / 1000f);
+            stopwatch.Stop();
+            //Debug.LogWarning("save to disk " + stopwatch.ElapsedMilliseconds / 1000f);
+            Debug.LogWarning(stopwatch.ElapsedMilliseconds / 1000f);
         }
 
 
@@ -1796,9 +2085,35 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
         public AsyncOperation op;
 
+
+        public enum LoadingStage
+        {
+            LoadingObjects,
+            LoadingScenes,
+            Completed,
+        }
+
+        public class LoadingDebugContext
+        {
+            public LoadingStage CurrentStage;
+            public ISaveAndLoad handler;
+        }
+
+        public LoadingDebugContext d_laodingContext = new();
+
+
+
         public void Load(string saveFileAbsPath)
         {
-            __loadCoroutine = StartCoroutine(LoadRoutine(saveFileAbsPath));
+            try
+            {
+                __loadCoroutine = StartCoroutine(LoadRoutine(saveFileAbsPath));
+            }
+            catch (Exception e)
+            {
+
+                throw;
+            }
         }
 
 
@@ -1870,67 +2185,98 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
 
 
-            
 
-            var ordered = saveHandlers.GroupBy(handler => handler.MetaData.Order).OrderBy(group => group.Key);
+            d_laodingContext.CurrentStage = LoadingStage.LoadingObjects;
 
-            //these are different stages that build upon each other, iterating over them multiple times is by design, dont put them in one loop
-            foreach (var group in ordered)
+
+            try
             {
-                d_loadedOrder = group.Key;
+                var ordered = saveHandlers.GroupBy(handler => handler.MetaData.Order).OrderBy(group => group.Key);
 
-                foreach (var handler in group)
+                //these are different stages that build upon each other, iterating over them multiple times is by design, dont put them in one loop
+                foreach (var group in ordered)
                 {
-                    handler.CreateObject();
+                    d_loadedOrder = group.Key;
 
-                    //if (d_suspendLoading && !d_found)
-                    //{
-                    //var test = Component.FindAnyObjectByType<Canvas>();
-                    //if (test != null)
-                    //{
-                    //    Debug.Log(handler.HandledObjectId);
-                    //    yield return new WaitWhile(() => !d_continue);
-                    //    d_continue = false;
-                    //        d_found = true;
-                    //}
-                    //}
-
-                    //if (handler.HandledObjectId.ToString() == "956694569789028744")
-                    //{
-
-                    //    yield return new WaitWhile(() =>
-                    //    {
-                    //        return !d_continue;
-                    //    });
-
-                    //    d_continue = false;
-                    //}
-
-                    AddSaveHandler(handler);//to add a savehandler it needs to have a HandledObjectId assigned, which happens in CreateObject
-                }
-
-                foreach (var handler in group)
-                {
-                    handler.LoadReferences();
-                }
-
-                foreach (var handler in group)
-                {
-                    handler.LoadValues();
-                }
-
-
-                if (d_suspendLoading)
-                {
-
-                    yield return new WaitWhile(() =>
+                    foreach (var handler in group)
                     {
-                        return !d_continue;
-                    });
+                        d_laodingContext.handler = handler;
+                        handler.CreateObject();
 
-                    d_continue = false;
+                        //if (d_suspendLoading && !d_found)
+                        //{
+                        //var test = Component.FindAnyObjectByType<Canvas>();
+                        //if (test != null)
+                        //{
+                        //    Debug.Log(handler.HandledObjectId);
+                        //    yield return new WaitWhile(() => !d_continue);
+                        //    d_continue = false;
+                        //        d_found = true;
+                        //}
+                        //}
+
+                        //if (handler.HandledObjectId.ToString() == "956694569789028744")
+                        //{
+
+                        //    yield return new WaitWhile(() =>
+                        //    {
+                        //        return !d_continue;
+                        //    });
+
+                        //    d_continue = false;
+                        //}
+
+                        AddSaveHandler(handler);//to add a savehandler it needs to have a HandledObjectId assigned, which happens in CreateObject
+                    }
+
+                    foreach (var handler in group)
+                    {
+                        d_laodingContext.handler = handler;
+                        handler.LoadReferences();
+                    }
+
+                    foreach (var handler in group)
+                    {
+                        d_laodingContext.handler = handler;
+                        handler.LoadValues();
+                    }
+
+
+
+                    foreach (var hanler in group)
+                    {
+                        if (hanler.HandledType == typeof(SceneManagement))
+                        {
+                            yield return LoadAllSavedScenes();
+                        }
+                    }
+
+
+                    if (d_suspendLoading)
+                    {
+
+                        yield return new WaitWhile(() =>
+                        {
+                            return !d_continue;
+                        });
+
+                        d_continue = false;
+                    }
+                }
+
+                d_laodingContext.CurrentStage = LoadingStage.Completed;
+            }
+            finally
+            {
+                if (d_laodingContext.CurrentStage != LoadingStage.Completed)
+                {
+                    Debug.LogError($"Error occurred while loading object with id {d_laodingContext.handler.HandledObjectId}. " +
+                                   $"Handled type: {d_laodingContext.handler.HandledType.CleanAssemblyQualifiedName()}. " +
+                                   $"At loading stage: {d_laodingContext.CurrentStage}");
                 }
             }
+
+
 
 
             if (d_suspendLoading)
@@ -1959,11 +2305,13 @@ namespace Assets._Project.Scripts.SaveAndLoad
             yield return null;
 
 
-
+            Scene activeScene = Infra.SceneManagement.ActiveSceneInstanceIdFromSaveFile;
+            SceneManager.SetActiveScene(activeScene);
 
 
             __isObjectLoading.Clear();
             __integrators.Clear();
+            ///todo: clear <see cref="PrefabDescriptionRegistry"/> and <see cref="ScenePlacedObjectRegistry"/>
 
             Debug.Log("loading completed");
         }
@@ -1976,6 +2324,17 @@ namespace Assets._Project.Scripts.SaveAndLoad
         public IEnumerator LoadEmptyScene()
         {
             AsyncOperation loadOperation = SceneManager.LoadSceneAsync(_emptySceneForLoadingFromSaveFile.BuildIndex, LoadSceneMode.Additive);
+
+            while (!loadOperation.isDone)
+            {
+                yield return null; // Wait for the load operation to complete
+            }
+        }
+
+
+        public IEnumerator UnloadEmptyScene()
+        {
+            AsyncOperation loadOperation = SceneManager.UnloadSceneAsync(_emptySceneForLoadingFromSaveFile.BuildIndex);
 
             while (!loadOperation.isDone)
             {
@@ -2004,6 +2363,18 @@ namespace Assets._Project.Scripts.SaveAndLoad
             }
         }
 
+
+
+
+
+        public IEnumerator LoadAllSavedScenes()
+        {
+            SaveAndLoadManager.Singleton.ExpectingIsObjectLoadingRequest = true;
+
+            yield return Infra.SceneManagement.EnsureScenesAreLoadedFromSaveFile();
+
+            SaveAndLoadManager.Singleton.ExpectingIsObjectLoadingRequest = false;
+        }
 
 
 
@@ -2110,7 +2481,595 @@ namespace Assets._Project.Scripts.SaveAndLoad
             //        $"it might means the object needs to check if it has already been destroyed.");
             //}
         }
+
+
+
+
+
+
+
+
+
+
+
+        public bool IsPartOfPrefabOrScenePlaced<T>(RandomId instanceId, out T instance)
+        {
+            bool isPartOfPrefab = PrefabDescriptionRegistry.IsPartOfPrefab<T>(instanceId, out instance);
+
+            if (isPartOfPrefab)
+            {
+                return true;
+            }
+
+            bool isPartOfScenePlaced = ScenePlacedObjectRegistry.IsScenePlaced<T>(instanceId, out instance);
+
+            if (isPartOfScenePlaced)
+            {
+                return true;
+            }
+
+            instance = default;
+            return false;
+
+        }
+
     }
+
+
+
+
+
+
+
+
+
+
+
+    public class MemberToInstanceId
+    {
+        public RandomId memberId;
+        public RandomId instanceId;
+    }
+
+    public class ArrayMemberToElementIds
+    {
+        public RandomId memberId;
+        public List<RandomId> elementIds = new();
+    }
+
+
+
+    public class PrefabDescriptionRegistry
+    {
+        public class PrefabDescription
+        {
+            public RandomId prefabAssetId;
+            public List<MemberToInstanceId> memberToInstanceIds = new();
+            public List<ArrayMemberToElementIds> arrayMemberToElementIdsList = new();
+        }
+
+        public Dictionary<RandomId, PrefabDescription> _prefabDescriptionByPrefabPartInstanceId = new();
+
+        public Dictionary<RandomId, object> _prefabPartsByInstanceId = new();
+
+
+
+
+        public bool IsPartOfPrefab<T>(RandomId instanceId, out T instance)
+        {
+            bool isPartOfPrefab = _IsPartOfPrefab(instanceId);
+
+            if (isPartOfPrefab)
+            {
+                instance = _GetPrefabPart<T>(instanceId);
+            }
+            else
+            {
+                instance = default;
+            }
+
+            return isPartOfPrefab;
+        }
+
+
+        public bool _IsPartOfPrefab(RandomId instanceId)
+        {
+            bool isPartOfPrefab = _prefabDescriptionByPrefabPartInstanceId.ContainsKey(instanceId);
+
+            return isPartOfPrefab;
+        }
+
+
+        public T _GetPrefabPart<T>(RandomId prefabPartInstanceId)
+        {
+            bool isPartOfPrefab = _IsPartOfPrefab(prefabPartInstanceId);
+
+            if (isPartOfPrefab && !_prefabPartsByInstanceId.ContainsKey(prefabPartInstanceId))
+            {
+                var desc = _prefabDescriptionByPrefabPartInstanceId[prefabPartInstanceId];
+
+                var prefab = AddressableDb.Singleton.GetAssetByIdOrFallback<GameObject>(null, ref desc.prefabAssetId);
+
+
+                SaveAndLoadManager.Singleton.ExpectingIsObjectLoadingRequest = true;
+
+                var instance = Object.Instantiate(prefab);
+
+                SaveAndLoadManager.Singleton.ExpectingIsObjectLoadingRequest = false;
+
+
+                var infra = instance.GetComponent<GOInfra>();
+
+                if (infra == null)
+                {
+                    Debug.LogError($"Invalid workflow. An instance of an object was saved as part of a prefab but the root of its prefab" +
+                        $"does not have a {nameof(GOInfra)} component. The root gameobject should have a component that handles prefab workflows." +
+                        $"Solution: add a {nameof(GOInfra)} component to the root of the prefab (and set it up correctly).");
+                }
+
+                var results = infra.CollectPrefabParts();
+
+                Dictionary<RandomId, object> prefabPartsByPrefabPartId = new();
+                Dictionary<RandomId, List<object>> arrayElementsByArrayMemberId = new();
+
+                foreach (var result in results)
+                {
+                    foreach (var idPair in result.membersById)
+                    {
+                        prefabPartsByPrefabPartId.Add(idPair.Key, idPair.Value);
+                    }
+                    foreach (var arrayPair in result.arrayElementMembersByArrayMemberId)
+                    {
+                        arrayElementsByArrayMemberId.Add(arrayPair.Key, arrayPair.Value);
+                    }
+                }
+
+
+                foreach (var idPair in desc.memberToInstanceIds)
+                {
+                    var part2 = prefabPartsByPrefabPartId[idPair.memberId];
+
+                    _prefabPartsByInstanceId.Add(idPair.instanceId, part2);
+                }
+
+                foreach (var arrayPair in desc.arrayMemberToElementIdsList)
+                {
+                    var elements = arrayElementsByArrayMemberId[arrayPair.memberId];
+
+                    for (int i = 0; i < arrayPair.elementIds.Count; i++)
+                    {
+                        var elementId = arrayPair.elementIds[i];
+                        if (i >= elements.Count)
+                        {
+                            Debug.LogError("Mismatch in number of array elements found in prefab instance and the number of element Ids stored in PrefabDescription. " +
+                                $"GameObject: {instance.HierarchyPath()}, Prefab asset id: {desc.prefabAssetId}, array member id: {arrayPair.memberId}. " +
+                                $"Going to skip the rest of the elements.");
+
+                            var idlist = string.Join(", ", arrayPair.elementIds);
+                            var types = string.Join(", ", elements.Select(e => e.GetType().Name));
+
+                            Debug.LogError($"Element Ids: {idlist}");
+                            Debug.LogError($"Element types: {types}");
+                            break;
+                        }
+                        var element = elements[i];
+
+                        _prefabPartsByInstanceId.Add(elementId, element);
+                    }
+                }
+            }
+
+            var part = _prefabPartsByInstanceId[prefabPartInstanceId];
+
+            return (T)part;
+        }
+
+
+
+
+        public void Register(GOInfra infra, List<GraphWalkingResult> results)
+        {
+            var idPairs = new List<MemberToInstanceId>();
+            var arraysAndTheirElementIds = new List<ArrayMemberToElementIds>();
+
+
+            foreach (var result in results)
+            {
+                for (int i = 0; i < result.memberIds.Count; i++)
+                {
+                    var pair = new MemberToInstanceId()
+                    {
+                        memberId = result.memberIds[i],
+                        instanceId = result.generatedIds[i],
+                    };
+
+                    idPairs.Add(pair);
+                }
+
+                for (int i = 0; i < result.arrayMemberIds.Count; i++)
+                {
+                    var pair = new ArrayMemberToElementIds()
+                    {
+                        memberId = result.arrayMemberIds[i],
+                        elementIds = result.arrayElementMemberIdsPerArrayMembers[i],
+                    };
+
+                    arraysAndTheirElementIds.Add(pair);
+                }
+            }
+
+
+
+
+            var description = new PrefabDescription()
+            {
+                prefabAssetId = infra.PrefabAssetId,
+                memberToInstanceIds = idPairs,
+                arrayMemberToElementIdsList = arraysAndTheirElementIds,
+            };
+
+            //Debug.Log(infra.gameObject.HierarchyPath());
+
+            //        Debug.Log(string.Join(", ", _prefabDescriptionByPrefabPartInstanceId.Keys));
+            //        Debug.Log(string.Join(", ", instanceIds));
+
+
+            foreach (var pair in idPairs)
+            {
+                var id = pair.instanceId;
+
+                if (_prefabDescriptionByPrefabPartInstanceId.ContainsKey(id))
+                {
+                    Debug.LogError("Duplicate instance id registration in PrefabDescriptionRegistry. " +
+                        $"Duplicate instance Id: {id} of memberId: {pair.memberId}");
+                    continue;
+                }
+                _prefabDescriptionByPrefabPartInstanceId.Add(id, description);
+            }
+
+            foreach (var pair in arraysAndTheirElementIds)
+            {
+                foreach (var id in pair.elementIds)
+                {
+                    if (_prefabDescriptionByPrefabPartInstanceId.ContainsKey(id))
+                    {
+                        Debug.LogError("Duplicate instance id registration in PrefabDescriptionRegistry. " +
+                            $"Duplicate instance Id: {id} of memberId: {pair.memberId}");
+                        continue;
+                    }
+                    _prefabDescriptionByPrefabPartInstanceId.Add(id, description);
+                }
+            }
+        }
+
+
+        [SaveHandler(id: 107204973066903000, nameof(PrefabDescriptionRegistry), typeof(PrefabDescriptionRegistry), order: -90)]
+        public class PrefabDescriptionRegistrySaveHandler : UnmanagedSaveHandler<PrefabDescriptionRegistry, PrefabDescriptionRegistrySaveData>
+        {
+            public override void WriteSaveData()
+            {
+                base.WriteSaveData();
+
+                __saveData._prefabDescriptionByPrefabPartInstanceId = GetObjectId(__instance._prefabDescriptionByPrefabPartInstanceId, setLoadingOrder: true);
+            }
+
+            public override void CreateObject()
+            {
+                if (SaveAndLoadManager.PrefabDescriptionRegistry != null)
+                {
+                    Infra.Singleton.Unregister(SaveAndLoadManager.PrefabDescriptionRegistry);
+                    SaveAndLoadManager.PrefabDescriptionRegistry = null;
+                }
+
+                base.CreateObject();
+
+                SaveAndLoadManager.PrefabDescriptionRegistry = __instance;
+            }
+
+            public override void LoadReferences()
+            {
+                base.LoadReferences();
+                __instance._prefabDescriptionByPrefabPartInstanceId = GetObjectById<Dictionary<RandomId, PrefabDescription>>(__saveData._prefabDescriptionByPrefabPartInstanceId);
+            }
+        }
+
+        public class PrefabDescriptionRegistrySaveData : SaveDataBase
+        {
+            public RandomId _prefabDescriptionByPrefabPartInstanceId;
+        }
+
+
+
+        [SaveHandler(id: 937204973066903000, nameof(PrefabDescription), typeof(PrefabDescription))]
+        public class PrefabDescriptionSaveHandler : UnmanagedSaveHandler<PrefabDescription, PrefabDescriptionSaveData>
+        {
+            public override void WriteSaveData()
+            {
+                base.WriteSaveData();
+                __saveData.prefabAssetId = __instance.prefabAssetId;
+                __saveData.memberToInstanceIds = GetObjectId(__instance.memberToInstanceIds, setLoadingOrder: true);
+                __saveData.arrayMemberToElementIdsList = GetObjectId(__instance.arrayMemberToElementIdsList, setLoadingOrder: true);
+            }
+
+            public override void LoadReferences()
+            {
+                base.LoadReferences();
+                __instance.prefabAssetId = __saveData.prefabAssetId;
+                __instance.memberToInstanceIds = GetObjectById<List<MemberToInstanceId>>(__saveData.memberToInstanceIds);
+                __instance.arrayMemberToElementIdsList = GetObjectById<List<ArrayMemberToElementIds>>(__saveData.arrayMemberToElementIdsList);
+            }
+        }
+
+        public class PrefabDescriptionSaveData : SaveDataBase
+        {
+            public RandomId prefabAssetId;
+            public RandomId memberToInstanceIds;
+            public RandomId arrayMemberToElementIdsList;
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+    public class ScenePlacedObjectRegistry
+    {
+        public Dictionary<RandomId, SceneDescription> _sceneDescriptionBySceneObjectId = new();
+
+        public Dictionary<RandomId, object> _sceneObjectsById = new();
+
+
+        public bool IsScenePlaced<T>(RandomId instanceId, out T instance)
+        {
+            bool isScenePlaced = _IsScenePlaced(instanceId);
+
+            if (isScenePlaced)
+            {
+                instance = _GetSceneObject<T>(instanceId);
+            }
+            else
+            {
+                instance = default;
+            }
+
+            return isScenePlaced;
+        }
+
+
+        public bool _IsScenePlaced(RandomId instanceId)
+        {
+            bool isScenePlaced = _sceneDescriptionBySceneObjectId.ContainsKey(instanceId);
+
+            return isScenePlaced;
+        }
+
+
+        public T _GetSceneObject<T>(RandomId sceneObjectInstanceId)
+        {
+            bool isScenePlaced = _IsScenePlaced(sceneObjectInstanceId);
+
+            if (isScenePlaced && !_sceneObjectsById.ContainsKey(sceneObjectInstanceId))
+            {
+                var desc = _sceneDescriptionBySceneObjectId[sceneObjectInstanceId];
+
+                Scene scene = Infra.SceneManagement.SceneById(desc.sceneId);
+
+                SceneInfra infra = Infra.SceneManagement.SceneInfrasBySceneHandle[scene.handle];
+
+                //old workflow
+                //if (infra == null)
+                //{
+                //    Debug.LogError($"Scene with index {desc.sceneIndex} is not loaded yet or has no SceneInfra registered for it. " +
+                //        $"Make sure the scene contains a SceneInfra object. " +
+                //        $"Cannot get scene placed object with id {sceneObjectInstanceId}.");
+                //    return default;
+                //}
+
+                var results = infra.CollectScenePlacedObjects();
+
+                Dictionary<RandomId, object> sceneObjectsByMemberId = new();
+                Dictionary<RandomId, List<object>> arrayElementsByArrayMemberId = new();
+
+                foreach (var result in results)
+                {
+                    foreach (var idPair in result.membersById)
+                    {
+                        sceneObjectsByMemberId.Add(idPair.Key, idPair.Value);
+                    }
+                    foreach (var arrayPair in result.arrayElementMembersByArrayMemberId)
+                    {
+                        arrayElementsByArrayMemberId.Add(arrayPair.Key, arrayPair.Value);
+                    }
+                }
+
+
+                foreach (var idPair in desc.memberToInstanceIds)
+                {
+                    var part2 = sceneObjectsByMemberId[idPair.memberId];
+
+                    _sceneObjectsById.Add(idPair.instanceId, part2);
+                }
+
+                foreach (var arrayPair in desc.arrayMemberToElementIdsList)
+                {
+                    var elements = arrayElementsByArrayMemberId[arrayPair.memberId];
+
+                    for (int i = 0; i < arrayPair.elementIds.Count; i++)
+                    {
+                        var elementId = arrayPair.elementIds[i];
+                        var element = elements[i];
+
+                        _sceneObjectsById.Add(elementId, element);
+                    }
+                }
+            }
+
+            var part = _sceneObjectsById[sceneObjectInstanceId];
+
+            return (T)part;
+        }
+
+
+
+        public void Register(SceneInfra infra, List<GraphWalkingResult> results)
+        {
+            var idPairs = new List<MemberToInstanceId>();
+            var arraysAndTheirElementIds = new List<ArrayMemberToElementIds>();
+
+            foreach (var result in results)
+            {
+                for (int i = 0; i < result.memberIds.Count; i++)
+                {
+                    var pair = new MemberToInstanceId()
+                    {
+                        memberId = result.memberIds[i],
+                        instanceId = result.generatedIds[i],
+                    };
+
+                    idPairs.Add(pair);
+                }
+
+                for (int i = 0; i < result.arrayMemberIds.Count; i++)
+                {
+                    var pair = new ArrayMemberToElementIds()
+                    {
+                        memberId = result.arrayMemberIds[i],
+                        elementIds = result.arrayElementMemberIdsPerArrayMembers[i],
+                    };
+
+                    arraysAndTheirElementIds.Add(pair);
+                }
+            }
+
+
+
+            var description = new SceneDescription()
+            {
+                sceneId = Infra.SceneManagement.SceneIdByHandle(infra.gameObject.scene.handle),
+                memberToInstanceIds = idPairs,
+                arrayMemberToElementIdsList = arraysAndTheirElementIds,
+            };
+
+            //Debug.Log(infra.gameObject.HierarchyPath());
+
+            //        Debug.Log(string.Join(", ", _prefabDescriptionByPrefabPartInstanceId.Keys));
+            //        Debug.Log(string.Join(", ", instanceIds));
+
+
+            foreach (var pair in idPairs)
+            {
+                var id = pair.instanceId;
+
+                if (_sceneDescriptionBySceneObjectId.ContainsKey(id))
+                {
+                    Debug.LogError("Duplicate instance id registration in ScenePlacedObjectRegistry. " +
+                        $"Duplicate instance Id: {id} of memberId: {pair.memberId}");
+                    continue;
+                }
+                _sceneDescriptionBySceneObjectId.Add(id, description);
+            }
+
+            foreach (var pair in arraysAndTheirElementIds)
+            {
+                foreach (var id in pair.elementIds)
+                {
+                    if (_sceneDescriptionBySceneObjectId.ContainsKey(id))
+                    {
+                        Debug.LogError("Duplicate instance id registration in ScenePlacedObjectRegistry. " +
+                            $"Duplicate instance Id: {id} of memberId: {pair.memberId}");
+                        continue;
+                    }
+                    _sceneDescriptionBySceneObjectId.Add(id, description);
+                }
+            }
+        }
+
+
+
+        public class SceneDescription
+        {
+            public RandomId sceneId;
+            public List<MemberToInstanceId> memberToInstanceIds = new();
+            public List<ArrayMemberToElementIds> arrayMemberToElementIdsList = new();
+        }
+
+
+
+
+        [SaveHandler(id: 207204973066903000, nameof(ScenePlacedObjectRegistry), typeof(ScenePlacedObjectRegistry), order: -90)]
+        public class ScenePlacedObjectRegistrySaveHandler : UnmanagedSaveHandler<ScenePlacedObjectRegistry, ScenePlacedObjectRegistrySaveData>
+        {
+            public override void WriteSaveData()
+            {
+                base.WriteSaveData();
+
+                __saveData._sceneDescriptionBySceneObjectId = GetObjectId(__instance._sceneDescriptionBySceneObjectId, setLoadingOrder: true);
+            }
+
+            public override void CreateObject()
+            {
+                if (SaveAndLoadManager.ScenePlacedObjectRegistry != null)
+                {
+                    Infra.Singleton.Unregister(SaveAndLoadManager.ScenePlacedObjectRegistry);
+                    SaveAndLoadManager.ScenePlacedObjectRegistry = null;
+                }
+
+                base.CreateObject();
+
+                SaveAndLoadManager.ScenePlacedObjectRegistry = __instance;
+            }
+
+            public override void LoadReferences()
+            {
+                base.LoadReferences();
+                __instance._sceneDescriptionBySceneObjectId = GetObjectById<Dictionary<RandomId, SceneDescription>>(__saveData._sceneDescriptionBySceneObjectId);
+            }
+        }
+
+        public class ScenePlacedObjectRegistrySaveData : SaveDataBase
+        {
+            public RandomId _sceneDescriptionBySceneObjectId;
+        }
+
+
+
+        [SaveHandler(id: 900204973066903000, nameof(SceneDescription), typeof(SceneDescription))]
+        public class SceneDescriptionSaveHandler : UnmanagedSaveHandler<SceneDescription, SceneDescriptionSaveData>
+        {
+            public override void WriteSaveData()
+            {
+                base.WriteSaveData();
+                __saveData.sceneId = __instance.sceneId;
+                __saveData.memberToInstanceIds = GetObjectId(__instance.memberToInstanceIds, setLoadingOrder: true);
+                __saveData.arrayMemberToElementIdsList = GetObjectId(__instance.arrayMemberToElementIdsList, setLoadingOrder: true);
+            }
+
+            public override void LoadReferences()
+            {
+                base.LoadReferences();
+                __instance.sceneId = __saveData.sceneId;
+                __instance.memberToInstanceIds = GetObjectById<List<MemberToInstanceId>>(__saveData.memberToInstanceIds);
+                __instance.arrayMemberToElementIdsList = GetObjectById<List<ArrayMemberToElementIds>>(__saveData.arrayMemberToElementIdsList);
+            }
+        }
+
+        public class SceneDescriptionSaveData : SaveDataBase
+        {
+            public RandomId sceneId;
+            public RandomId memberToInstanceIds;
+            public RandomId arrayMemberToElementIdsList;
+        }
+    }
+
+
+
+
+
 
 
     public class ObjectMetaData

@@ -14,7 +14,7 @@ namespace Assets._Project.Scripts.Infrastructure
 
             if (GUILayout.Button("Add infra to all child"))
             {
-                myTarget.AddInfraToAllChild();
+                myTarget.AddInfraToAllChildren();
 
 
                 EditorUtility.SetDirty(myTarget); // Mark component as dirty
@@ -22,6 +22,25 @@ namespace Assets._Project.Scripts.Infrastructure
                 PrefabUtility.RecordPrefabInstancePropertyModifications(myTarget); // For prefab instance
             }
 
+            if (GUILayout.Button("RemoveInfraFromAllChildren"))
+            {
+                myTarget.RemoveInfraFromAllChildren();
+
+
+                EditorUtility.SetDirty(myTarget); // Mark component as dirty
+                EditorUtility.SetDirty(myTarget.gameObject); // Mark component as dirty
+                PrefabUtility.RecordPrefabInstancePropertyModifications(myTarget); // For prefab instance
+            }
+
+            if (GUILayout.Button("Cache components in children and self"))
+            {
+                myTarget.CacheComponentsInChildrenAndSelf();
+
+
+                EditorUtility.SetDirty(myTarget); // Mark component as dirty
+                EditorUtility.SetDirty(myTarget.gameObject); // Mark component as dirty
+                PrefabUtility.RecordPrefabInstancePropertyModifications(myTarget); // For prefab instance
+            }
         }
     }
 }

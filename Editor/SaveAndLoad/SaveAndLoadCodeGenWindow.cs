@@ -4,7 +4,9 @@ using Assets._Project.Scripts.SaveAndLoad.Editor;
 using Assets._Project.Scripts.UtilScripts;
 using Assets._Project.Scripts.UtilScripts.CodeGen;
 using Assets._Project.Scripts.UtilScripts.Extensions;
+using Packages.com.theblueway.saveandload.Editor.SaveAndLoad;
 using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -16,6 +18,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using static SaveHandlerAutoGenerator;
 using Debug = UnityEngine.Debug;
@@ -28,6 +31,7 @@ public class SaveAndLoadCodeGenWindow : EditorWindow
 
     public SaveAndLoadCodeGenWindowState _state;
     public SaveAndLoadManager.Service _saveAndLoadService = new();
+    public SaveAndLoadCodeGenWindow.Service _service = new();
 
     public SaveAndLoadCodeGenSettings _userSettings;
 
@@ -41,7 +45,6 @@ public class SaveAndLoadCodeGenWindow : EditorWindow
 
 
 
-    //public int _test;
 
 
     private void OnEnable()
@@ -223,12 +226,13 @@ public class SaveAndLoadCodeGenWindow : EditorWindow
         EditorGUILayout.Space();
 
 
-        if (GUILayout.Button("Regenerate All Existing SaveHandlers"))
-        {
-            var tasks = CreateCodeGenTasks(_saveAndLoadService.SaveHandlerAttributesByHandledType.Keys);
+        //outdated, has to be rethinked and refactored to work
+        //if (GUILayout.Button("Regenerate All Existing SaveHandlers"))
+        //{
+        //    var tasks = CreateCodeGenTasks(_saveAndLoadService.SaveHandlerAttributesByHandledType.Keys);
 
-            CreateTypeReportsAndRunCodeGen(tasks);
-        }
+        //    CreateTypeReportsAndRunCodeGen(tasks);
+        //}
 
         _userSettings.GenerateExampleSaveHandlersForManuallyHandledTypesToo =
             GUILayout.Toggle(_userSettings.GenerateExampleSaveHandlersForManuallyHandledTypesToo, "Generate Example SaveHandlers For Manually Handled Types Too");
@@ -570,25 +574,30 @@ public class SaveAndLoadCodeGenWindow : EditorWindow
     }
 
 
-    IEnumerable<string> GetCsFiles(string root)
+    IEnumerable<string> GetCsFiles(string root) => _service.GetCsFiles(root);
+
+
+    public class Service
     {
-
-        foreach (var file in Directory.EnumerateFiles(root, "*.cs"))
-            yield return file;
-
-        foreach (var dir in Directory.EnumerateDirectories(root))
+        public IEnumerable<string> GetCsFiles(string root)
         {
-            var name = Path.GetFileName(dir);
-            if (name.EndsWith("~")) continue; // skip ignored
 
-            foreach (var file in Directory.EnumerateFiles(dir, "*.cs"))
+            foreach (var file in Directory.EnumerateFiles(root, "*.cs"))
                 yield return file;
 
-            foreach (var subFile in GetCsFiles(dir))
-                yield return subFile;
+            foreach (var dir in Directory.EnumerateDirectories(root))
+            {
+                var name = Path.GetFileName(dir);
+                if (name.EndsWith("~")) continue; // skip ignored
+
+                foreach (var file in Directory.EnumerateFiles(dir, "*.cs"))
+                    yield return file;
+
+                foreach (var subFile in GetCsFiles(dir))
+                    yield return subFile;
+            }
         }
     }
-
 
 
 
@@ -628,7 +637,7 @@ public class SaveAndLoadCodeGenWindow : EditorWindow
 
         foreach (var go in gameObjects)
         {
-            go.GetComponentsInChildren(includeInactive:true, components);
+            go.GetComponentsInChildren(includeInactive: true, components);
             allComponentsOfAllGameObjects.AddRange(components);
         }
 
@@ -729,6 +738,12 @@ public class SaveAndLoadCodeGenWindow : EditorWindow
                 continue;
             }
 
+            if (!CodeGenUtils.Config.NonPublicToo && type.IsNested && !type.IsNestedPublic)
+            {
+                //skip non public nested types
+                continue;
+            }
+
             typesInFile.Add(type);
         }
 
@@ -774,7 +789,7 @@ public class SaveAndLoadCodeGenWindow : EditorWindow
             }
             else
             {
-                //todo: this will fail with two types with same fullname is two different assembly
+                //todo: this will fail with two types with same fullname in two different assembly
                 //perhaps just use the type isntance instead of its name?
                 rootTypesByName.Add(type.FullName, type);
             }
@@ -827,8 +842,11 @@ public class SaveAndLoadCodeGenWindow : EditorWindow
     }
 
 
-    private void CreateTypeReportsAndRunCodeGen(IEnumerable<Type> typesToHandle)
+    private void CreateTypeReportsAndRunCodeGen(IEnumerable<Type> typesToHandle, Session session = null)
     {
+        session ??= NewSession();
+
+
         var allAsms = AppDomain.CurrentDomain.GetAssemblies();
 
 
@@ -920,10 +938,18 @@ public class SaveAndLoadCodeGenWindow : EditorWindow
         //this is not a type exclusion list, this is a checkIfOthersImplementThisType exclusion. So these types will still get their savehandlers
         HashSet<Type> visitedTypes = new()
         {
-            //pre-exclude this type from type discovery because we dont want to add and iterate over all of types that inherits from it
+            //pre-exclude this type from type discovery because we dont want to add and iterate over all of the types that inherits from them
             typeof(object),
-            typeof(UnityEngine.Object),
             typeof(System.ValueType),
+            typeof(UnityEngine.Object),
+            typeof(Component),
+            typeof(Behaviour),
+            typeof(MonoBehaviour),
+            typeof(ScriptableObject),
+            typeof(StateMachineBehaviour),
+            typeof(UIBehaviour),
+            typeof(AudioBehaviour),
+            Type.GetType("UnityEngine.InputSystem.InputDevice, Unity.InputSystem"),
         };
 
 
@@ -942,7 +968,6 @@ public class SaveAndLoadCodeGenWindow : EditorWindow
         string STATICREFERENCEINSPECTION = "STATIC_REFERENCE_INSPECTION";
         string GET_CECIL_TYPE = "GET_CECIL_TYPE";
 
-        //Dictionary<Type,Dictionary<string, List<string>>> benchmarkPerType = new();
         Dictionary<string, List<TimeSpan>> benchmark = new()
         {
             {SINGLEITERATION, new ()},
@@ -958,15 +983,25 @@ public class SaveAndLoadCodeGenWindow : EditorWindow
 
 
 
-        int maxIterations = 1000;
+        int maxIterations = 10000;
+        int firstWarningAt = 500;
+        int currentIteration = 0;
+
+
         //todo:
         //left to do: function pointers, pointer types, dynamic
         //
         while (discoveryQueue.Count > 0)
         {
-            maxIterations--;
+            currentIteration++;
 
-            if (maxIterations < 0)
+            if (currentIteration == firstWarningAt)
+            {
+                Debug.LogWarning("Type discovery is taking unusually long. " +
+                    "It might be a bug causing infinite loop or you started the codegen for hundreds or thousands of types. " +
+                    $"{currentIteration} iterations were done of a maximum of {maxIterations}.");
+            }
+            if (currentIteration == maxIterations)
             {
                 Debug.LogError("Max iterations reached. There is probably a bug causing infinite loop. Stopping.");
                 break;
@@ -976,14 +1011,16 @@ public class SaveAndLoadCodeGenWindow : EditorWindow
 
             var type = discoveryQueue.Dequeue();
 
-            //todo: remove once static are supported
-            //if (type.IsStatic()) continue;
+            //if(type.Name == "AudioSource")
+            //{
 
+            //}
 
+            var obsolete = type.GetCustomAttribute<ObsoleteAttribute>(false);
 
-            if (_userSettings.IgnoreAnyObsolete && type.IsDefined(typeof(ObsoleteAttribute), true))
+            if (obsolete != null && (obsolete.IsError || _userSettings.IgnoreAnyObsolete))
             {
-                Debug.LogWarning("Skipping obsolete type that it self obsolete or inherits from an obsolete type: " + type.AssemblyQualifiedName);
+                Debug.LogWarning("Skipping obsolete type: " + type.AssemblyQualifiedName);
                 continue;
             }
 
@@ -991,13 +1028,14 @@ public class SaveAndLoadCodeGenWindow : EditorWindow
             if (_userSettings.TypeExclusionSettings.ShouldExclude(type)) continue;
 
 
-            //if the codegen logic was ran for a type we can not change, for example Unity's or Microsoft's types,
+            if (_saveAndLoadService.HasSerializer_Editor(type)) continue;
+
+            // if the codegen logic was ran for a type we can not change, for example Unity's or Microsoft's types,
             // there is no point to discover their dependencies again as they most probably didnt change since then.
             // even if they did, an option to force discovery to update their handles will be implemented
             //todo:
-            if (_saveAndLoadService.HasSerializer_Editor(type)) continue;
-
-            if (!_userSettings.GenerateExampleSaveHandlersForManuallyHandledTypesToo)
+            bool skipUnchangedType = !_userSettings.ForceGenerateForUnchangedTypesToo && !_userSettings.GenerateExampleSaveHandlersForManuallyHandledTypesToo;
+            if (skipUnchangedType)
             {
                 bool notTheTypeThatWasChanged = !typesFromChangedFiles.Contains(type);
                 if (notTheTypeThatWasChanged)
@@ -1023,16 +1061,19 @@ public class SaveAndLoadCodeGenWindow : EditorWindow
 
             if (type.IsGenericType && !type.IsGenericTypeDefinition)
             {
-                foreach (var argType in type.GenericTypeArguments)
-                    discoveryQueue.Enqueue(argType);
+                if (!_userSettings.TypeDiscoverySettings.IgnoreGenericTypeArguments)
+                    foreach (var argType in type.GenericTypeArguments)
+                        discoveryQueue.Enqueue(argType);
 
                 //keep in mind, after this, we work with the type def, not with the constructed type
                 type = type.GetGenericTypeDefinition();
 
+
                 //this is the first time we encounter this gen type def
-                if (!discoveredTypes.ContainsKey(type))
-                    foreach (var constraint in type.GetGenericArguments().SelectMany(a => a.GetGenericParameterConstraints()))
-                        discoveryQueue.Enqueue(constraint);
+                if (!_userSettings.TypeDiscoverySettings.IgnoreGenericTypeConstraints)
+                    if (!discoveredTypes.ContainsKey(type))
+                        foreach (var constraint in type.GetGenericArguments().SelectMany(a => a.GetGenericParameterConstraints()))
+                            discoveryQueue.Enqueue(constraint);
             }
 
 
@@ -1083,6 +1124,7 @@ public class SaveAndLoadCodeGenWindow : EditorWindow
 
 
             //too slow: from 30ms to ~350ms per type
+            //edit: idea: its actually easier if we just scan for static members in all types in all assemblies and if they have any, enqueue their types regardless.
             //start = stopwatch.Elapsed;
 
             //var staticReferences = CodeGenUtils.GetStaticlyReferencedTypes(cecilType);
@@ -1115,7 +1157,7 @@ public class SaveAndLoadCodeGenWindow : EditorWindow
                                     && !interfaceFromMicroSoft;
 
 
-            if (checkTypesIfTheyInheritOrImplementThisType)
+            if (checkTypesIfTheyInheritOrImplementThisType && !_userSettings.TypeDiscoverySettings.IgnoreImplementOrInherit)
             {
                 List<Assembly> dependantAsms;
 
@@ -1171,21 +1213,53 @@ public class SaveAndLoadCodeGenWindow : EditorWindow
 
             TypeReport CreateTypeReport(Type t, BindingFlags binding)
             {
+                bool isStatic = binding.HasFlag(BindingFlags.Static);
 
-                var fieldsReport = GetFieldInfos(type, binding);
 
-                var properties = CodeGenUtils.GetSimpleProperties(type, binding);
+                var fieldsReport = GetFieldInfos(type, binding, session);
+
+                var properties = CodeGenUtils.GetSimpleProperties(type, binding).ToList();
 
                 //todo: config
                 var methods = type.GetUsableMethods(binding | BindingFlags.DeclaredOnly).ToArray();
 
-                var events = type.GetEvents(binding);
+                List<EventInfo> events = type.GetEvents(binding).ToList();
+
 
                 if (_userSettings.IgnoreAnyObsolete)
                 {
-                    events = events.Where(e => !e.IsDefined(typeof(ObsoleteAttribute))).ToArray();
+                    //fields, properties: already skipped them
+                    methods = methods.Where(m => !m.IsDefined(typeof(ObsoleteAttribute))).ToArray();
+                    events = events.Where(e => !e.IsDefined(typeof(ObsoleteAttribute))).ToList();
                 }
 
+                if (session.TypeGenerationSettingsRegistry.HasSettingsForHandledType(type, isStatic, out var settings))
+                {
+                    //fields: fieldReport already takes into account the settings
+                    //todo: methods. methods are a different beast because of overloads with same name. See the design docuoment for details
+
+                    foreach (var prop in properties.ToList())
+                    {
+                        if (settings.HasInclusionModeFor(prop, out var inclusionMode))
+                        {
+                            if (inclusionMode is MemberInclusionMode.Exclude)
+                            {
+                                properties.Remove(prop);
+                            }
+                        }
+                    }
+
+                    foreach (var e in events.ToList())
+                    {
+                        if (settings.HasInclusionModeFor(e, out var inclusionMode))
+                        {
+                            if (inclusionMode is MemberInclusionMode.Exclude)
+                            {
+                                events.Remove(e);
+                            }
+                        }
+                    }
+                }
 
                 var typeReport = new TypeReport
                 {
@@ -1201,23 +1275,23 @@ public class SaveAndLoadCodeGenWindow : EditorWindow
 
 
 
-            //Debug.LogWarning(type);
 
             var binding = BindingFlags.Public | BindingFlags.Static;
 
+            if (_userSettings.GenerateSaveHandlersAsNestedClassesInsideHandledType && session.HasEditableSourceFile(type))
+            {
+                binding |= BindingFlags.NonPublic;
+            }
+
+
             var typeReport = CreateTypeReport(type, binding);
 
-            //Debug.Log(typeReport.FieldsReport.ValidFields.Count + " valid fields found.");
 
             if (!type.IsStatic())
             {
                 binding |= BindingFlags.Instance;
                 binding &= ~BindingFlags.Static;
 
-                if(type == typeof(UnityEngine.UI.MaskableGraphic))
-                {
-
-                }
                 var instanceReport = CreateTypeReport(type, binding);
 
                 var staticReport = typeReport;
@@ -1230,10 +1304,6 @@ public class SaveAndLoadCodeGenWindow : EditorWindow
             discoveredTypes[type] = typeReport;
 
 
-            if(type == typeof(UnityEngine.UI.MaskableGraphic.CullStateChangedEvent))
-            {
-
-            }
             List<Type> GetDependencies(TypeReport typeReport)
             {
                 var deps = new List<Type>();
@@ -1244,23 +1314,29 @@ public class SaveAndLoadCodeGenWindow : EditorWindow
                 return deps;
             }
 
-            var dependencies = new List<Type>();
 
-            dependencies.AddRange(GetDependencies(typeReport));
 
-            if (!type.IsStatic())
+            if (!_userSettings.TypeDiscoverySettings.IgnoreDirectDependencies)
             {
-                dependencies.AddRange(GetDependencies(typeReport.StaticReport));
+                var dependencies = new List<Type>();
+
+                dependencies.AddRange(GetDependencies(typeReport));
+
+                if (!type.IsStatic())
+                {
+                    dependencies.AddRange(GetDependencies(typeReport.StaticReport));
+                }
+
+
+
+                foreach (var depType in dependencies)
+                {
+                    discoveryQueue.Enqueue(depType);
+                }
             }
 
 
-
-            foreach (var depType in dependencies)
-            {
-                discoveryQueue.Enqueue(depType);
-            }
-
-            if (type.BaseType != null)
+            if (type.BaseType != null && !_userSettings.TypeDiscoverySettings.IgnoreBaseType)
             {
                 discoveryQueue.Enqueue(type.BaseType);
                 visitedTypes.Add(type.BaseType.IsGenericType ? type.BaseType.GetGenericTypeDefinition() : type.BaseType);//so we dont check who is assignable to it
@@ -1317,7 +1393,7 @@ public class SaveAndLoadCodeGenWindow : EditorWindow
         {
             //if (_saveAndLoadService.HasManualSaveHandlerForType_Editor(type)) continue;
 
-            var generationResult = codeGenerator.GenerateSavingAndLoadingCode(report);
+            var generationResult = codeGenerator.GenerateSaveAndLoadCode(report, session);
             typesAndTheirgenerationResults.Add((type, generationResult));
         }
 
@@ -1326,46 +1402,41 @@ public class SaveAndLoadCodeGenWindow : EditorWindow
         try
         {
             AssetDatabase.StartAssetEditing();
-
+            //Debug.LogWarning(typesAndTheirgenerationResults.Count);
 
             foreach ((var type, var generationResult) in typesAndTheirgenerationResults)
             {
                 d_type = type;
-                string relativeDirPath = $"_Project/Scripts/SaveHandlers/{(type.IsStruct() ? "DevTestCustomDatas" : "DevTest")}";
-
-                relativeDirPath = relativeDirPath.Replace("/", Path.DirectorySeparatorChar.ToString());
-
-
-                string absDirPath = Path.Combine(Application.dataPath, relativeDirPath);
-
-                if (!Directory.Exists(absDirPath))
-                {
-                    Directory.CreateDirectory(absDirPath);
-                }
-
 
                 _saveAndLoadService.IsTypeManuallyHandled_Editor(type, out bool hasManualInstanceHandler, out bool hasManualStaticHandler);
 
-
-                string fileName = type.IsStatic() ?
-                    generationResult.StaticHandlerInfo.GeneratedTypeName + ".cs" :
-                    generationResult.HandlerInfo.GeneratedTypeName + ".cs";
 
 
                 List<string> parts = new();
 
                 if (!hasManualStaticHandler)
                 {
-                    parts.Add(generationResult.StaticHandlerInfo.GeneratedTypeText);
-                    parts.Add(generationResult.StaticSaveDataInfo.GeneratedTypeText);
+                    if (generationResult.StaticHandlerInfo != null)
+                        parts.Add(generationResult.StaticHandlerInfo.GeneratedTypeText);
+                    if (generationResult.StaticSaveDataInfo != null)
+                        parts.Add(generationResult.StaticSaveDataInfo.GeneratedTypeText);
                 }
                 if (!type.IsStatic() && !hasManualInstanceHandler)
                 {
                     parts.Insert(0, generationResult.HandlerInfo.GeneratedTypeText);
 
-                    if (generationResult.SaveDataInfo != null) //customsavedatas dont have savedata
+                    if (generationResult.SaveDataInfo != null) //customsavedatas and special savehandlers, like UnityEvent derived types, dont have savedata
                         parts.Insert(1, generationResult.SaveDataInfo.GeneratedTypeText);
                 }
+
+
+                if(parts.Count == 0)
+                {
+                   //everything is manually handled, nothing to generate
+                   Debug.Log($"Skipping generation for type {type.CleanAssemblyQualifiedName()} because it has manual handlers for all parts.");
+                    continue;
+                }
+
 
                 string mergedFileContent = parts.StringJoin(Environment.NewLine + Environment.NewLine);
 
@@ -1376,12 +1447,14 @@ public class SaveAndLoadCodeGenWindow : EditorWindow
                 var namespaces = new List<string>();
 
                 if (generationResult.HandlerInfo != null)
-                    namespaces.AddRange(generationResult.HandlerInfo.NameSpaceNames);
+                    namespaces.AddRange(generationResult.HandlerInfo.UsingStatements);
                 if (generationResult.SaveDataInfo != null)
-                    namespaces.AddRange(generationResult.SaveDataInfo.NameSpaceNames);
+                    namespaces.AddRange(generationResult.SaveDataInfo.UsingStatements);
 
-                namespaces.AddRange(generationResult.StaticHandlerInfo.NameSpaceNames);
-                namespaces.AddRange(generationResult.StaticSaveDataInfo.NameSpaceNames);
+                if (generationResult.StaticHandlerInfo != null)
+                    namespaces.AddRange(generationResult.StaticHandlerInfo.UsingStatements);
+                if (generationResult.StaticSaveDataInfo != null)
+                    namespaces.AddRange(generationResult.StaticSaveDataInfo.UsingStatements);
 
 
 
@@ -1389,36 +1462,270 @@ public class SaveAndLoadCodeGenWindow : EditorWindow
                 {
                     GeneratedTypeText = mergedFileContent,
                     NameSpace = "DevTest",
-                    NameSpaceNames = namespaces.ToHashSet(),
+                    UsingStatements = namespaces.ToHashSet(),
                 };
 
 
 
-                string fileContent = builder.BuildFile();
 
 
 
 
+                string outputPath;
+                string fileContent;
 
-                if (hasManualInstanceHandler && hasManualStaticHandler)
+
+                if (_userSettings.GenerateSaveHandlersAsNestedClassesInsideHandledType && session.HasEditableSourceFile(type, out var path))
                 {
-                    if (_userSettings.GenerateExampleSaveHandlersForManuallyHandledTypesToo)
+                    using var reader = File.OpenText(path);
+                    string originalSource = reader.ReadToEnd();
+
+                    var typeName = type.Name;
+
+                    if (type.IsGenericType)
                     {
-                        relativeDirPath = _userSettings.InactiveSaveHandlersFolder;
-                        //Debug.Log("here " + type.FullName ?? type.Name);
+                        typeName = typeName.Substring(0, typeName.IndexOf('`'));
+                        typeName += "{" + new string(',', type.GetGenericArguments().Length - 1) + "}";
+                    }
+
+                    string tag = $"/// auto-generated for <see cref=\"{typeName}\"/>";
+
+
+                    int indentationLevel = 1; //it is nested so it starts at 1
+
+                    var declType = type.DeclaringType;
+
+                    while (declType != null) //check how deeply nested its containing type is
+                    {
+                        indentationLevel++;
+                        declType = declType.DeclaringType;
+                    }
+
+                    if (type.Namespace != null)
+                    {
+                        indentationLevel++; //namespace level
+                    }
+
+                    var generatedTypeText = builder.BuildFile(asNestedType: true, offset: indentationLevel);
+
+                    generatedTypeText = $"#region SaveAndLoad AutoGenerated" + Environment.NewLine +
+                        tag + Environment.NewLine + Environment.NewLine +
+                        generatedTypeText + Environment.NewLine + Environment.NewLine +
+                        "#endregion";
+
+
+                    var originalLines = originalSource.Split(Environment.NewLine).ToList();
+
+
+                    var originalUsings = new HashSet<string>();
+
+                    int i = 0;
+
+                    int firstUsingLineIndex = -1;
+                    int lastCommentedLineIndex = -1;
+                    int directiveLevel = 0;
+
+                    while (i < originalLines.Count)
+                    {
+                        var line = originalLines[i];
+
+                        if (line.StartsWith("//"))
+                        { lastCommentedLineIndex = i; i++; continue; } //skip file header comments
+
+                        if (line.StartsWith("#if")) directiveLevel++;
+                        if (line.StartsWith("#endif")) directiveLevel--;
+                        if (directiveLevel > 0) { i++; continue; } //skip preprocessor directives
+
+                        if (line.StartsWith("using "))
+                        {
+                            if (firstUsingLineIndex == -1)
+                                firstUsingLineIndex = i;
+
+                            originalUsings.Add(line);
+                        }
+                        else if (line.Contains("{"))
+                            break;
+                        i++;
+                    }
+
+                    if (originalUsings.Count > 0)
+                    {
+                        foreach (var ns in builder.UsingStatements)
+                        {
+                            if (!originalUsings.Contains(ns))
+                            {
+                                originalLines.Insert(firstUsingLineIndex, ns);
+                            }
+                        }
                     }
                     else
-                        continue;
+                    {
+                        //no usings found, insert after file header comments
+                        int insertIndex = lastCommentedLineIndex + 1;
+
+                        originalLines.InsertRange(insertIndex, builder.UsingStatements);
+                    }
+
+                    //not so original anymore...
+                    originalSource = string.Join(Environment.NewLine, originalLines);
+
+
+
+                    i = 0;
+
+                    while (i < originalLines.Count)
+                    {
+                        var line = originalLines[i];
+                        if (line.Contains(tag)) break;
+                        i++;
+                    }
+
+                    bool hasOldGeneratedCode = i < originalLines.Count;
+
+                    if (hasOldGeneratedCode)
+                    {
+                        //replace old generated code
+                        //finding the tag that indicated the end of generated code. Which is #endregion in this case
+
+                        int startIndex = i - 1; //step back one line to include the start of the region
+                        int endIndex = i;
+
+                        while (endIndex < originalLines.Count)
+                        {
+                            var line = originalLines[endIndex];
+                            if (line.Contains("#endregion")) break;
+                            endIndex++;
+                        }
+
+                        var beforeLines = originalLines.Take(startIndex);
+                        var afterLines = originalLines.Skip(endIndex + 1);
+
+                        fileContent = string.Join(Environment.NewLine, beforeLines) + Environment.NewLine
+                            + generatedTypeText + Environment.NewLine
+                            + string.Join(Environment.NewLine, afterLines);
+                    }
+                    else //insert code at the end of the class
+                    {
+                        var combined = CodeGenUtils.InsertNestedTypeIntoClass(type, originalSource, generatedTypeText);
+
+                        fileContent = combined;
+                    }
+
+                    outputPath = path;
+                }
+                else
+                {
+                    fileContent = builder.BuildFile();
+
+                    string fileName = type.IsStatic() ?
+                        generationResult.StaticHandlerInfo.FileName + ".cs" :
+                        generationResult.HandlerInfo.FileName + ".cs";
+
+
+                    string absDirPath;
+
+                    if (type.Name.Contains("InputUser"))
+                    {
+
+                    }
+
+                    Type handlerTypeToLookFor = null;
+
+                    if (!hasManualInstanceHandler)
+                    {
+                        //it has no manual handler, but has it any? Same for static
+                        if (_saveAndLoadService.IsTypeHandled_Editor(type, false, out var handlerType))
+                        {
+                            handlerTypeToLookFor = handlerType;
+                        }
+                    }
+                    else if (!hasManualStaticHandler)
+                    {
+                        if (_saveAndLoadService.IsTypeHandled_Editor(type, true, out var handlerType))
+                        {
+                            handlerTypeToLookFor = handlerType;
+                        }
+                    }
+
+
+                    path = "";//otherwise error: path is unassigned
+
+                    bool hasExistingHandler = handlerTypeToLookFor != null;
+                    bool canEditItsSourceFile = hasExistingHandler && session.HasEditableSourceFile(handlerTypeToLookFor, out path);
+                    bool fileContainsOnlyGeneratedCode = hasExistingHandler && Path.GetFileName(path) == fileName; //save to override as is
+
+                    if (hasExistingHandler)
+                    {
+                        if (canEditItsSourceFile)
+                        {
+                            if (!fileContainsOnlyGeneratedCode)
+                            {
+                                Debug.LogError($"It was detected that the sourcefile of a handler may contains user code, not just generated code. " +
+                                    $"This is not allowed, please dont do this. If the {nameof(SaveAndLoadCodeGenSettings.GenerateSaveHandlersAsNestedClassesInsideHandledType)} " +
+                                    $"is turned off, meaning the generated handlers would go into their separate soruce file, then the codegen logic expects that that the sourcefiles " +
+                                    $"of these handlers contains generated code only. " +
+                                    $"A new file will be created instead. " +
+                                    $"Type: {type.CleanAssemblyQualifiedName()} HandlerType:{handlerTypeToLookFor.CleanAssemblyQualifiedName()} " +
+                                    $"Path: {path}");
+                            }
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"Type has a savehandler but its file was either not found or readonly. " +
+                                $"Type: {type.CleanAssemblyQualifiedName()} HandlerType: {handlerTypeToLookFor.CleanAssemblyQualifiedName()} " +
+                                $"Path: {path}");
+                        }
+                    }
+
+
+
+                    if (hasExistingHandler && canEditItsSourceFile && fileContainsOnlyGeneratedCode)
+                    {
+                        absDirPath = Path.GetDirectoryName(path);
+                    }
+                    else
+                    {
+                        //todo: configurable path
+                        string relativeDirPath = $"_Project/Scripts/SaveHandlers/{(type.IsStruct() ? "DevTestCustomDatas" : "DevTest")}";
+                        relativeDirPath = relativeDirPath.Replace("/", Path.DirectorySeparatorChar.ToString());
+
+
+                        absDirPath = Path.Combine(Application.dataPath, relativeDirPath);
+
+                        if (!Directory.Exists(absDirPath))
+                        {
+                            Directory.CreateDirectory(absDirPath);
+                        }
+                    }
+
+
+                    outputPath = Path.Combine(absDirPath, fileName);
+
+
+                    //outdated: need some work to get this working again
+                    //if (hasManualInstanceHandler && hasManualStaticHandler)
+                    //{
+                    //    if (_userSettings.GenerateExampleSaveHandlersForManuallyHandledTypesToo)
+                    //    {
+                    //        relativeDirPath = _userSettings.InactiveSaveHandlersFolder;
+                    //        //Debug.Log("here " + type.FullName ?? type.Name);
+                    //    }
+                    //    else
+                    //        continue;
+                    //}
                 }
 
-                //todo: accpet path from config
-                string outputPath = Path.Combine(absDirPath, fileName);
+
 
                 using var writer = File.CreateText(outputPath);
 
                 writer.Write(fileContent);
 
-                Debug.Log($"SaveHandler file {fileName} created at {outputPath}");
+                var fileName2 = Path.GetFileNameWithoutExtension(outputPath);
+
+                //todo: take into account if the generated code was nested under target type.
+                //or wether we generated static, instance, or both
+                Debug.Log($"SaveHandler file {fileName2} created at {outputPath}");
             }
 
         }
@@ -1434,10 +1741,127 @@ public class SaveAndLoadCodeGenWindow : EditorWindow
 
 
 
+
         //uncomment after finished testing
         //RemoveSelectedFiles();
     }
 
+
+
+
+
+    public Session NewSession()
+    {
+        var session = new Session
+        {
+            UserSettings = _userSettings,
+        };
+
+        return session;
+    }
+
+
+
+    public class Session
+    {
+        SaveAndLoadCodeGenWindow.Service _service = new();
+
+        public Dictionary<Type, string> _typeToSourceFilePath = new();
+
+
+        public SaveAndLoadCodeGenSettings UserSettings { get; set; }
+        public SaveHandlerTypeGenerationSettingsRegistry TypeGenerationSettingsRegistry { get; } = new();
+
+
+        public bool HasEditableSourceFile(Type type) => HasEditableSourceFile(type, out _);
+
+        public bool HasEditableSourceFile(Type type, out string path)
+        {
+            if (_typeToSourceFilePath.TryGetValue(type, out path))
+            {
+                return path != null;
+            }
+
+            path = GetSourceFilePath(type);
+
+            return path != null;
+        }
+
+
+        //todo: the "Get" logic should be in a utility class, not here. The caching can stay
+        public string GetSourceFilePath(Type type)
+        {
+            if (_typeToSourceFilePath.TryGetValue(type, out var path))
+            {
+                return path;
+            }
+
+            var asm = type.Assembly;
+
+            var dirsToLookIn = new List<string>();
+
+            if (asm.GetName().Name == "Assembly-CSharp")
+            {
+                dirsToLookIn.Add(Application.dataPath);
+            }
+            else
+            {
+                var asmdDef = AssemblyResolver.GetAsdmDefInfoInDirs(asm, AssemblyResolver.EditableSourceFilesDirs);
+
+                if (asmdDef == null) return null;
+
+                dirsToLookIn.AddRange(asmdDef.OwnedDirectories);
+            }
+
+
+            var name = type.QualifiedName();
+
+
+            foreach (var dir in dirsToLookIn)
+            {
+                var csFiles = _service.GetCsFiles(dir);
+
+                foreach (var csPath in csFiles)
+                {
+                    var inspectionReport = Roslyn.CodeGen.InspectCodeFile(csPath);
+
+
+                    bool found = false;
+
+                    foreach (var report in inspectionReport.TypeReports)
+                    {
+
+                        //debug
+                        //if (report.TypeName.Contains("GenZSa") && type.Name.Contains("GenZSa"))
+                        //{
+
+                        //}
+
+                        if (report.Namespace == type.Namespace && report.TypeName == name)
+                        {
+                            found = true;
+                            break;
+                        }
+                    }
+
+                    //debug
+                    //if (csPath.Contains("Z.cs"))
+                    //{
+
+                    //}
+
+                    if (found)
+                    {
+                        _typeToSourceFilePath[type] = csPath;
+                        return csPath;
+                    }
+                }
+            }
+            Debug.LogError("didnt found source file for type: " + type.CleanAssemblyQualifiedName());
+            _typeToSourceFilePath[type] = null;
+            return null;
+        }
+    }
 
 
 
@@ -1456,36 +1880,33 @@ public class SaveAndLoadCodeGenWindow : EditorWindow
         public GetFieldInfosReport FieldsReport;
         public IEnumerable<PropertyInfo> Properties;
         public MethodInfo[] Methods;
-        public EventInfo[] Events;
+        public IEnumerable<EventInfo> Events;
     }
 
     [Flags]
     public enum FieldInfoCodeGenValidationCode
     {
-        Valid = 0,
-        NonPublic = 1,
-        ReadOnly = 2,
+        None = 0,
+        Valid = 1,
+        NonPublic = 2,
+        ReadOnly = 4,
         //Required, c#11
-        Const = 4,
-        UnityEvent = 8,
-        Obsolete = 16,
+        Const = 8,
+        UnityEvent = 16,
+        Obsolete = 32,
+        CompilerGenerated = 64,
+        IncludedByTypeGenSettings = 128,
+        ExcludedByTypeGenSettings = 256,
     }
     public class GetFieldInfosReport
     {
-        public List<FieldInfoReport> FieldInfoReports;
-        public List<FieldInfoReport> StaticFieldInfoReports;
+        public List<FieldInfoReport> FieldInfoReports = new();
 
         public List<FieldInfoReport> ValidFields =>
-            FieldInfoReports.Where(r => r.ValidationCode == FieldInfoCodeGenValidationCode.Valid).ToList();
-
-        //public List<FieldInfoReport> ValidStaticFields =>
-        // StaticFieldInfoReports.Where(r => r.ValidationCode == FieldInfoCodeGenValidationCode.Valid).ToList();
+            FieldInfoReports.Where(r => r.ValidationCode.HasFlag(FieldInfoCodeGenValidationCode.Valid)).ToList();
 
         public List<FieldInfoReport> InvalidFields =>
-        FieldInfoReports.Where(r => r.ValidationCode != FieldInfoCodeGenValidationCode.Valid).ToList();
-
-        //public List<FieldInfoReport> InvalidStaticFields =>
-        //    StaticFieldInfoReports.Where(r => r.ValidationCode != FieldInfoCodeGenValidationCode.Valid).ToList();
+        FieldInfoReports.Where(r => !r.ValidationCode.HasFlag(FieldInfoCodeGenValidationCode.Valid)).ToList();
     }
     public class FieldInfoReport
     {
@@ -1493,40 +1914,56 @@ public class SaveAndLoadCodeGenWindow : EditorWindow
         public FieldInfoCodeGenValidationCode ValidationCode;
     }
 
-    public GetFieldInfosReport GetFieldInfos(Type type, BindingFlags binding)
+    public GetFieldInfosReport GetFieldInfos(Type type, BindingFlags binding, Session session)
     {
-        var report = new GetFieldInfosReport
-        {
-            FieldInfoReports = new List<FieldInfoReport>(),
-            StaticFieldInfoReports = new List<FieldInfoReport>()
-        };
+        var report = new GetFieldInfosReport();
 
         var fieldReports = type.GetFields(binding)
                                .Select(f => new FieldInfoReport() { FieldInfo = f });
 
 
-        bool getNonPublicsToo = binding.HasFlag(BindingFlags.NonPublic);
+        bool publicOnly = !binding.HasFlag(BindingFlags.NonPublic);
+        bool isStatic = binding.HasFlag(BindingFlags.Static);
 
 
         foreach (var fieldReport in fieldReports)
         {
             var field = fieldReport.FieldInfo;
 
-            if (!getNonPublicsToo && !field.IsPublic) fieldReport.ValidationCode |= FieldInfoCodeGenValidationCode.NonPublic;
+            if (session.TypeGenerationSettingsRegistry.HasSettingsForHandledType(type, isStatic, out var settings))
+            {
+                if (settings.HasInclusionModeFor(field, out var inclusionMode))
+                {
+                    switch (inclusionMode)
+                    {
+                        case MemberInclusionMode.Include:
+                            fieldReport.ValidationCode |= FieldInfoCodeGenValidationCode.IncludedByTypeGenSettings;
+                            fieldReport.ValidationCode |= FieldInfoCodeGenValidationCode.Valid;
+                            break;
+
+                        case MemberInclusionMode.Exclude:
+                            fieldReport.ValidationCode |= FieldInfoCodeGenValidationCode.ExcludedByTypeGenSettings;
+                            break;
+                    }
+                }
+            }
+            if (publicOnly && !field.IsPublic) fieldReport.ValidationCode |= FieldInfoCodeGenValidationCode.NonPublic;
             if (field.IsInitOnly) fieldReport.ValidationCode |= FieldInfoCodeGenValidationCode.ReadOnly;
             if (field.IsLiteral && !field.IsInitOnly) fieldReport.ValidationCode |= FieldInfoCodeGenValidationCode.Const;
+            if (CodeGenUtils.IsCompilerGenerated(field)) fieldReport.ValidationCode |= FieldInfoCodeGenValidationCode.CompilerGenerated;
             if (typeof(UnityEvent).IsAssignableFrom(field.FieldType)) fieldReport.ValidationCode |= FieldInfoCodeGenValidationCode.UnityEvent;
-            if (_userSettings.IgnoreAnyObsolete && field.IsDefined(typeof(ObsoleteAttribute))) fieldReport.ValidationCode |= FieldInfoCodeGenValidationCode.Obsolete;
 
-            //Valid is the default, so no need to set it explicitly
+            var obsolete = field.GetCustomAttribute<ObsoleteAttribute>(false);
+            if (obsolete != null && (obsolete.IsError || _userSettings.IgnoreAnyObsolete)) fieldReport.ValidationCode |= FieldInfoCodeGenValidationCode.Obsolete;
 
-            //if (field.IsStatic) report.StaticFieldInfoReports.Add(fieldReport);
-            else report.FieldInfoReports.Add(fieldReport);
+            if (fieldReport.ValidationCode == FieldInfoCodeGenValidationCode.None)
+                fieldReport.ValidationCode |= FieldInfoCodeGenValidationCode.Valid;
+
+            report.FieldInfoReports.Add(fieldReport);
         }
 
         return report;
     }
-
 
 
     //todo: test out this method
@@ -1586,18 +2023,8 @@ prop.GetCustomAttributes(typeof(CompilerGeneratedAttribute), false).Any() ||
     [MenuItem("Window/Changed Files/Add Dummy")]
     public static void AddDummy()
     {
-        return;
-        var window = GetWindow<SaveAndLoadCodeGenWindow>();
-        return;
-        var path = Application.dataPath + "/Test" + UnityEngine.Random.Range(0, 1000) + ".cs";
-        var dto = new FileSystemEventArgsDto
-        {
-            ChangeType = WatcherChangeTypes.Changed,
-            FullPath = path,
-            Name = Path.GetFileName(path)
-        };
-        window._changedFiles.Add(dto);
-        window.Repaint();
+        var type = Type.GetType("UnityEngine.InputSystem.InputDevice, Unity.InputSystem");
+        Debug.Log(type);
     }
 
 
@@ -1606,11 +2033,17 @@ prop.GetCustomAttributes(typeof(CompilerGeneratedAttribute), false).Any() ||
 
     public CodeGenUtils.Configuration ToCodeGenConfig(SaveAndLoadCodeGenSettings userSettings)
     {
-        if(userSettings == null) return _codeGenConfig;
+        if (userSettings == null) return _codeGenConfig;
 
         _codeGenConfig.IgnoreAnyObsolete = userSettings.IgnoreAnyObsolete;
+        _codeGenConfig.NonPublicToo = userSettings.GenerateSaveHandlersAsNestedClassesInsideHandledType;
         return _codeGenConfig;
     }
+
+
+
+
+
 }
 
 

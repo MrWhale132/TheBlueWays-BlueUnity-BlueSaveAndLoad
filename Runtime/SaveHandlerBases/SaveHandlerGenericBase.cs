@@ -29,6 +29,7 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
         }
 
         public override ObjectMetaData MetaData => __saveData._MetaData_;
+        public override int Order { get => __saveData._MetaData_.Order; set => __saveData._MetaData_.Order = value; }
 
 
         public override void Init(object instance)
@@ -58,9 +59,11 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
                 IsGeneric = handlerType.IsGenericType,
                 SaveHandlerType = handlerType.AssemblyQualifiedName,
                 ObjectId = HandledObjectId,
-                Order = Order,
+                //Order = Order,
             };
 
+            var attr = __attributeCache[GetType()];
+            Order = attr.Order;
 
             __saveData._DataGroupId_ = DataGroupId;
             __saveData._AssemblyQualifiedName_ = instance.GetType().AssemblyQualifiedName;
@@ -128,6 +131,7 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
 
 
         //these are quick fixes because dynamic object load order setting is not ready yet
+        //todo
         public void GetAssetIdList(IEnumerable<UnityEngine.Object> objs, List<RandomId> ids)
         {
             ids.Clear();

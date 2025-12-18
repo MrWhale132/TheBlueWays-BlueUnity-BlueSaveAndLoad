@@ -28,8 +28,8 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.Unity.Unity
             __saveData.sharedMesh = GetAssetId(__instance.sharedMesh);
             __saveData.skinnedMotionVectors = __instance.skinnedMotionVectors;
             __saveData.vertexBufferTarget = __instance.vertexBufferTarget;
-            __saveData.bounds.ReadFrom(__instance.bounds);
-            __saveData.localBounds.ReadFrom(__instance.localBounds);
+            //__saveData.bounds.ReadFrom(__instance.bounds);
+            //__saveData.localBounds.ReadFrom(__instance.localBounds);
             __saveData.enabled = __instance.enabled;
             __saveData.shadowCastingMode = __instance.shadowCastingMode;
             __saveData.receiveShadows = __instance.receiveShadows;
@@ -68,8 +68,8 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.Unity.Unity
             __instance.sharedMesh = GetAssetById(__saveData.sharedMesh, __instance.sharedMesh);
             __instance.skinnedMotionVectors = __saveData.skinnedMotionVectors;
             __instance.vertexBufferTarget = __saveData.vertexBufferTarget;
-            __saveData.bounds.WriteTo(__instance.bounds);
-            __saveData.localBounds.WriteTo(__instance.localBounds);
+            //__saveData.bounds.WriteTo(__instance.bounds);
+            //__saveData.localBounds.WriteTo(__instance.localBounds);
             __instance.enabled = __saveData.enabled;
             __instance.shadowCastingMode = __saveData.shadowCastingMode;
             __instance.receiveShadows = __saveData.receiveShadows;
@@ -147,8 +147,8 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.Unity.Unity
         public RandomId sharedMesh;
         public System.Boolean skinnedMotionVectors;
         public UnityEngine.GraphicsBuffer.Target vertexBufferTarget;
-        public DevTest.BoundsSaveData bounds = new();
-        public DevTest.BoundsSaveData localBounds = new();
+        //public DevTest.BoundsSaveData bounds = new();
+        //public DevTest.BoundsSaveData localBounds = new();
         public System.Boolean enabled;
         public UnityEngine.Rendering.ShadowCastingMode shadowCastingMode;
         public System.Boolean receiveShadows;

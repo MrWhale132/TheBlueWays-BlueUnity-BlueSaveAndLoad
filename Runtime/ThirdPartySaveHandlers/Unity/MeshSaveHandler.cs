@@ -217,10 +217,10 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.UnitySHs
 				{"CombineMeshes(UnityEngine.CoreModule UnityEngine.CombineInstance[],mscorlib System.Boolean):mscorlib System.Void", 695574325369310604},
 				{"CombineMeshes(UnityEngine.CoreModule UnityEngine.CombineInstance[]):mscorlib System.Void", 366402961374304397}
 			};
-			Infra.Singleton.__methodIdsByMethodSignaturePerType.Add(_typeReference, methodToId);
-			Infra.Singleton.__methodGetterFactoryPerType.Add(_typeReference, _idToMethod);
-			Infra.Singleton.__methodInfoGettersPerType.Add(_typeReference, _idToMethodInfo);
-		}
+            Infra.Singleton.AddMethodSignatureToMethodIdMap(_typeReference, methodToId);
+            Infra.Singleton.AddMethodIdToMethodMap(_typeReference, _idToMethod);
+            Infra.Singleton.AddMethodIdToMethodInfoMap(_typeReference, _idToMethodInfo);
+        }
 		static Type _typeReference = typeof(Mesh);
 		static Type _typeDefinition = typeof(UnityEngine.Mesh);
 		static Type[] _args = _typeReference.IsGenericType ? _typeReference.GetGenericArguments() : null;

@@ -3,7 +3,6 @@ using Assets._Project.Scripts.Infrastructure;
 using Assets._Project.Scripts.Infrastructure.AddressableInfra;
 using Assets._Project.Scripts.SaveAndLoad.SavableDelegates;
 using Assets._Project.Scripts.UtilScripts;
-using Assets._Project.Scripts.UtilScripts.CodeGen;
 using Assets._Project.Scripts.UtilScripts.Extensions;
 using Newtonsoft.Json;
 using System;
@@ -51,7 +50,7 @@ namespace Assets._Project.Scripts.SaveAndLoad
                 || typeof(T).IsInterface) //WARNING: HUGE, huge temporary solution is this. This assumes and requires that if an interface used as a 
                                           //generic type param, than only class type types implement it
             {
-                _setter = (value) => _ObjectId = Infra.Singleton.GetObjectId(value, ReferencedBy);
+                _setter = (value) => _ObjectId = Infra.Singleton.GetObjectId(value, ReferencedBy,setLoadingOrder:true);
                 _getter = () =>
                 {
                     return Infra.Singleton.GetObjectById<T>(_ObjectId);
@@ -78,7 +77,7 @@ namespace Assets._Project.Scripts.SaveAndLoad
             {
                 _setter = (value) =>
                 {
-                    if (typeof(T).IsAssignableTo(typeof(GameObject)))
+                    if ((typeof(GameObject).IsAssignableFrom(typeof(T))))
                     {
                         Debug.LogError((value as GameObject).HierarchyPath());
                     }

@@ -22,11 +22,11 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
         public static Coroutine StartSavableCoroutine<T>(this MonoBehaviour mono, Func<T, IEnumerator> routine, T state) where T : class, new() 
         {
-            var targetId = Infra.Singleton.GetObjectId(mono, Infra.Singleton.GlobalReferencing);
-            var stateId = Infra.Singleton.GetObjectId(state, Infra.Singleton.GlobalReferencing);
+            var targetId = Infra.Singleton.GetObjectId(mono, Infra.Singleton.GlobalReferencing, setLoadingOrder:false);
+            var stateId = Infra.Singleton.GetObjectId(state, targetId, setLoadingOrder:true);
             var delegateSaveInfo = Infra.Singleton.GetDelegateSaveInfo(routine);
 
-            var savableRoutine = new CoroutineHandler()
+            var handler = new CoroutineHandler()
             {
                 _delegateInfo = delegateSaveInfo,
                 _routineState = stateId,
@@ -37,15 +37,15 @@ namespace Assets._Project.Scripts.SaveAndLoad
             IEnumerator Wrap()
             {
                 var coroutine = mono.StartCoroutine(routine(state));
-                savableRoutine._routine = coroutine;
+                handler._routine = coroutine;
 
                 yield return coroutine;
-                savableRoutine._finished = true;
+                handler._finished = true;
             }
 
             Coroutine wrapper = mono.StartCoroutine(Wrap());
 
-            Infra.Singleton.RegisterCoroutine(wrapper, savableRoutine);
+            Infra.Singleton.RegisterCoroutine(wrapper, handler);
 
             return wrapper;
         }

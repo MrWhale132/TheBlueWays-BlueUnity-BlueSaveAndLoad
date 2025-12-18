@@ -12,6 +12,7 @@ using UnityEngine;
 using static SaveAndLoadCodeGenWindow;
 using Assets._Project.Scripts.UtilScripts.Extensions;
 using Unity.Collections;
+using UnityEngine.Events;
 
 
 
@@ -29,32 +30,46 @@ public class SaveHandlerAutoGenerator : ScriptableObject
 
     public class CsFileBuilder
     {
-        public string GeneratedTypeName;
+        public string FileName;
         public string GeneratedTypeText;
         public string NameSpace;
-        public HashSet<string> NameSpaceNames = new();
+        public HashSet<string> UsingStatements = new();
 
 
-        public string BuildFile()
+        public string BuildFile(bool asNestedType = false, int offset = 0)
         {
-            var namespaces = NameSpaceNames.StringJoin(_NewLine);
+            var namespaces = asNestedType ? "" : UsingStatements.StringJoin(_NewLine);
 
-            string file = _CsFileTemplate
-                .Replace(AdditionalNameSpaces, namespaces)
-                .Replace(FileNameSpace, NameSpace)
-                .Replace(NameSpaceContent, GeneratedTypeText)
-                ;
+            string file = "//auto-generated" + _NewLine;
 
-            var indented = Indent(file);
+            if (asNestedType)
+            {
+                file += GeneratedTypeText;
+            }
+            else
+            {
+                file += namespaces + _NewLine +
+                        _NewLine +
+                        $"namespace {NameSpace}" +
+                        _NewLine +
+                        "{" +
+                        _NewLine +
+                        GeneratedTypeText +
+                        _NewLine +
+                        "}" +
+                        "";
+            }
+
+            var indented = Indent(file, offset);
             //Debug.Log(file);
             //Debug.Log(indented);
             return indented;
         }
 
 
-        public string Indent(string file)
+        public string Indent(string file, int offset)
         {
-            return CodeGenUtils.Indent(file);
+            return CodeGenUtils.Indent(file, offset);
         }
 
 
@@ -68,9 +83,6 @@ public class SaveHandlerAutoGenerator : ScriptableObject
         _NewLine +
         "{" +
         _NewLine +
-        //SaveHandlerClass +
-        //_NewLine +
-        //SaveDataClass +
         NameSpaceContent +
         _NewLine +
         "}" +
@@ -88,16 +100,16 @@ public class SaveHandlerAutoGenerator : ScriptableObject
 
 
 
-    public CodeGenerationResult GenerateSavingAndLoadingCode(TypeReport typeReport)
+    public CodeGenerationResult GenerateSaveAndLoadCode(TypeReport typeReport, Session session)
     {
         CodeGenerationResult result;
 
         if (typeReport.ReportedType.IsClass || typeReport.ReportedType.IsInterface)
         {
-            result = GenerateSaveHandler(typeReport);
+            result = GenerateSaveHandler(typeReport, session);
         }
         else
-            result = GenerateCustomSaveData(typeReport);
+            result = GenerateCustomSaveData(typeReport, session);
 
         return result;
     }
@@ -107,22 +119,41 @@ public class SaveHandlerAutoGenerator : ScriptableObject
 
 
 
-    public CodeGenerationResult GenerateCustomSaveData(TypeReport typeReport)
+    public CodeGenerationResult GenerateCustomSaveData(TypeReport typeReport, Session session)
     {
-        var result = GenerateStaticSaveHandler(typeReport);
+        var result = GenerateStaticSaveHandler(typeReport, session);
 
         if (typeReport.ReportedType.IsStatic())
             return result;
 
 
-        //string nameSpaceContent = _CustomSaveDataTemplate;
+        string typeDef = CodeGenUtils.ToTypeDefinitionText(typeReport.ReportedType);
 
-        //string csFile = _CsFileTemplate.Replace(NameSpaceContent, nameSpaceContent);
 
+        string generationModeEnumText;
+
+        if(session.TypeGenerationSettingsRegistry.HasSettingsForHandledType(typeReport.ReportedType,isStatic:false, out var settings))
+        {
+            generationModeEnumText = nameof(SaveHandlerGenerationMode)+"."+nameof(SaveHandlerGenerationMode.Configured);
+        }
+        else
+        {
+            generationModeEnumText = nameof(SaveHandlerGenerationMode)+"."+nameof(SaveHandlerGenerationMode.FullAutomata);
+        }
+
+
+        string attribute = $"[{nameof(CustomSaveDataAttribute)}(" +
+            $"{nameof(CustomSaveDataAttribute.HandledType)} = typeof({typeDef}), " +
+            $"{nameof(CustomSaveDataAttribute.GenerationMode)} = {generationModeEnumText}" +
+            $")]";
+
+
+        string template = _CustomSaveDataTemplate
+            .Replace(CustomSaveDataAttributeText, attribute);
 
         var templates = new List<string>()
         {
-            _CustomSaveDataTemplate,
+            template,
         };
 
 
@@ -130,13 +161,15 @@ public class SaveHandlerAutoGenerator : ScriptableObject
         string instanceAccessor = "instance.";
 
 
-        var generatedTypes = GenerateCommonCode(typeReport, templates, saveDataAccessor, instanceAccessor,isStatic: false);
+        var generatedTypes = GenerateCommonCode(typeReport, templates, saveDataAccessor, instanceAccessor, isStatic: false, session);
 
         var CustomSaveDataInfo = generatedTypes[0];
 
         string typeName = FlattenTypeNameIfNested(typeReport.ReportedType);
 
-        CustomSaveDataInfo.GeneratedTypeName = $"{typeName}CustomSaveData";
+        string fileName = $"{typeName}CustomSaveData";
+        
+        CustomSaveDataInfo.FileName = fileName;
 
         result.HandlerInfo = CustomSaveDataInfo;
 
@@ -146,7 +179,7 @@ public class SaveHandlerAutoGenerator : ScriptableObject
 
 
 
-    public CodeGenerationResult GenerateStaticSaveHandler(TypeReport typeReport)
+    public CodeGenerationResult GenerateStaticSaveHandler(TypeReport typeReport, Session session)
     {
         var result = new CodeGenerationResult();
 
@@ -173,10 +206,17 @@ public class SaveHandlerAutoGenerator : ScriptableObject
 
         if (staticType.IsGenericType)
         {
-            int genParamCount = staticType.GetGenericArguments().Length;
+            if (session.UserSettings.GenerateSaveHandlersAsNestedClassesInsideHandledType)
+            {
+                handledTypeText = CodeGenUtils.ToTypeDefinitionText(staticType, withNameSpace: false) + "." + subtituteClassName;
+            }
+            else
+            {
+                int genParamCount = staticType.GetGenericArguments().Length;
 
-            staticDataGroupId += $"`{genParamCount}";
-            handledTypeText += "<" + new string(',', genParamCount - 1) + ">";
+                staticDataGroupId += $"`{genParamCount}";
+                handledTypeText += "<" + new string(',', genParamCount - 1) + ">";
+            }
         }
 
         string generationMode = $"{nameof(SaveHandlerGenerationMode)}.{SaveHandlerGenerationMode.FullAutomata}";
@@ -214,14 +254,14 @@ public class SaveHandlerAutoGenerator : ScriptableObject
         string instanceAccessor = CodeGenUtils.ToTypeReferenceText(staticType, withNameSpace: true) + ".";
 
 
-        var generatedTypes = GenerateCommonCode(staticReport, templates, saveDataAccessor, instanceAccessor, isStatic: true);
+        var generatedTypes = GenerateCommonCode(staticReport, templates, saveDataAccessor, instanceAccessor, isStatic: true, session);
 
         var staticHandlerInfo = generatedTypes[0];
         var staticSaveDataInfo = generatedTypes[1];
 
         ///todo: this logic is duplicated from <see cref="GenerateCommonCode"/>
-        staticHandlerInfo.GeneratedTypeName = $"Static{typeName}SaveHandler";
-        staticSaveDataInfo.GeneratedTypeName = $"Static{typeName}SaveData";
+        staticHandlerInfo.FileName = $"Static{typeName}SaveHandler";
+        staticSaveDataInfo.FileName = $"Static{typeName}SaveData";
 
         foreach (var builder in generatedTypes)
         {
@@ -258,15 +298,68 @@ public class SaveHandlerAutoGenerator : ScriptableObject
 
 
 
-    public CodeGenerationResult GenerateSaveHandler(TypeReport typeReport)
+
+
+    [NonSerialized]
+    public string _UnityEventSaveHandlerTemplate =
+        SaveHandlerAttribute + _NewLine +
+        $"public class {GeneratedTypeName}SaveHandler{GenericParameterList} : " +
+        $"UnityEventSaveHandlerBase<{TargetTypeReference}> {GenericConstraints}" + _NewLine +
+        "{ }" +
+        "";
+
+
+
+
+    public CodeGenerationResult GenerateSaveHandler(TypeReport typeReport, Session session)
     {
-        var result = GenerateStaticSaveHandler(typeReport);
+        Type typeToHandle = typeReport.ReportedType;
+
+
+        //todo: make this type of exceptional generation configurable from outside
+        if (typeReport.ReportedType.IsAssignableTo(typeof(UnityEventBase)))
+        {
+            string generatedTypeName = FlattenTypeNameIfNested(typeToHandle);
+            string genericConstraints = GetgenericConstraintsText(typeToHandle);
+            string attribute = GetAttributeText(typeToHandle);
+
+            var namespaces = new List<string>
+            {
+                "Assets._Project.Scripts.SaveAndLoad",
+                "Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.Unity.UnityEvents",
+            }
+            .Select(ns => $"using {ns};").ToHashSet();
+
+
+            var savehandler = new CsFileBuilder
+            {
+                UsingStatements = namespaces,
+                FileName = generatedTypeName,
+                GeneratedTypeText = _UnityEventSaveHandlerTemplate
+                    .Replace(SaveHandlerAttribute, attribute)
+                    .Replace(GeneratedTypeName, generatedTypeName)
+                    .Replace(TargetTypeReference, CodeGenUtils.ToTypeReferenceText(typeToHandle, withNameSpace: true))
+                    .Replace(GenericParameterList, CodeGenUtils.GetGenericParameterListText(typeToHandle))
+                    .Replace(GenericConstraints, genericConstraints)
+                    ,
+            };
+
+            var result2 = new CodeGenerationResult
+            {
+                HandlerInfo = savehandler,
+            };
+
+            return result2;
+        }
+
+
+
+        var result = GenerateStaticSaveHandler(typeReport, session);
 
         if (typeReport.ReportedType.IsStatic())
             return result;
 
 
-        Type typeToHandle = typeReport.ReportedType;
 
 
         string saveDataBaseClassName;
@@ -300,27 +393,40 @@ public class SaveHandlerAutoGenerator : ScriptableObject
 
 
         //attribute
-        string dataGroupId = typeToHandle.Name;
 
-        var generationMode = $"{nameof(SaveHandlerGenerationMode)}.{SaveHandlerGenerationMode.FullAutomata}";
-
-
-        string id = GetOrCreateSaveHandlerId(typeToHandle, isStatic: false);
+        string GetAttributeText(Type typeToHandle)
+        {
+            string dataGroupId = typeToHandle.Name;
 
 
-        var attribute = _SaveHandlerAttributeTemplate
-            .Replace(SaveHandlerId, id)
-            .Replace(DataGroupId, dataGroupId)
-            .Replace(HandledType, CodeGenUtils.ToTypeDefinitionText(typeToHandle, withNameSpace: true))
-            .Replace(GenerationMode, generationMode)
-            .Replace(AdditionalParamList, "")
-            ;
+            string generationModeEnumText;
+
+            if (session.TypeGenerationSettingsRegistry.HasSettingsForHandledType(typeReport.ReportedType, isStatic: false, out var settings))
+            {
+                generationModeEnumText = nameof(SaveHandlerGenerationMode) + "." + nameof(SaveHandlerGenerationMode.Configured);
+            }
+            else
+            {
+                generationModeEnumText = nameof(SaveHandlerGenerationMode) + "." + nameof(SaveHandlerGenerationMode.FullAutomata);
+            }
 
 
 
-        //string nameSpaceContent = _SaveHandlerTemplate + _NewLine + _NewLine + _SaveDataTemplate;
+            string id = GetOrCreateSaveHandlerId(typeToHandle, isStatic: false);
 
-        //string csFile = _CsFileTemplate.Replace(NameSpaceContent, nameSpaceContent);
+
+            var attribute = _SaveHandlerAttributeTemplate
+                .Replace(SaveHandlerId, id)
+                .Replace(DataGroupId, dataGroupId)
+                .Replace(HandledType, CodeGenUtils.ToTypeDefinitionText(typeToHandle, withNameSpace: true))
+                .Replace(GenerationMode, generationModeEnumText)
+                .Replace(AdditionalParamList, "")
+                ;
+
+            return attribute;
+        }
+
+
 
         var templates = new List<string>()
         {
@@ -333,7 +439,7 @@ public class SaveHandlerAutoGenerator : ScriptableObject
         var instanceAccessor = nameof(SaveHandlerGenericBase<int, SaveDataBase>.__instance) + ".";
 
 
-        var generatedTypes = GenerateCommonCode(typeReport, templates, saveDataAccessor, instanceAccessor, isStatic: false);
+        var generatedTypes = GenerateCommonCode(typeReport, templates, saveDataAccessor, instanceAccessor, isStatic: false, session);
 
         var handlerInfo = generatedTypes[0];
         var saveDataInfo = generatedTypes[1];
@@ -341,13 +447,13 @@ public class SaveHandlerAutoGenerator : ScriptableObject
         string typeName = FlattenTypeNameIfNested(typeToHandle);
 
         ///todo: this logic is duplicated from <see cref="GenerateCommonCode"/>
-        handlerInfo.GeneratedTypeName = $"{typeName}SaveHandler";
-        saveDataInfo.GeneratedTypeName = $"{typeName}SaveData";
+        handlerInfo.FileName = $"{typeName}SaveHandler";
+        saveDataInfo.FileName = $"{typeName}SaveData";
 
         foreach (var builder in generatedTypes)
         {
             builder.GeneratedTypeText = builder.GeneratedTypeText
-                .Replace(SaveHandlerAttribute, attribute)
+                .Replace(SaveHandlerAttribute, GetAttributeText(typeToHandle))
                 .Replace(BaseClassName, baseClass)
                 .Replace(SaveDataBaseClassName, saveDataBaseClassName)
                 ;
@@ -364,14 +470,14 @@ public class SaveHandlerAutoGenerator : ScriptableObject
 
 
 
-    public IReadOnlyList<CsFileBuilder> GenerateCommonCode(TypeReport typeReport, IEnumerable<string> csFileTemplates, string saveDataAccessor, string instanceAccessor, bool isStatic)
+    public IReadOnlyList<CsFileBuilder> GenerateCommonCode(TypeReport typeReport, IEnumerable<string> csFileTemplates, string saveDataAccessor, string instanceAccessor, bool isStatic, Session session)
     {
         Type typeToHandle = typeReport.ReportedType;
 
 
         List<string> additionalNameSpaces = new()
         {
-            typeToHandle.Namespace, //thus can be null
+            typeToHandle.Namespace,
             "Assets._Project.Scripts.UtilScripts",
             "Assets._Project.Scripts.Infrastructure",
             "Assets._Project.Scripts.SaveAndLoad",
@@ -385,14 +491,10 @@ public class SaveHandlerAutoGenerator : ScriptableObject
 
 
 
-        //todo
-        //if static or has static fields
 
-
-
-        List<string> saveDataFields = new();
-        List<string> writeDataFields = new();
-        List<string> readDataFields = new();
+        Dictionary<MemberInfo, string> saveDataFields = new();
+        Dictionary<MemberInfo, string> writeDataFields = new();
+        Dictionary<MemberInfo, string> readDataFields = new();
 
 
 
@@ -408,7 +510,7 @@ public class SaveHandlerAutoGenerator : ScriptableObject
 
 
             if (type.IsPrimitive || type.IsEnum || type == typeof(string) || _saveAndLoadService.HasSerializer_Editor(type)
-                || type == typeof(LayerMask))// this madafaka's json converter doesnt work somewhy, so I make it an exception
+                || type == typeof(LayerMask))// this madafaka's json converter doesnt work somewhy, so I made it an exception
             {
                 saveDataField = $"public {typeReference} {fieldName};";
 
@@ -460,9 +562,9 @@ public class SaveHandlerAutoGenerator : ScriptableObject
                 }
             }
 
-            saveDataFields.Add(saveDataField);
-            writeDataFields.Add(writeData);
-            readDataFields.Add(readData);
+            saveDataFields.Add(memberInfo, saveDataField);
+            writeDataFields.Add(memberInfo, writeData);
+            readDataFields.Add(memberInfo, readData);
         }
 
 
@@ -497,43 +599,122 @@ public class SaveHandlerAutoGenerator : ScriptableObject
 
             string writeData = $"{saveDataAccessor}{fieldName} = {getInvocationList}(nameof({targetTypeReference}.{evt.Name}));";
 
-            string readData = $"var {fieldName}Del = {getDelegate}<{eventTypeTypeReference}>({saveDataAccessor}{fieldName});" +_NewLine;
-            readData += $"if({fieldName}Del != null)"+_NewLine;
+            string readData = $"var {fieldName}Del = {getDelegate}<{eventTypeTypeReference}>({saveDataAccessor}{fieldName});" + _NewLine;
+            readData += $"if({fieldName}Del != null)" + _NewLine;
             readData += $"{instanceAccessor}{fieldName} += {fieldName}Del;";
 
 
-            saveDataFields.Add(saveDataField);
-            writeDataFields.Add(writeData);
-            readDataFields.Add(readData);
+            saveDataFields.Add(evt, saveDataField);
+            writeDataFields.Add(evt, writeData);
+            readDataFields.Add(evt, readData);
         }
+
 
 
 
         //method registration
 
 
-        var dictEntries = new List<string>();
+        var dictEntries = new Dictionary<string, string>();
 
-        var idToMethodLookUpLines = new List<string>();
-        var idToGenMethodDefLookUpLines = new List<string>();
+        var idToMethodLookUpLines = new Dictionary<string, string>();
+        var idToGenMethodDefLookUpLines = new Dictionary<string, string>();
+
+        var existingMethodToIdMap = new Dictionary<string, long>();
+
+
+        var typeName = typeToHandle.Name;
+
+        if (typeToHandle.IsGenericType)
+        {
+            typeName = typeName.Substring(0, typeName.IndexOf('`'));
+            typeName += "{" + new string(',', typeToHandle.GetGenericArguments().Length - 1) + "}";
+        }
+
+
+        string text2 = isStatic ? "static " : "";
+
+        string tag = $"/// methodToId map for {text2}<see cref=\"{typeName}\"/>";
+
+
+
+        var handlerType = _saveAndLoadService.GetSaveHandlerTypeFrom(typeToHandle);
+        if (handlerType != null)
+        {
+            var savehandlerFilePath = session.GetSourceFilePath(handlerType);
+
+            var text = System.IO.File.ReadAllText(savehandlerFilePath);
+
+
+            int tagStart = text.IndexOf(tag);
+
+            //todo: only for backward comp, remove later
+            if (tagStart != -1)
+            {
+                int dictionaryEntriesStart = tagStart + tag.Length + 1;
+
+                int end = text.IndexOf("};", dictionaryEntriesStart);
+
+                string section = text.Substring(dictionaryEntriesStart, end - dictionaryEntriesStart);
+
+                var entries = section.Split(_NewLine, StringSplitOptions.RemoveEmptyEntries);
+
+                for (int i = 0; i < entries.Length - 1; i++)  //last line is the };
+                {
+                    var line = entries[i];
+
+                    if (line.Contains("#if") || line.Contains("#endif")) continue;
+
+                    int keyvalSep = line.IndexOfNth(',', -2);
+                    var start = line.IndexOf('\"') + 1;
+                    var length = keyvalSep - start - 1;
+                    //debug
+                    if (length < 0)
+                    {
+                        Debug.LogError(typeToHandle.CleanAssemblyQualifiedName() +" "+isStatic +"\n"+line);
+                    }
+                    var key = line.Substring(start, keyvalSep - start - 1);
+                    var val = line.Substring(keyvalSep + 2, line.Length - keyvalSep - 4);
+
+                    if (long.TryParse(val, out var existingId))
+                    {
+                        existingMethodToIdMap.Add(key, existingId);
+                    }
+                    else
+                    {
+                        Debug.LogError($"Failed to parse method id: {val} for method: {key} in existing SaveHandler: {handlerType.FullName} at path: {savehandlerFilePath}");
+                    }
+                }
+            }
+        }
 
 
         foreach (var method in typeReport.Methods)
         {
-            string methodSignature = CodeGenUtils.GetMethodSignature(method);
-            var id = RandomId.Get();
+            string methodSignature = CodeGenUtils.GetMethodSignature(method, useNameOfOperator: false);
 
-            string entry = $"{{\"{methodSignature}\", {id}}}";
+            string id;
 
-            dictEntries.Add(entry);
+            if (existingMethodToIdMap.TryGetValue(methodSignature, out var randomId))
+            {
+                id = randomId.ToString();
+                //Debug.Log(id);
+            }
+            else
+                id = RandomId.Get().ToString();
+
+
+            string entry = $"{{$\"{methodSignature}\", {id}}},";
+
+            dictEntries.Add(id, entry);
 
 
             Func<ParameterInfo, bool> canNotBeUsedAsGenericParameter = (p) => p.ParameterType.IsByRef || p.ParameterType.IsPointer || p.ParameterType.IsByRefLike;
 
             if (method.IsGenericMethod || method.GetParameters().Any(canNotBeUsedAsGenericParameter) || canNotBeUsedAsGenericParameter(method.ReturnParameter))
             {
-                string line = $"{id} => {CodeGenUtils.GenerateGetMethodCode(method)}";
-                idToGenMethodDefLookUpLines.Add(line);
+                string line = $"{id} => {CodeGenUtils.GenerateGetMethodCode(method)},";
+                idToGenMethodDefLookUpLines.Add(id, line);
             }
             else
             {
@@ -553,66 +734,112 @@ public class SaveHandlerAutoGenerator : ScriptableObject
                     string argListText = argNames.Count > 0 ?
                         "<" + string.Join(", ", argNames) + ">" : "";
 
-                    
-                    string targetReference = isStatic? targetTypeReference : $"(({targetTypeReference})instance)";
-                    string line = $"{id} => new Func<object, Delegate>((instance) => new {delegateType}{argListText}({targetReference}.{method.Name}))";
 
-                    idToMethodLookUpLines.Add(line);
+                    string targetReference = isStatic ? targetTypeReference : $"(({targetTypeReference})instance)";
+                    string line = $"{id} => new Func<object, Delegate>((instance) => new {delegateType}{argListText}({targetReference}.{method.Name})),";
+
+                    idToMethodLookUpLines.Add(id, line);
 
                 }
                 catch
                 {
                     Debug.Log(typeReport.ReportedType.FullName + " " + method.Name);
                     Debug.Log(method.IsGenericMethod);
-                    foreach(var p in method.GetParameters())
+                    foreach (var p in method.GetParameters())
                     {
                         Debug.Log(p.ParameterType.CleanAssemblyQualifiedName() + " " + canNotBeUsedAsGenericParameter(p));
                     }
-                        Debug.Log(method.ReturnParameter.ParameterType.FullName + " " + canNotBeUsedAsGenericParameter(method.ReturnParameter));
+                    Debug.Log(method.ReturnParameter.ParameterType.FullName + " " + canNotBeUsedAsGenericParameter(method.ReturnParameter));
                     throw;
                 }
             }
         }
 
 
-
-        idToMethodLookUpLines.Add($"_ => {nameof(Infra)}.{nameof(Infra.Singleton)}.{nameof(Infra.Singleton.GetIdToMethodMapForType)}" +
+        idToMethodLookUpLines.Add("", $"_ => {nameof(Infra)}.{nameof(Infra.Singleton)}.{nameof(Infra.Singleton.GetIdToMethodMapForType)}" +
                                         $"(_typeReference.BaseType)(id),");
 
-        idToGenMethodDefLookUpLines.Add($"_ => {nameof(Infra)}.{nameof(Infra.Singleton)}.{nameof(Infra.Singleton.GetMethodInfoIdToMethodMapForType)}" +
+        idToGenMethodDefLookUpLines.Add("", $"_ => {nameof(Infra)}.{nameof(Infra.Singleton)}.{nameof(Infra.Singleton.GetMethodInfoIdToMethodMapForType)}" +
                                                 $"(_typeReference.BaseType)(id),");
 
 
-        string methodSignaturesToMethodIds = string.Join("," + _NewLine, dictEntries);
-
-        string idToMethodLookUp = string.Join("," + _NewLine, idToMethodLookUpLines);
-        string idToGenMethodDefLookUp = string.Join("," + _NewLine, idToGenMethodDefLookUpLines);
 
 
 
+        string Wrap(string code, string directive)
+        {
+            string wrapped = $"#if {directive}{_NewLine}{code}{_NewLine}#endif";
+            return wrapped;
+        }
+
+
+        if (session.TypeGenerationSettingsRegistry.HasSettingsForHandledType(typeToHandle, isStatic, out var settings))
+        {
+            foreach (var member in saveDataFields.Keys.ToList())
+            {
+                if (settings.HasDirective(member, out string directive))
+                {
+                    saveDataFields[member] = Wrap(saveDataFields[member], directive);
+                    writeDataFields[member] = Wrap(writeDataFields[member], directive);
+                    readDataFields[member] = Wrap(readDataFields[member], directive);
+                }
+            }
+
+
+            foreach (var methodId in dictEntries.Keys.ToList())
+            {
+                if (settings.HasDirective(methodId, out string directive))
+                {
+                    dictEntries[methodId] = Wrap(dictEntries[methodId], directive);
+                    if (idToMethodLookUpLines.ContainsKey(methodId))
+                        idToMethodLookUpLines[methodId] = Wrap(idToMethodLookUpLines[methodId], directive);
+                    if (idToGenMethodDefLookUpLines.ContainsKey(methodId))
+                        idToGenMethodDefLookUpLines[methodId] = Wrap(idToGenMethodDefLookUpLines[methodId], directive);
+                }
+
+                if (settings.HasInclusionModeFor(methodId, out var inclusionMode))
+                {
+                    if (inclusionMode is Packages.com.theblueway.saveandload.Editor.SaveAndLoad.MemberInclusionMode.Exclude)
+                    {
+                        dictEntries.Remove(methodId);
+                        if(idToMethodLookUpLines.ContainsKey(methodId)) idToMethodLookUpLines.Remove(methodId);
+                        if(idToGenMethodDefLookUpLines.ContainsKey(methodId)) idToGenMethodDefLookUpLines.Remove(methodId);
+                    }
+                }
+            }
+        }
+
+
+
+        string fieldList = string.Join(_NewLine, saveDataFields.Values);
+
+        string writingFields = string.Join(_NewLine, writeDataFields.Values);
+
+        string readingFields = string.Join(_NewLine, readDataFields.Values);
+
+
+
+        string methodSignaturesToMethodIds = tag + _NewLine + string.Join(_NewLine, dictEntries.Values);
+
+        if (dictEntries.Count == 0) methodSignaturesToMethodIds = tag;
+
+        string idToMethodLookUp = string.Join(_NewLine, idToMethodLookUpLines.Values);
+        string idToGenMethodDefLookUp = string.Join(_NewLine, idToGenMethodDefLookUpLines.Values);
 
 
 
 
-        var genericParameterList = CodeGenUtils.GetGenericParameterListText(typeToHandle);
+
+        var genericParameterList = session.UserSettings.GenerateSaveHandlersAsNestedClassesInsideHandledType ?
+                                    "" : CodeGenUtils.GetGenericParameterListText(typeToHandle);
 
 
-        string genericConstraints = typeToHandle.IsGenericType ?
-            _NewLine + CodeGenUtils.GetGenericParameterConstraintsText(typeToHandle)
-            : "";
-
-
-        string fieldList = string.Join(_NewLine, saveDataFields);
-
-        string writingFields = string.Join(_NewLine, writeDataFields);
-
-        string readingFields = string.Join(_NewLine, readDataFields);
+        string genericConstraints = session.UserSettings.GenerateSaveHandlersAsNestedClassesInsideHandledType ?
+                                    "" : GetgenericConstraintsText(typeToHandle);
 
 
         additionalNameSpaces = additionalNameSpaces.Where(ns => ns != null).Distinct()
             .Select(ns => $"using {ns};").ToList();
-
-        string additionalNameSpaces2 = string.Join(_NewLine, additionalNameSpaces);
 
 
         string fileNameSpace = typeToHandle.Namespace ?? "Assets._Project.Scripts.SaveAndLoad.SaveHandlers.DevTest";
@@ -623,8 +850,6 @@ public class SaveHandlerAutoGenerator : ScriptableObject
 
         IEnumerable<string> csFiles = csFileTemplates.Select(template =>
             template
-            //.Replace(AdditionalNameSpaces, additionalNameSpaces2)
-            //.Replace(FileNameSpace, fileNameSpace)
             .Replace(GeneratedTypeName, FlattenTypeNameIfNested(typeToHandle))
             .Replace(TargetTypeReference, targetTypeReference)
             .Replace(TargetTypeDefinition, targetTypeDefinition)
@@ -641,7 +866,7 @@ public class SaveHandlerAutoGenerator : ScriptableObject
 
         var builders = csFiles.Select(csFile => new CsFileBuilder
         {
-            NameSpaceNames = additionalNameSpaces.Where(ns => ns != null).ToHashSet(),
+            UsingStatements = additionalNameSpaces.ToHashSet(),
             GeneratedTypeText = csFile,
         }).ToList();
 
@@ -661,6 +886,15 @@ public class SaveHandlerAutoGenerator : ScriptableObject
     public string FlattenTypeNameIfNested(Type type)
     {
         return CodeGenUtils.ToFlatName(type);
+    }
+
+    public string GetgenericConstraintsText(Type type)
+    {
+        string genericConstraints = type.IsGenericType ?
+            _NewLine + CodeGenUtils.GetGenericParameterConstraintsText(type)
+            : "";
+
+        return genericConstraints;
     }
 
 
@@ -693,13 +927,8 @@ public class SaveHandlerAutoGenerator : ScriptableObject
     {
         public string name;
     }
-    #region Struct Generation
 
 
-
-    #endregion
-
-    #region Class Generation
 
 
     public const string AdditionalNameSpaces = "<AdditionalNameSpaces>";
@@ -708,23 +937,6 @@ public class SaveHandlerAutoGenerator : ScriptableObject
     public const string FileNameSpace = "<FileNameSpace>";
     public const string NameSpaceContent = "<NameSpaceContent>";
 
-
-    [NonSerialized]
-    public string _CsFileTemplate =
-        "//auto-generated" + _NewLine +
-        AdditionalNameSpaces + _NewLine +
-        _NewLine +
-        $"namespace {FileNameSpace}" +
-        _NewLine +
-        "{" +
-        _NewLine +
-        //SaveHandlerClass +
-        //_NewLine +
-        //SaveDataClass +
-        NameSpaceContent +
-        _NewLine +
-        "}" +
-        "";
 
 
 
@@ -829,7 +1041,7 @@ public class SaveHandlerAutoGenerator : ScriptableObject
         _NewLine +
         $"{FieldList}" +
         _NewLine +
-        "}" + _NewLine+
+        "}" + _NewLine +
         "";
 
 
@@ -916,6 +1128,7 @@ public class SaveHandlerAutoGenerator : ScriptableObject
 
     [NonSerialized]
     public string _CustomSaveDataTemplate =
+        CustomSaveDataAttributeText + _NewLine +
         $"public class {GeneratedTypeName}SaveData{GenericParameterList} : " +
         $"CustomSaveData<{TargetTypeReference}> {GenericConstraints}" +
         _NewLine +
@@ -945,6 +1158,8 @@ public class SaveHandlerAutoGenerator : ScriptableObject
         "}" +
         "";
 
+
+    public const string CustomSaveDataAttributeText = "<CustomSaveDataAttributeText>";
     public const string CustomSaveDataClassDefinition = "<CustomSaveDataClassDefinition>";
     public const string CustomSaveDataBaseClassDefinition = "<CustomSaveDataBaseClassDefinition>";
     public const string TargetTypeReference = "<TargetTypeReference>";
@@ -955,7 +1170,38 @@ public class SaveHandlerAutoGenerator : ScriptableObject
 
 
     public static string _NewLine = Environment.NewLine;
+}
 
 
-    #endregion
+//todo: move to util package
+public static class UtilExtenstions
+{
+    public static int IndexOfNth(this string str, char of, int nth)
+    {
+        return str.IndexOfNth(of, nth, nth < 0 ? str.Length - 1 : 0);
+    }
+    public static int IndexOfNth(this string str, char of, int nth, int startFrom)
+    {
+        int step = 1;
+        int count = nth;
+        int i = startFrom;
+
+        if (nth < 0)
+        {
+            step = -1;
+            count = -nth - 1;
+        }
+
+        while (i >= 0 && i < str.Length)
+        {
+            if (str[i] == of)
+            {
+                if (count == 0)
+                    return i;
+                count--;
+            }
+            i += step;
+        }
+        return -1;
+    }
 }

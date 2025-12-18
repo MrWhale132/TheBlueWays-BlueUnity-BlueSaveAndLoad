@@ -1,6 +1,7 @@
-using UnityEditor;
+#if UNITY_EDITOR
 using UnityEngine;
-
+using UnityEditor;
+//todo: this should be in an Editor folder
 namespace Assets._Project.Scripts.SaveAndLoad
 {
     //not using it now, but leaving it here for future reference. Aslo extend this a little bit to check for updates or if it is already copied.
@@ -22,3 +23,4 @@ namespace Assets._Project.Scripts.SaveAndLoad
     }
 
 }
+#endif

@@ -5,12 +5,245 @@ using Assets._Project.Scripts.UtilScripts;
 using Assets._Project.Scripts.UtilScripts.Extensions;
 using System;
 using System.Collections.Generic;
-using System.Reflection;
+using System.Linq;
 using UnityEngine;
-using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
 {
+    [SaveHandler(id: 432468912, dataGroupName: nameof(GameObject), handledType: typeof(GameObject), order: -10)]
+    public class GameObjectSaveHandler : SaveHandlerGenericBase<GameObject, GameObjectSaveData>
+    {
+        List<Component> _components = new List<Component>();
+        public GOInfra _goInfra;
+
+        InitContext _initContext;
+
+
+        public ComponentAddingTracker ComponentAddingTracker { get; set; }
+
+        public override bool IsValid => __instance != null;
+
+        public bool ShouldRegisterComponents =>
+            !__saveData.IsPrefabAsset
+            && (_initContext == null || (!_initContext.isPrefabPart && !_initContext.isScenePlaced))
+            && (_goInfra == null || (!_goInfra.HasPrefabParts && !_goInfra.HasSceneParts));
+
+
+        public T AddComponent<T>() where T : Component
+        {
+            if (ComponentAddingTracker == null)
+            {
+                Debug.LogError("ComponentAddingTracker is null. Cannot add component via tracker");
+                return null;
+            }
+
+            return ComponentAddingTracker.AddComponent<T>();
+        }
+
+
+
+        public override void Init(object instance, InitContext context)
+        {
+            base.Init(instance, context);
+
+            _initContext = context;
+
+
+            __saveData.GameObjectId = __saveData._ObjectId_;
+            var isPrefabAsset = __instance.IsProbablyPrefabAsset(); //todo: maybe we can use to check if Awake has ran instead?
+            __saveData.IsPrefabAsset = isPrefabAsset;
+
+            if (isPrefabAsset)
+            {
+                __saveData.PrefabAssetId = AddressableDb.Singleton.GetAssetIdByAssetName(__instance);
+            }
+            else if (!isPrefabAsset && ShouldRegisterComponents)
+            {
+                _goInfra = __instance.GetOrAddComponent<GOInfra>();
+            }
+
+            //easier troubleshooting if this is set now so it can be used later
+            __saveData.HierarchyPath = __instance.HierarchyPath();
+        }
+
+
+
+        public override void ReleaseObject()
+        {
+            base.ReleaseObject();
+
+            __instance = null;
+            _goInfra = null;
+        }
+
+
+
+        public override void WriteSaveData()
+        {
+            base.WriteSaveData();
+
+            __saveData.GameObjectName = __instance.name;
+            __saveData.tag = __instance.tag;
+            __saveData.layer = __instance.layer;
+            __saveData.activeSelf = __instance.activeSelf;
+            __saveData.IsStatic = __instance.isStatic;
+            __saveData.sceneIndex = __instance.scene.buildIndex;
+            __saveData.sceneHandle = __instance.scene.handle;
+            __saveData.isRootInScene = __instance.transform.parent == null;
+            if (!__saveData.IsPrefabAsset)
+                __saveData.sceneInstanceId = Infra.SceneManagement.SceneIdByHandle(__instance.scene.handle);
+
+            _components.Clear();
+
+            __instance.GetComponents(typeof(Component), _components);
+            //_components = _goInfra._cachedComponents;
+
+            for (int i = 0; i < _components.Count; i++)
+            {
+                var comp = _components[i];
+
+                if (__saveData.IsPrefabAsset)
+                {
+                    if (Infra.Singleton.IsRegistered(comp))
+                    {
+                        var compId = Infra.Singleton.GetObjectId(comp, HandledObjectId);
+
+                        __saveData.Components.Add(compId);
+                    }
+                    else
+                        __saveData.Components.Add(RandomId.Default);
+                }
+                else if (ShouldRegisterComponents 
+                    || Infra.Singleton.IsRegistered(comp)) //todo: write a nice comment explaining this
+                {
+                    var compId = Infra.Singleton.GetObjectId(comp, HandledObjectId);
+
+                    __saveData.Components.Add(compId);
+                }
+            }
+        }
+
+
+
+
+        public override void CreateObject()
+        {
+            base.CreateObject();
+
+            HandledObjectId = __saveData.GameObjectId;
+
+            if (HandledObjectId.IsDefault)
+            {
+                Debug.LogWarning(__saveData.GameObjectName);
+            }
+
+            _AssignInstance();
+
+            ComponentAddingTracker = new ComponentAddingTracker() { GameObject = __instance };
+
+
+            Infra.Singleton.RegisterReference(__instance, __saveData.GameObjectId);
+
+
+            //for easier troubleshoot
+            __instance.name = __saveData.GameObjectName;
+        }
+
+
+
+        public override void _AssignInstance()
+        {
+
+            if (__saveData.IsPrefabAsset)
+            {
+                __instance = AddressableDb.Singleton.GetAssetByIdOrFallback<GameObject>(null, ref __saveData.PrefabAssetId);
+
+                _components.Clear();
+
+                __instance.GetComponents(typeof(Component), _components);
+
+                for (int i = 0; i < _components.Count; i++)
+                {
+                    var comp = _components[i];
+
+                    try
+                    {
+                        var compId = __saveData.Components[i];
+
+                        if (compId.IsDefault) continue;
+
+                        Infra.Singleton.RegisterReference(comp, compId, rootObject: true);
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogWarning($"Failed to register component of prefab {__saveData.GameObjectName} at index {i}. Exception: {e}");
+                        Debug.Log(string.Join(", ", _components.Select(c => c.GetType().Name).ToArray()));
+                        throw;
+                    }
+
+                }
+
+                return;
+            }
+            else if (SaveAndLoadManager.PrefabDescriptionRegistry.IsPartOfPrefab<GameObject>(HandledObjectId, out var instance))
+            {
+                __instance = instance;
+            }
+            else if (SaveAndLoadManager.ScenePlacedObjectRegistry.IsScenePlaced<GameObject>(HandledObjectId, out instance))
+            {
+                __instance = instance;
+            }
+            else
+            {
+                __instance = new GameObject();
+            }
+
+
+            //its enough to move the roots only as the children will come along when they set their parent to this root
+            if (__saveData.isRootInScene)
+            {
+                var scene = Infra.SceneManagement.SceneById(__saveData.sceneInstanceId);
+                SceneManager.MoveGameObjectToScene(__instance, scene);
+            }
+        }
+
+
+
+        public override void LoadValues()
+        {
+            if (__saveData.IsPrefabAsset) return;
+
+            __instance.name = __saveData.GameObjectName;
+            __instance.tag = __saveData.tag;
+            __instance.layer = __saveData.layer;
+            __instance.isStatic = __saveData.IsStatic;
+            __instance.SetActive(__saveData.activeSelf);
+        }
+    }
+
+    public class GameObjectSaveData : SaveDataBase
+    {
+        public RandomId GameObjectId;
+        public string GameObjectName;
+        public string HierarchyPath;
+        public bool IsPrefabAsset;
+        public RandomId PrefabAssetId;
+        public List<RandomId> Components = new();
+        public string tag;
+        public int layer;
+        public bool activeSelf;
+        public bool IsStatic;
+        public int sceneIndex;
+        public int sceneHandle;
+        public RandomId sceneInstanceId;
+        public bool isRootInScene;
+    }
+
+
+
+
+
     //todo: optimize
     public class ComponentAddingTracker
     {
@@ -32,9 +265,9 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
         {
             Type type = typeof(T);
 
-            if(typeof(T) == typeof(UnityEngine.ParticleSystem) || typeof(T) == typeof(UnityEngine.ParticleSystemRenderer))
+            if (typeof(T) == typeof(UnityEngine.ParticleSystem) || typeof(T) == typeof(UnityEngine.ParticleSystemRenderer))
             {
-                
+
             }
             if (HasUnboundComponent<T>(out var comp))
             {
@@ -59,12 +292,12 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
 
                 int countAfter = GameObject.GetComponentCount();
 
-                if(comp == null)
+                if (comp == null)
                 {
 
                 }
 
-                
+
                 for (int i = countBefore; i < countAfter; i++)
                 {
                     var c = GameObject.GetComponentAtIndex(i);
@@ -111,174 +344,86 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
             return false;
         }
     }
-
-
-    [SaveHandler(id: 432468912, dataGroupName: nameof(GameObject), handledType: typeof(GameObject), order: -10)]
-    public class GameObjectSaveHandler : SaveHandlerGenericBase<GameObject, GameObjectSaveData>
-    {
-        List<Component> _components = new List<Component>();
-        public GOInfra _goInfra;
-
-        public ComponentAddingTracker ComponentAddingTracker { get; set; }
-
-        public override bool IsValid => __instance != null;
-
-
-        public T AddComponent<T>() where T : Component
-        {
-            if (ComponentAddingTracker == null)
-            {
-                Debug.LogError("ComponentAddingTracker is null. Cannot add component via tracker");
-                return null;
-            }
-
-            return ComponentAddingTracker.AddComponent<T>();
-        }
-
-
-
-        public override void Init(object instance)
-        {
-            base.Init(instance);
-
-
-            __saveData.GameObjectId = __saveData._ObjectId_;
-            __saveData.IsPrefab = __instance.IsProbablyPrefab();
-
-            if (!__saveData.IsPrefab)
-            {
-                _goInfra = __instance.GetOrAddComponent<GOInfra>();
-
-                __saveData.IsNetworked = _goInfra.IsNetworked;
-                __saveData.IsUIElement = _goInfra.IsUIElement;
-            }
-
-            //easier troubleshooting if this is set now so it can be used later
-            __saveData.HierarchyPath = __instance.HierarchyPath();
-        }
-
-
-        //public override void _GetObjectId()
-        //{
-        //        HandledObjectId = Infra.Singleton.GetObjectId(__instance, Infra.Singleton.GlobalReferencing);
-        //    //if (__instance.IsProbablyPrefab())
-        //    //{
-        //    //}
-        //    //else
-        //    //    base._GetObjectId();
-        //}
-
-
-        public override void ReleaseObject()
-        {
-            base.ReleaseObject();
-
-            __instance = null;
-            _goInfra = null;
-        }
-
-
-
-        public override void WriteSaveData()
-        {
-            base.WriteSaveData();
-
-            __saveData.GameObjectName = __instance.name;
-            __saveData.tag = __instance.tag;
-            __saveData.layer = __instance.layer;
-            __saveData.activeSelf = __instance.activeSelf;
-            __saveData.IsStatic = __instance.isStatic;
-
-            __saveData._MetaData_.Order = Order;
-
-            _components.Clear();
-
-            __instance.GetComponents(typeof(Component), _components);
-
-            for (int i = 0; i < _components.Count; i++)
-            {
-                var comp = _components[i];
-
-                var compId = Infra.Singleton.GetObjectId(comp, HandledObjectId);
-
-                __saveData.Components.Add(compId);
-            }
-        }
-
-
-
-
-        public override void CreateObject()
-        {
-            base.CreateObject();
-
-
-            if (__saveData.IsPrefab)
-            {
-                __instance = AddressableDb.Singleton.GetAssetByIdOrFallback<GameObject>(null, ref __saveData.GameObjectId);
-
-
-                _components.Clear();
-
-                __instance.GetComponents(typeof(Component), _components);
-
-                for (int i = 0; i < _components.Count; i++)
-                {
-                    var comp = _components[i];
-
-                    var compId = __saveData.Components[i];
-
-                    Infra.Singleton.RegisterReference(comp, compId, rootObject: true);
-                }
-            }
-            else
-                __instance = new GameObject();
-
-
-            ComponentAddingTracker = new ComponentAddingTracker() { GameObject = __instance };
-
-
-            HandledObjectId = __saveData.GameObjectId;
-
-            if (HandledObjectId.IsDefault)
-            {
-                Debug.LogWarning(__saveData.GameObjectName);
-            }
-
-            Infra.Singleton.RegisterReference(__instance, __saveData.GameObjectId);
-
-
-            //for easier troubleshoot
-            __instance.name = __saveData.GameObjectName;
-
-
-        }
-
-        public override void LoadValues()
-        {
-            if (__saveData.IsPrefab) return;
-
-            __instance.name = __saveData.GameObjectName;
-            __instance.tag = __saveData.tag;
-            __instance.layer = __saveData.layer;
-            __instance.isStatic = __saveData.IsStatic;
-            __instance.SetActive(__saveData.activeSelf);
-
-        }
-    }
-
-    public class GameObjectSaveData : SaveDataBase
-    {
-        public RandomId GameObjectId;
-        public string GameObjectName;
-        public string HierarchyPath;
-        public bool IsPrefab;
-        public bool IsNetworked;
-        public bool IsUIElement;
-        public List<RandomId> Components = new();
-        public string tag;
-        public int layer;
-        public bool activeSelf;
-        public bool IsStatic;
-    }
 }
+
+
+/*
+I just wanted to save this piece of info somwhere adn put it here
+
+
+### 1) the switch table only works when:
+
+* cases are **dense** (no large gaps)
+* **integer based** (0..N)
+* case values are **known at compile time** and constants
+
+So if you define:
+
+```
+switch(idx) {
+    case 0: ...
+    case 1: ...
+    case 2: ...
+    case 3: ...
+}
+```
+
+→ the compiler can emit a jump table. (IL op: `switch`)
+
+### What *breaks* jump table efficiency
+
+1. **big gaps** like:
+
+```
+case 0:
+case 100:
+```
+
+→ compiler emits if-chain, not switch jump table.
+
+2. **not starting at 0 is fine**
+   This WON’T break it:
+
+```
+case 5:
+case 6:
+case 7:
+case 8:
+```
+
+Compiler still can do jump table (offset-based).
+
+3. **re-ordered cases** does NOT matter
+   Compiler doesn’t care if you write
+
+```
+case 0
+case 2
+case 1
+case 3
+```
+
+It reorders internally to build the jump table.
+
+### What matters MOST
+
+The **values must be dense and small**.
+
+E.g. 0..N with no holes is optimal.
+Holes like 0,1,5,6 breaks it into partial table + branch fallback or full compare chain.
+
+### Missing single element
+
+Example:
+
+```
+0,1,2,4,5
+```
+
+Missing 3 → this may already degrade into slower comparisons depending on compiler.
+
+### Summary best practice for your save system
+
+* never skip
+* never allow indices to explode into thousands
+*/

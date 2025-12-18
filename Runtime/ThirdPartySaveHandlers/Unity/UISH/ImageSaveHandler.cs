@@ -34,7 +34,6 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.UnitySHs.UI
             __saveData.onCullStateChanged = GetObjectId(__instance.onCullStateChanged);
             __saveData.raycastPadding = __instance.raycastPadding;
             __saveData.useGUILayout = __instance.useGUILayout;
-            __saveData.runInEditMode = __instance.runInEditMode;
             __saveData.enabled = __instance.enabled;
             __saveData.hideFlags = __instance.hideFlags;
         }
@@ -59,7 +58,6 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.UnitySHs.UI
             __instance.onCullStateChanged = GetObjectById<UnityEngine.UI.MaskableGraphic.CullStateChangedEvent>(__saveData.onCullStateChanged);
             __instance.raycastPadding = __saveData.raycastPadding;
             __instance.useGUILayout = __saveData.useGUILayout;
-            __instance.runInEditMode = __saveData.runInEditMode;
             __instance.enabled = __saveData.enabled;
             __instance.hideFlags = __saveData.hideFlags;
         }

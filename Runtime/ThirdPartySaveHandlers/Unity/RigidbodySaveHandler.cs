@@ -122,9 +122,9 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.Unity
                 {"SweepTestAll(UnityEngine.CoreModule UnityEngine.Vector3,mscorlib System.Single):UnityEngine.PhysicsModule UnityEngine.RaycastHit[]", 193243987844123577},
                 {"SweepTestAll(UnityEngine.CoreModule UnityEngine.Vector3):UnityEngine.PhysicsModule UnityEngine.RaycastHit[]", 534263530490907154}
             };
-            Infra.Singleton.__methodIdsByMethodSignaturePerType.Add(_typeReference, methodToId);
-            Infra.Singleton.__methodGetterFactoryPerType.Add(_typeReference, _idToMethod);
-            Infra.Singleton.__methodInfoGettersPerType.Add(_typeReference, _idToMethodInfo);
+            Infra.Singleton.AddMethodSignatureToMethodIdMap(_typeReference, methodToId);
+            Infra.Singleton.AddMethodIdToMethodMap(_typeReference, _idToMethod);
+            Infra.Singleton.AddMethodIdToMethodInfoMap(_typeReference, _idToMethodInfo);
         }
         static Type _typeReference = typeof(UnityEngine.Rigidbody);
         static Type _typeDefinition = typeof(UnityEngine.Rigidbody);

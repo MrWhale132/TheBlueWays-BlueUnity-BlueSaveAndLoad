@@ -18,7 +18,7 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.UnityShs.An
             base.WriteSaveData();
             __saveData.frameRate = __instance.frameRate;
             __saveData.wrapMode = __instance.wrapMode;
-            __saveData.localBounds.ReadFrom(__instance.localBounds);
+            //__saveData.localBounds.ReadFrom(__instance.localBounds);
             __saveData.legacy = __instance.legacy;
             __saveData.events = GetObjectId(__instance.events);
             __saveData.hideFlags = __instance.hideFlags;
@@ -28,7 +28,7 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.UnityShs.An
             base.LoadReferences();
             __instance.frameRate = __saveData.frameRate;
             __instance.wrapMode = __saveData.wrapMode;
-            __saveData.localBounds.WriteTo(__instance.localBounds);
+            //__saveData.localBounds.WriteTo(__instance.localBounds);
             __instance.legacy = __saveData.legacy;
             __instance.events = GetObjectById<AnimationEvent[]>(__saveData.events);
             __instance.hideFlags = __saveData.hideFlags;
@@ -43,9 +43,9 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.UnityShs.An
                 {"ClearCurves():mscorlib System.Void", 748917599961538402},
                 {"AddEvent(UnityEngine.AnimationModule UnityEngine.AnimationEvent):mscorlib System.Void", 674647911963105373}
             };
-            Infra.Singleton.__methodIdsByMethodSignaturePerType.Add(_typeReference, methodToId);
-            Infra.Singleton.__methodGetterFactoryPerType.Add(_typeReference, _idToMethod);
-            Infra.Singleton.__methodInfoGettersPerType.Add(_typeReference, _idToMethodInfo);
+            Infra.Singleton.AddMethodSignatureToMethodIdMap(_typeReference, methodToId);
+            Infra.Singleton.AddMethodIdToMethodMap(_typeReference, _idToMethod);
+            Infra.Singleton.AddMethodIdToMethodInfoMap(_typeReference, _idToMethodInfo);
         }
         static Type _typeReference = typeof(AnimationClip);
         static Type _typeDefinition = typeof(UnityEngine.AnimationClip);
@@ -76,7 +76,7 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.UnityShs.An
     {
         public System.Single frameRate;
         public UnityEngine.WrapMode wrapMode;
-        public DevTest.BoundsSaveData localBounds = new();
+        //public DevTest.BoundsSaveData localBounds = new();
         public System.Boolean legacy;
         public RandomId events;
         public UnityEngine.HideFlags hideFlags;

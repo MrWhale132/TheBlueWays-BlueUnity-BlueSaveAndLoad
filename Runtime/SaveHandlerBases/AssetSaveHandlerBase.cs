@@ -38,13 +38,15 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
         {
             base.CreateObject();
 
+                HandledObjectId = __saveData._ObjectId_;
+
+
             IsProbablyUnmodifiedCopyOfOriginalAsset = __saveData.IsProbablyUnmodifiedCopyOfOriginalAsset;
 
             if (IsProbablyUnmodifiedCopyOfOriginalAsset)
             {
                 _AssignInstance();
 
-                HandledObjectId = __saveData._ObjectId_;
 
                 Infra.Singleton.RegisterReference(__instance, HandledObjectId);
             }
@@ -66,6 +68,10 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
 
                     __instance = copy;
                 }
+                else
+                {
+                    Debug.LogError("error");
+                }
             }
         }
     }
@@ -78,3 +84,28 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
         public string assetName;
     }
 }
+
+
+/*
+| asset type                                       | original clone best practice                                                       |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| Material                                         | `new Material(mat)` (best) OR `Instantiate(mat)`                                   |
+| Mesh                                             | `Instantiate(mesh)` **only**. (`new Mesh(mesh)` doesn’t exist)                     |
+| Texture2D                                        | `Instantiate(tex)`                                                                 |
+| Cubemap                                          | `Instantiate(cubemap)`                                                             |
+| AudioClip                                        | `Instantiate(audioClip)` (works for non streaming clips)                           |
+| Shader                                           | **cannot** really clone (they’re engine level singletons)                          |
+| ComputeShader                                    | `Instantiate(computeShader)`                                                       |
+| AnimationClip                                    | `Instantiate(clip)`                                                                |
+| AnimatorController                               | `Instantiate(controller)`                                                          |
+| AvatarMask                                       | `Instantiate(mask)`                                                                |
+| PhysicsMaterial / PhysicsMaterial2D              | `Instantiate(mat)`                                                                 |
+| Sprite                                           | `Instantiate(sprite)` OR `Sprite.Create(...)` if you want modify pixels/boundaries |
+| Prefab instance                                  | you can't “clone” the asset, but you `Instantiate(prefab)` to spawn runtime clone  |
+| ScriptableObject                                 | `Instantiate(scriptableObj)`                                                       |
+| MeshCollider.sharedMesh clone                    | `mc.sharedMesh = Instantiate(originalMesh)`                                        |
+| RenderTexture                                    | `new RenderTexture(rt)` (copy constructor)                                         |
+| Font                                             | `Instantiate(font)`                                                                |
+| VFXGraph asset                                   | `Instantiate(vfxGraph)`                                                            |
+| Timeline PlayableAsset / PlayableDirector config | `Instantiate(playable)`                                                            |
+*/

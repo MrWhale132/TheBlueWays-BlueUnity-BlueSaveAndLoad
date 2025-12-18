@@ -8,13 +8,14 @@ using Assets._Project.Scripts.UtilScripts.Extensions;
 using Assets._Project.Scripts.UtilScripts.Misc;
 using Newtonsoft.Json;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.CompilerServices;
-using Unity.VisualScripting;
+using Theblueway.SaveAndLoad.Packages.com.theblueway.saveandload.Runtime.InfraScripts;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
 
 
@@ -25,6 +26,7 @@ namespace Assets._Project.Scripts.Infrastructure
     public class Infra : MonoBehaviour
     {
         public static Infra Singleton { get; private set; }
+        public static SceneManagement SceneManagement { get; set; } = new();
 
         public RandomId GlobalReferencing => __staticSubtituteIdsByType[typeof(Infra)];
 
@@ -51,7 +53,7 @@ namespace Assets._Project.Scripts.Infrastructure
                 Destroy(gameObject);
                 return;
             }
-
+            
             Singleton = this;
             DontDestroyOnLoad(gameObject);
 
@@ -64,6 +66,11 @@ namespace Assets._Project.Scripts.Infrastructure
 
         }
 
+
+        private void Start()
+        {
+            Register(SceneManagement, rootObject: true, createSaveHandler: true);
+        }
 
 
 
@@ -148,7 +155,7 @@ namespace Assets._Project.Scripts.Infrastructure
 
             if (isNull)
             {
-                Debug.LogError("Can not register null reference. Key: "+key.ToString());
+                Debug.LogError("Can not register null reference. Key: " + key.ToString());
                 return;
             }
 
@@ -237,107 +244,107 @@ namespace Assets._Project.Scripts.Infrastructure
 
 
 
-        public RandomId GetObjectId(Component obj, RandomId referencedBy, bool setLoadingOrder = false)
-        {
-            if (obj == null) return RandomId.Default;
+        //public RandomId GetObjectId(Component obj, RandomId referencedBy, bool setLoadingOrder = false)
+        //{
+        //    if (obj == null) return RandomId.Default;
 
 
-            if (referencedBy.IsDefault)
-            {
-                Debug.LogError($"An object can not be referenced by a DefaultId.");
-            }
+        //    if (referencedBy.IsDefault)
+        //    {
+        //        Debug.LogError($"An object can not be referenced by a DefaultId.");
+        //    }
 
 
-            var objectId = _GetObjectIdWithoutReferencing(obj, autoRegister: false);
+        //    var objectId = _GetObjectIdWithoutReferencing(obj, autoRegister: false);
 
-            if (!objectId.IsDefault)
-            {
-                _AddToReferenceGraph(objectId, referencedBy);
+        //    if (!objectId.IsDefault)
+        //    {
+        //        _AddToReferenceGraph(objectId, referencedBy);
 
-                if (setLoadingOrder)
-                {
-                    _SetLoadingOrder(objectId, referencedBy);
-                }
+        //        if (setLoadingOrder)
+        //        {
+        //            _SetLoadingOrder(objectId, referencedBy);
+        //        }
 
-                return objectId;
-            }
-
-
-            bool isProbablyPrefab = obj.gameObject.IsProbablyPrefab();
-
-            if (isProbablyPrefab && !IsRegistered(obj.gameObject))
-            {
-                _RegisterPrefab(obj.gameObject);
-            }
-
-            objectId = Register(obj, rootObject: true, createSaveHandler: !isProbablyPrefab);
-            return objectId;
-        }
+        //        return objectId;
+        //    }
 
 
-        public RandomId GetObjectId(GameObject obj, RandomId referencedBy, bool setLoadingOrder = false)
-        {
-            if (obj == null) return RandomId.Default;
+        //    bool isProbablyPrefab = obj.gameObject.IsProbablyPrefabAsset();
+
+        //    if (isProbablyPrefab && !IsRegistered(obj.gameObject))
+        //    {
+        //        _RegisterPrefab(obj.gameObject);
+        //    }
+
+        //    objectId = Register(obj, rootObject: true, createSaveHandler: !isProbablyPrefab);
+        //    return objectId;
+        //}
 
 
-            if (referencedBy.IsDefault)
-            {
-                Debug.LogError($"An object can not be referenced by a DefaultId.");
-            }
+        //public RandomId GetObjectId(GameObject obj, RandomId referencedBy, bool setLoadingOrder = false)
+        //{
+        //    if (obj == null) return RandomId.Default;
 
 
-            var objectId = _GetObjectIdWithoutReferencing(obj, autoRegister: false);
-
-            if (!objectId.IsDefault)
-            {
-                _AddToReferenceGraph(objectId, referencedBy);
-
-                if (setLoadingOrder)
-                {
-                    _SetLoadingOrder(objectId, referencedBy);
-                }
-
-                return objectId;
-            }
+        //    if (referencedBy.IsDefault)
+        //    {
+        //        Debug.LogError($"An object can not be referenced by a DefaultId.");
+        //    }
 
 
-            if (obj.IsProbablyPrefab())
-            {
-                return _RegisterPrefab(obj);
-            }
-            else
-            {
-                objectId = Register(obj, rootObject: true, createSaveHandler: true);
-                return objectId;
-            }
-        }
+        //    var objectId = _GetObjectIdWithoutReferencing(obj, autoRegister: false);
+
+        //    if (!objectId.IsDefault)
+        //    {
+        //        _AddToReferenceGraph(objectId, referencedBy);
+
+        //        if (setLoadingOrder)
+        //        {
+        //            _SetLoadingOrder(objectId, referencedBy);
+        //        }
+
+        //        return objectId;
+        //    }
 
 
-        public RandomId _RegisterPrefab(GameObject obj)
-        {
-            //Debug.Log("register prefab "+obj.name);
-            if (obj.transform.parent != null)
-            {
-                Debug.LogError($"Only the root of a prefab can be registered. " +
-                    "This error most likely indicates that has reference to a child object of a prefab template. " +
-                    $"Child object path: {obj.transform.root.gameObject.HierarchyPath()} ");
-                return RandomId.Default;
-            }
+        //    if (obj.IsProbablyPrefabAsset())
+        //    {
+        //        return _RegisterPrefab(obj);
+        //    }
+        //    else
+        //    {
+        //        objectId = Register(obj, rootObject: true, createSaveHandler: true);
+        //        return objectId;
+        //    }
+        //}
 
 
-            var objectId = AddressableDb.Singleton.GetAssetIdByAssetName(obj);
+        //public RandomId _RegisterPrefab(GameObject obj)
+        //{
+        //    //Debug.Log("register prefab "+obj.name);
+        //    if (obj.transform.parent != null)
+        //    {
+        //        Debug.LogError($"Only the root of a prefab can be registered. " +
+        //            "This error most likely indicates that has reference to a child object of a prefab template. " +
+        //            $"Child object path: {obj.transform.root.gameObject.HierarchyPath()} ");
+        //        return RandomId.Default;
+        //    }
 
-            if (objectId.IsDefault) return objectId;
+
+        //    var objectId = AddressableDb.Singleton.GetAssetIdByAssetName(obj);
+
+        //    if (objectId.IsDefault) return objectId;
 
 
-            RegisterReference(obj, objectId, rootObject: true);
+        //    RegisterReference(obj, objectId, rootObject: true);
 
 
-            _CreateSaveHandler(obj);
+        //    _CreateSaveHandler(obj);
 
-            //Debug.LogWarning("registered prefab " + obj.name +" with "+ objectId);
-            return objectId;
-        }
+        //    //Debug.LogWarning("registered prefab " + obj.name +" with "+ objectId);
+        //    return objectId;
+        //}
 
 
         public RandomId GetObjectId(object obj, RandomId referencedBy, bool setLoadingOrder = false)
@@ -366,12 +373,15 @@ namespace Assets._Project.Scripts.Infrastructure
         {
             //todo
             var lookUp = SaveAndLoadManager.Singleton.__saveHandlerByHandledObjectIdLookUp;
-            
             if (lookUp.TryGetValue(referenced, out var dependency) && lookUp.TryGetValue(referencing, out var dependant))
             {
-                dependant.Order = Math.Max(dependency.Order/* + 1*/, dependant.Order); //that + 1 need some more thinking, it can create self-referencing loops more often
+                dependency.Order = Math.Min(dependency.Order/* + 1*/, dependant.Order); //that + 1 needs some more thinking, it can create self-referencing loops more often
             }
         }
+
+
+
+
 
         public RandomId _GetObjectIdWithoutReferencing(object obj, bool autoRegister = true)
         {
@@ -400,7 +410,7 @@ namespace Assets._Project.Scripts.Infrastructure
         }
 
 
-        public RandomId Register(object obj, bool rootObject = false, bool createSaveHandler = true)
+        public RandomId Register(object obj, bool rootObject = false, bool createSaveHandler = true, InitContext context = null)
         {
             if (__objectIds.ContainsKey(obj))
             {
@@ -432,21 +442,21 @@ namespace Assets._Project.Scripts.Infrastructure
 
             if (createSaveHandler)
             {
-                _CreateSaveHandler(obj);
+                _CreateSaveHandler(obj,context);
             }
 
 
             return objId;
         }
 
-        
 
-        public void _CreateSaveHandler(object obj)
+
+        public void _CreateSaveHandler(object obj, InitContext context = null)
         {
             var handler = SaveAndLoadManager.Singleton.GetSaveHandlerFor(obj);
             if (handler != null)
             {
-                handler.Init(obj);
+                handler.Init(obj,context);
                 SaveAndLoadManager.Singleton.AddSaveHandler(handler);
             }
             else
@@ -535,7 +545,7 @@ namespace Assets._Project.Scripts.Infrastructure
 
         public void AddMethodIdToMethodMap(Type type, Func<long, Func<object, Delegate>> idToMethodMap)
         {
-            if(!__methodGetterFactoryPerType.ContainsKey(type))
+            if (!__methodGetterFactoryPerType.ContainsKey(type))
                 __methodGetterFactoryPerType.Add(type, idToMethodMap);
             else
                 __methodGetterFactoryPerType[type] += idToMethodMap;
@@ -873,7 +883,7 @@ namespace Assets._Project.Scripts.Infrastructure
 
 
 
-            
+
 
             if (!__methodIdsByMethodSignaturePerType.ContainsKey(targetType))
             {
@@ -962,6 +972,10 @@ namespace Assets._Project.Scripts.Infrastructure
 
 
 
+
+
+        //kinda old, may no longer true
+
         //with dynamic registration it is possible that a delegate has multiple registrations with different ids
         //lets imagine a chunk based loading with chunk A and B
         //during a previous play, a delegate was registered dynamically, meaning an id was generated for it during runtime,
@@ -983,347 +997,6 @@ namespace Assets._Project.Scripts.Infrastructure
 
 
 
-
-
-
-
-        #region Old Delegate handling
-
-        //public Dictionary<MethodInfo, DelegateSaveInfo> __delegatSaveDataByMethodInfo = new();
-
-
-
-        //public void RegisterDelegate<T>(T del, DelegateSaveInfo saveInfo) where T : Delegate
-        //{
-        //    _RegisterDelegate(del, saveInfo, ifGenericTreatAsMethodDef: true, isSaveInfoFromLoading: false);
-        //}
-
-
-
-        //public void _RegisterDelegate<T>(T del, DelegateSaveInfo saveInfo,
-        //                                 bool ifGenericTreatAsMethodDef, bool isSaveInfoFromLoading) where T : Delegate
-        //{
-        //    ///<see cref="ifGenericTreatAsMethodDef"/> should only be true when saving, and not loading
-        //    if (ifGenericTreatAsMethodDef && isSaveInfoFromLoading)
-        //    {
-        //        Debug.LogError("invalid paramter arguments");
-        //        return;
-        //    }
-        //    if (saveInfo == null)
-        //    {
-        //        Debug.LogError($"Tried to register a delegate with null saveinfo.");
-        //        return;
-        //    }
-        //    if (del == null)
-        //    {
-        //        Debug.LogError($"Tried to register a null delegate. It is not allowed. Skipping registration. " +
-        //            $"TargetId: {saveInfo.TargeId}, MethodId: {saveInfo.MethodId}");
-        //        return;
-        //    }
-        //    if (saveInfo.TargeId.IsDefault)
-        //    {
-        //        Debug.LogError("Invalid TargetId");
-        //        return;
-        //    }
-        //    //if (isSaveInfoFromLoading && del.Method.IsGenericMethod && saveInfo.GenericVairantId.IsDefault)
-        //    //{
-        //    //    Debug.LogError("Invalid GenericVariantId");
-        //    //    return;
-        //    //}
-
-
-        //    bool nonGenericOrGenericMethodDef = !del.Method.IsGenericMethod || (del.Method.IsGenericMethod && ifGenericTreatAsMethodDef);
-        //    bool genericAndNotMethodDef = !nonGenericOrGenericMethodDef;//much easier to read, understand, and work with the following code
-
-        //    var method = del.Method.IsGenericMethod && ifGenericTreatAsMethodDef
-        //               ? del.Method.GetGenericMethodDefinition() : del.Method;
-
-
-        //    if (!__delegatSaveDataByMethodInfo.ContainsKey(method))
-        //    {
-        //        __delegatSaveDataByMethodInfo.Add(method, saveInfo);
-        //    }
-        //    else
-        //    {
-        //        //this error message will spam in case of dynamically registered generic variants, see the explonation above
-        //        if (!(isSaveInfoFromLoading && saveInfo.IsGeneric))
-        //        {
-        //            Debug.LogError($"Duplicate delegate registration detected, it is not allowed. Please make sure to register a delegate only once. " +
-        //                $"Method name: {method}, " +
-        //                $"MethodId: {saveInfo.MethodId}, TargetId: {saveInfo.TargeId}");
-        //            return;
-        //        }
-        //    }
-
-
-        //    //method id is the same for all type concrete generic variants of a generic method, example:
-        //    //Method<T>, Method<int>, Method<string> ect... will all get the same id
-        //    //type arguments info are saved with the delegate save info to be able to further distinct between the variants
-        //    RandomId instanceId = saveInfo.TargeId;
-        //    long methodId = saveInfo.MethodId;
-
-        //    if (!__delegateMapPerInstance.ContainsKey(instanceId))
-        //    {
-        //        __delegateMapPerInstance[instanceId] = new();
-        //    }
-
-        //    //only one method registration allowed for non-generic methods and one generic method def for generic ones
-        //    if (nonGenericOrGenericMethodDef && __delegateMapPerInstance[instanceId].ContainsKey(methodId))
-        //    {
-        //        Debug.LogError($"Delegate with methodId {methodId} already registered for instance {instanceId}. " +
-        //            $"This means that there are multiple delegates with the same methodId for the same instance. " +
-        //            $"Please ensure that each delegate has a unique methodId.");
-        //        return;
-        //    }
-        //    else if (genericAndNotMethodDef)
-        //    {
-        //        if (!__delegateMapPerInstance[instanceId].ContainsKey(methodId))
-        //        {
-        //            Debug.LogError($"generic method def should have already been registered. " +
-        //                $"InstanceId: {instanceId}, MethodId: {methodId}");
-        //            return;
-        //        }
-        //        else if (isSaveInfoFromLoading && __delegateMapPerInstance[instanceId][methodId].ContainsKey(saveInfo.GenericVairantId))
-        //        {
-        //            Debug.LogError($"duplicate generic variant registration. " +
-        //                $"InstanceId: {instanceId}, MethodId: {methodId}, GenericVairantId: {saveInfo.GenericVairantId}");
-        //            return;
-        //        }
-        //        else if (!isSaveInfoFromLoading)
-        //        {
-        //            //TODO: do something with this
-        //            saveInfo.GenericVairantId = long.Parse(RandomId.Get().ToString());
-
-        //            saveInfo.GenericTypeArguments = new List<string>();
-
-        //            foreach (var argType in method.GetGenericArguments())
-        //            {
-        //                saveInfo.GenericTypeArguments.Add(argType.AssemblyQualifiedName);
-        //            }
-        //        }
-        //    }
-
-        //    //internally, non-generic methods' variant id is the same as their methodid
-        //    long variantId = genericAndNotMethodDef ? saveInfo.GenericVairantId : methodId;
-
-
-        //    if (nonGenericOrGenericMethodDef)
-        //    {
-        //        __delegateMapPerInstance[instanceId][methodId] = new(capacity: 1);
-        //    }
-        //    //in case of generics, their generic method def should came first and creating the collection before hand
-
-
-        //    __delegateMapPerInstance[instanceId][methodId].Add(variantId, del);
-        //}
-
-
-
-        ////for writing
-        //public InvocationList GetInvocationList<T>(T del) where T : System.Delegate
-        //{
-        //    if (del == null)
-        //    {
-        //        return null;
-        //    }
-
-        //    var delegates = del.GetInvocationList();
-        //    var saveInfos = new List<DelegateSaveInfo>();
-
-        //    foreach (var singleDel in delegates)
-        //    {
-        //        var saveInfo = GetDelegateSaveInfo(singleDel);
-
-        //        if (saveInfo != null)
-        //        {
-        //            saveInfos.Add(saveInfo);
-        //        }
-        //    }
-
-        //    if (saveInfos.Count == 0)
-        //    {
-        //        return null;
-        //    }
-
-        //    return new InvocationList { Delegates = saveInfos };
-        //}
-
-
-
-        //public DelegateSaveInfo GetDelegateSaveInfo<T>(T del) where T : System.Delegate
-        //{
-        //    if (del == null)
-        //    {
-        //        return null;
-        //    }
-
-
-        //    if (__delegatSaveDataByMethodInfo.TryGetValue(del.Method, out var saveInfo))
-        //    {
-        //        return saveInfo;
-        //    }
-        //    else if (del.Method.IsGenericMethod)
-        //    {
-        //        var methodDef = del.Method.GetGenericMethodDefinition();
-
-        //        if (__delegatSaveDataByMethodInfo.TryGetValue(methodDef, out saveInfo))
-        //        {
-        //            var typeSpecificCopy = saveInfo.Copy();
-
-        //            _RegisterDelegate(del, typeSpecificCopy, ifGenericTreatAsMethodDef: false, isSaveInfoFromLoading: false);
-
-        //            return typeSpecificCopy;
-        //        }
-        //        else
-        //        {
-        //            Debug.LogError($"A save info was reqested for a generic delegate but its generic method definition was not registered. " +
-        //                $"This is not allowed. " +
-        //                $"Please ensure you register your generic delegate def before trying to get infos for its closed definitions. " +
-        //                $"Delegate name {del.Method.Name}, " +
-        //                $"ObjectId: {Infra.Singleton.GetObjectId(del.Target)}. " +
-        //                $"Going to return null.");
-        //            return null;
-        //        }
-        //    }
-        //    else
-        //    {
-        //        Debug.LogError($"A save info was reqested for a delegate that was not registered before. This is not allowed. " +
-        //            $"Please ensure you register your delegates before trying to get their save infos. " +
-        //            $"Delegate name {del.Method.Name}, " +
-        //            $"ObjectId: {Infra.Singleton.GetObjectId(del.Target)}. " +
-        //            $"Going to return null.");
-        //        return null;
-        //    }
-        //}
-
-
-
-        ////for loading
-        //public T GetDelegate<T>(InvocationList invocationList)
-        //{
-        //    if (typeof(Delegate).IsAssignableFrom(typeof(T)) == false)
-        //    {
-        //        Debug.LogError($"The type {typeof(T).Name} is not a delegate type. " +
-        //                        $"Please ensure you are trying to get a delegate of the correct type. " +
-        //                        $"Going to return default value.");
-        //        return default;
-        //    }
-
-        //    if (invocationList == null || invocationList.Delegates == null || invocationList.Delegates.Count == 0)
-        //    {
-        //        return default;
-        //    }
-
-        //    T del = default;
-
-        //    foreach (var saveInfo in invocationList.Delegates)
-        //    {
-        //        var singleDel = GetDelegate<T>(saveInfo);
-
-        //        if (singleDel != null)
-        //        {
-        //            del = (T)(object)(Delegate.Combine((Delegate)(object)del, (Delegate)(object)singleDel));
-        //        }
-        //    }
-
-        //    return del;
-        //}
-
-
-        //public T GetDelegate<T>(DelegateSaveInfo saveInfo)
-        //{
-        //    if (saveInfo == null)
-        //    {
-        //        return default;
-        //    }
-
-        //    if (!typeof(Delegate).IsAssignableFrom(typeof(T)))
-        //    {
-        //        Debug.LogError($"The type {typeof(T).Name} is not a delegate type. " +
-        //            $"Please ensure you are trying to get a delegate of the correct type. " +
-        //            $"Going to return default value.");
-        //        return default;
-        //    }
-
-
-        //    RandomId instanceId = saveInfo.TargeId;
-        //    long methodId = saveInfo.MethodId;
-
-
-        //    if (__delegateMapPerInstance.TryGetValue(instanceId, out var methodMap))
-        //    {
-        //        if (methodMap.TryGetValue(methodId, out var delegateVariants))
-        //        {
-        //            Delegate del;
-
-        //            if (saveInfo.IsGeneric)
-        //            {
-        //                bool contains = delegateVariants.TryGetValue(saveInfo.GenericVairantId, out del);
-
-        //                if (!contains)
-        //                {
-        //                    Type[] typeArgs = new Type[saveInfo.GenericTypeArguments.Count];
-
-        //                    for (int i = 0; i < typeArgs.Length; i++)
-        //                    {
-        //                        string stringType = saveInfo.GenericTypeArguments[i];
-        //                        Type type = Type.GetType(stringType);
-        //                        typeArgs[i] = type;
-        //                    }
-
-        //                    //the methodid in case of generics should represent the method that was used to register this generic method
-        //                    MethodInfo methodDef = delegateVariants[methodId].Method.GetGenericMethodDefinition();
-
-        //                    MethodInfo concreteGeneric = methodDef.MakeGenericMethod(typeArgs);
-
-        //                    bool isStatic = delegateVariants[methodId].Target == null;
-        //                    var target = isStatic ? null : Infra.Singleton.GetObjectById<object>(instanceId);
-
-        //                    del = concreteGeneric.CreateDelegate(typeof(T), target);
-
-        //                    _RegisterDelegate(del, saveInfo, ifGenericTreatAsMethodDef: false, isSaveInfoFromLoading: true);
-        //                }
-        //            }
-        //            else
-        //            {
-        //                if (delegateVariants.Count != 1)
-        //                {
-        //                    Debug.LogError($"Non-generic delegates should have only one 'variant' registered to them.");
-        //                }
-
-        //                del = delegateVariants[methodId];
-        //            }
-
-
-        //            if (del is T typedDel)
-        //            {
-        //                return typedDel;
-        //            }
-        //            else
-        //            {
-        //                Debug.LogError($"Delegate with methodId {methodId} for instance {instanceId} is not of type {typeof(T).Name}. " +
-        //                    $"This means that the delegate is of a different type than expected.");
-        //                return default;
-        //            }
-        //        }
-        //        else
-        //        {
-        //            Debug.LogError($"No delegate found for instance {instanceId} with methodId {methodId}. " +
-        //                $"This means that this methodId does not have a delegate registered for it. ");
-        //            return default;
-        //        }
-        //    }
-        //    else
-        //    {
-        //        Debug.LogError($"No delegates found for instance {instanceId}. " +
-        //            $"This means that this instance does not have any delegates registered for it. ");
-        //        return default;
-        //    }
-        //}
-
-
-
-        #endregion
 
 
 
@@ -1415,6 +1088,11 @@ namespace Assets._Project.Scripts.Infrastructure
 
 
 
+
+
+
+
+
         public void CreateDefaultJsonSerializerSettings()
         {
             //todo: this searching method assumes there is no inheritance between converters
@@ -1423,15 +1101,19 @@ namespace Assets._Project.Scripts.Infrastructure
                 .Select(t => (JsonConverter)Activator.CreateInstance(t))
                 .ToList();
 
-            Debug.Log($"Found {converters.Count} JsonConverters in the assembly.");
+            //Debug.Log($"Found {converters.Count} JsonConverters in the assembly.");
+            //Debug.Log("Found converters: \n" + string.Join("\n", converters.Select(c => c.GetType().CleanAssemblyQualifiedName())));
 
+            //todo: as this code is part of a package, we should not override the default settings of JsonConvert globally
+            //instead, we should create our own JsonSerializerSettings instance and use it wherever needed
+            //or contribute to the already an already existing instance.
             JsonConvert.DefaultSettings = () => new JsonSerializerSettings
             {
                 Formatting = Formatting.Indented,
                 Converters = converters,
                 TypeNameHandling = TypeNameHandling.Auto,
                 //WARNING: DO NOT FUCKING SET THIS. From 0.03 to 1.8s on first call, then worse and worse on subsequent calls.
-                //if newtonsoft tries to read a field or property via reflection in a unityobject, unity might trigger events to them, forexample gpu readbacks
+                //if newtonsoft tries to read a field or property via reflection in a unityobject, unity might trigger events to them, for example gpu readbacks
                 //ContractResolver = new DefaultContractResolver
                 //{
                 //    DefaultMembersSearchFlags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance
@@ -1446,12 +1128,279 @@ namespace Assets._Project.Scripts.Infrastructure
         //        return base.GetSerializableMembers(objectType);
         //    }
         //}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        public static ComponentCacheService ComponentCache { get; set; } = new ComponentCacheService();
+
+        public class ComponentCacheService
+        {
+            public Dictionary<GameObject, Dictionary<Type, List<Component>>> _componentCachePerGO = new();
+
+
+            public void SetCache(GameObject go, List<Component> components)
+            {
+                if (!_componentCachePerGO.ContainsKey(go))
+                {
+                    _componentCachePerGO[go] = new Dictionary<Type, List<Component>>();
+                }
+                else
+                {
+                    _componentCachePerGO[go].Clear();
+                }
+
+                foreach (var component in components)
+                {
+                    var type = component.GetType();
+                    if (!_componentCachePerGO[go].ContainsKey(type))
+                    {
+                        _componentCachePerGO[go][type] = new List<Component>();
+                    }
+                    _componentCachePerGO[go][type].Add(component);
+                }
+            }
+
+
+            public T GetCachedComponent<T>(GameObject go) where T : Component
+            {
+                if (!_componentCachePerGO.ContainsKey(go))
+                {
+                    _componentCachePerGO[go] = new Dictionary<Type, List<Component>>();
+                }
+
+                var type = typeof(T);
+
+                if (!_componentCachePerGO[go].ContainsKey(type))
+                {
+                    var comp = go.GetComponent<T>();
+                    if (comp != null)
+                    {
+                        _componentCachePerGO[go][type] = new() { comp };
+                    }
+                    return comp;
+                }
+                else
+                {
+                    return (T)_componentCachePerGO[go][type][0];
+                }
+            }
+
+            public List<Component> GetCachedComponents(GameObject go)
+            {
+                if (!_componentCachePerGO.ContainsKey(go))
+                {
+                    _componentCachePerGO[go] = new Dictionary<Type, List<Component>>();
+                }
+
+                var allComponents = new List<Component>();
+
+                foreach (var kvp in _componentCachePerGO[go])
+                {
+                    allComponents.AddRange(kvp.Value);
+                }
+
+                return allComponents;
+            }
+        }
     }
+
+
+
+
+
+    public class SceneManagement
+    {
+        public class SceneInfo
+        {
+            public int buildIndex;
+            public int sceneHandle;
+            public RandomId InstanceId;
+        }
+
+        public List<SceneInfo> _loadedSceneInfos = new();
+        public List<SceneInfo> _savedSceneInfos = new();
+
+        public Dictionary<int, SceneInfo> _byHandle = new();
+        public Dictionary<RandomId, SceneInfo> _byInstanceId = new();
+
+        public Dictionary<RandomId, Scene> _scenesByInstanceId = new();
+
+        public RandomId _activeSceneInstanceIdFromSaveFile;
+        public Scene ActiveSceneInstanceIdFromSaveFile { get => SceneById(_activeSceneInstanceIdFromSaveFile); }
+
+
+        //todo: perhaps replace handle with instanceId?
+        //con: currently SceneInfra calls this during Awake which also happens during scene loading before we can assign instanceIds
+        public Dictionary<int, SceneInfra> SceneInfrasBySceneHandle { get; } = new();
+
+
+        public SceneManagement()
+        {
+            SceneManager.sceneLoaded += OnSceneLoaded;
+            SceneManager.sceneUnloaded += OnSceneUnloaded;
+        }
+
+        private void OnSceneLoaded(Scene scene, LoadSceneMode loadSceneMode)
+        {
+            var id = RandomId.Get();
+            
+            var info = new SceneInfo
+            {
+                buildIndex = scene.buildIndex,
+                sceneHandle = scene.handle,
+                InstanceId = id,
+            };
+
+            _loadedSceneInfos.Add(info);
+            _byHandle.Add(scene.handle, info);
+            _byInstanceId.Add(id, info);
+            _scenesByInstanceId.Add(id, scene);
+        }
+
+        public bool _firstUnload = true;
+        private void OnSceneUnloaded(Scene scene)
+        {
+            if (_firstUnload) { _firstUnload = false; return; }
+
+            var info = _byHandle[scene.handle];
+            _loadedSceneInfos.Remove(info);
+            _byHandle.Remove(scene.handle);
+            _byInstanceId.Remove(info.InstanceId);
+            _scenesByInstanceId.Remove(info.InstanceId);
+        }
+
+
+        public IEnumerator EnsureScenesAreLoadedFromSaveFile()
+        {
+            var tasks = new List<AsyncOperation>();
+
+            foreach (var sceneInfo in _savedSceneInfos)
+            {
+                var oldSceneIdFromSaveFile = sceneInfo.InstanceId;
+
+                if (!_byInstanceId.ContainsKey(oldSceneIdFromSaveFile))
+                {
+                    SceneManager.sceneLoaded += OverrideGeneratedIdWithIdFromSaveFile;
+                    var op = SceneManager.LoadSceneAsync(sceneInfo.buildIndex, LoadSceneMode.Additive);
+                    
+                    op.completed += _ => SceneManager.sceneLoaded -= OverrideGeneratedIdWithIdFromSaveFile;
+
+                    tasks.Add(op);
+
+                    void OverrideGeneratedIdWithIdFromSaveFile(Scene scene, LoadSceneMode loadSceneMode)
+                    {
+                        var info = _byHandle[scene.handle];
+                        var generatedId = info.InstanceId;
+                        info.InstanceId = oldSceneIdFromSaveFile;
+                        _byInstanceId.Remove(generatedId);
+                        _byInstanceId.Add(oldSceneIdFromSaveFile, info);
+                        _scenesByInstanceId.Remove(generatedId);
+                        _scenesByInstanceId.Add(oldSceneIdFromSaveFile, scene);
+                    }
+                }
+            }
+
+            while(tasks.Any(t => !t.isDone)) 
+            {
+                yield return null;
+            }
+        }
+
+
+        public RandomId SceneIdByHandle(int sceneHandle)
+        {
+            var info = _byHandle[sceneHandle];
+            return info.InstanceId;
+        }
+
+        public Scene SceneById(RandomId sceneId)
+        {
+            return _scenesByInstanceId[sceneId];
+        }
+
+
+        [SaveHandler(id: 102204973066903000, nameof(SceneManagement), typeof(SceneManagement), order: -90)]
+        public class SceneManagementSaveHandler : UnmanagedSaveHandler<SceneManagement, SceneManagementSaveData>
+        {
+            public override void WriteSaveData()
+            {
+                base.WriteSaveData();
+                
+                __saveData._loadedSceneInfos = GetObjectId(__instance._loadedSceneInfos, setLoadingOrder: true);
+                Scene activeScene = SceneManager.GetActiveScene();
+                __saveData.ActiveSceneInstanceIdFromSaveFile = Infra.SceneManagement.SceneIdByHandle(activeScene.handle);
+            }
+
+
+            public override void CreateObject()
+            {
+                if (Infra.SceneManagement != null)
+                {
+                    Infra.Singleton.Unregister(Infra.SceneManagement);
+                    Infra.SceneManagement = null;
+                }
+
+                base.CreateObject();
+
+                Infra.SceneManagement = __instance;
+            }
+
+
+            public override void LoadReferences()
+            {
+                base.LoadReferences();
+                __instance._savedSceneInfos = GetObjectById<List<SceneInfo>>(__saveData._loadedSceneInfos);
+                __instance._activeSceneInstanceIdFromSaveFile = __saveData.ActiveSceneInstanceIdFromSaveFile;
+            }
+        }
+
+        public class SceneManagementSaveData : SaveDataBase
+        {
+            public RandomId _loadedSceneHandleToPersistentSceneInstanceId;
+            public RandomId _loadedSceneInfos;
+            public RandomId ActiveSceneInstanceIdFromSaveFile;
+        }
+
+    }
+
+
+
+
+
+
+    public static class GameObjectExtensions
+    {
+        public static T GetCachedComponent<T>(this GameObject go) where T : Component
+        {
+            return Infra.ComponentCache.GetCachedComponent<T>(go);
+        }
+
+        public static List<Component> GetCachedComponents(this GameObject go)
+        {
+            return Infra.ComponentCache.GetCachedComponents(go);
+        }
+    }
+
+
+
+
+
 
 
     public class StaticInfraSubtitute : StaticSubtitute<Infra> { }
 
-    [SaveHandler(83297439587234832, nameof(StaticInfraSubtitute), typeof(StaticInfraSubtitute), isStatic: true)]
+    [SaveHandler(83297439587234832, nameof(StaticInfraSubtitute), typeof(StaticInfraSubtitute), isStatic: true, staticHandlerOf:typeof(Infra))]
     public class StaticInfraSaveHandler : StaticSaveHandlerBase<StaticInfraSubtitute, StaticInfraSaveData>
     {
 

@@ -1,6 +1,5 @@
 ﻿
 using Assets._Project.Scripts.UtilScripts;
-using Assets._Project.Scripts.UtilScripts.Addressables;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -17,11 +16,10 @@ using Assets._Project.Scripts.UtilScripts.Misc;
 
 
 
-
-
 #if UNITY_EDITOR
 using UnityEditor;
 using UnityEditor.AddressableAssets.Settings;
+using Assets._Project.Scripts.UtilScripts.Addressables;
 #endif
 
 

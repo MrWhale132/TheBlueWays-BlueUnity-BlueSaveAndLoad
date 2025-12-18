@@ -10,6 +10,13 @@ using UnityEngine;
 
 namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
 {
+    public class InitContext
+    {
+        public bool isPrefabPart;
+        public bool isScenePlaced;
+    }
+
+
     public class SaveHandlerBase : ISaveAndLoad
     {
         public static Dictionary<Type, SaveHandlerAttribute> __attributeCache = new();
@@ -44,7 +51,7 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
             DataGroupId = attribute.DataGroupName;
             _handledType = attribute.HandledType;
             StaticHandlerOf = attribute.StaticHandlerOf;
-            Order = attribute.Order;
+            //Order = attribute.Order;
 
             ///todo: tmp fix, the attribute might have null HandledType if it is a manually created attribute, <see cref="RuntimeTypeSaveHandler"/>
             __isHandledTypeGeneric = attribute.HandledType?.IsGenericTypeDefinition??false;
@@ -58,7 +65,7 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
         public Type _handledType;
         public Type HandledType { get => __isHandledTypeStatic ? StaticHandlerOf : _handledType; set => _handledType = value; }
         public RandomId HandledObjectId { get; protected set; }
-        virtual public int Order { get; set; }
+        public virtual int Order { get; set; }
         public bool IsInitialized => !HandledObjectId.IsDefault;
         public Type StaticHandlerOf { get; set; }
         public virtual bool IsValid {
@@ -131,6 +138,10 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
         {
 
         }
+        public virtual void Init(object instance, InitContext context)
+        {
+            Init(instance);
+        }
 
 
         //from interface
@@ -172,6 +183,22 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
         public virtual void ReleaseObject()
         {
             throw new NotImplementedException();
+        }
+
+
+
+
+
+#if UNITY_EDITOR
+        public class TypeMetaData
+        {
+            public Dictionary<string, long> MethodSignatureToMethodId = new();
+        }
+#endif
+
+        public static Dictionary<string,long> _methodToId()
+        {
+            return null;
         }
     }
 
