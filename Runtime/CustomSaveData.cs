@@ -28,23 +28,16 @@ namespace Assets._Project.Scripts.SaveAndLoad
         }
 
 
-        public RandomId GetObjectId(Component obj, bool setLoadingOrder = false)
-        {
-            return Infra.Singleton.GetObjectId(obj, Infra.Singleton.GlobalReferencing, setLoadingOrder);
-        }
-        public RandomId GetObjectId(GameObject obj, bool setLoadingOrder = false)
-        {
-            return Infra.Singleton.GetObjectId(obj, Infra.Singleton.GlobalReferencing, setLoadingOrder);
-        }
+
         public RandomId GetObjectId(object obj)
         {
             return Infra.Singleton.GetObjectId(obj, Infra.Singleton.GlobalReferencing);
         }
-
-        public RandomId GetAssetId(UnityEngine.Object asset)
-        {
-            return AddressableDb.Singleton.GetAssetIdByAssetName(asset);
-        }
+        //todo:cleanup
+        //public RandomId GetAssetId(UnityEngine.Object asset)
+        //{
+        //    return AddressableDb.Singleton.GetAssetIdByAssetName(asset);
+        //}
 
         public InvocationList GetInvocationList<T>(T del) where T : Delegate
         {
@@ -58,12 +51,12 @@ namespace Assets._Project.Scripts.SaveAndLoad
             return Infra.Singleton.GetObjectById<T>(id);
         }
 
-        public T GetAssetById<T>(RandomId id, T fallback) where T : UnityEngine.Object
-        {
-            var asset = AddressableDb.Singleton.GetAssetByIdOrFallback<T>(fallback, ref id);
+        //public T GetAssetById<T>(RandomId id, T fallback) where T : UnityEngine.Object
+        //{
+        //    var asset = AddressableDb.Singleton.GetAssetByIdOrFallback<T>(fallback, ref id);
 
-            return asset;
-        }
+        //    return asset;
+        //}
 
         public T GetDelegate<T>(InvocationList list) where T : Delegate
         {

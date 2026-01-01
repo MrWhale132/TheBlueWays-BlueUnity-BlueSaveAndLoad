@@ -75,7 +75,7 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.UnitySH.Nav
             __instance.SetDestination(__saveData.destination);
             __instance.isStopped = true;
 
-            Infra.Singleton.RegisterReference(__instance.path, __saveData.path);
+            Infra.Singleton.RegisterReference(__instance.path, __saveData.path,rootObject:false);
         }
         static NavMeshAgentSaveHandler()
         {

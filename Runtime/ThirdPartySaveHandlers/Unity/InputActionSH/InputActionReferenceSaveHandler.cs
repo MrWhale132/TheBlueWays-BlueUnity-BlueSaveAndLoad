@@ -9,36 +9,25 @@ using System;
 
 namespace Assets._Project.Scripts.SaveHandlers.Manuals.InputActionSH
 {
-
     [SaveHandler(3423423523535234, nameof(InputActionReference), typeof(InputActionReference))]
     public class InputActionReferenceSaveHandler : ScriptableSaveHandlerBase<InputActionReference, InputActionReferenceSaveData>
     {
-        public InputActionReferenceSaveHandler()
+        public override void WriteSaveData()
         {
-
-        }
-
-
-        public override void Init(object instance)
-        {
-            base.Init(instance);
-
+            base.WriteSaveData();
 
             __saveData.InputAssetId = GetAssetId(__instance.action.actionMap.asset);
             __saveData.InputActionGuid = __instance.action.id;
         }
 
-        public override void CreateObject()
+
+        public override void _AssignInstance()
         {
             var inputAsset = AddressableDb.Singleton.GetAssetByIdOrFallback<InputActionAsset>(null, ref __saveData.InputAssetId);
 
             var action = inputAsset.FindAction(__saveData.InputActionGuid);
 
             __instance = InputActionReference.Create(action);
-            //Debug.Log("creating: " + __instance.action.name);
-            HandledObjectId = __saveData._ObjectId_;
-
-            Infra.Singleton.RegisterReference(__instance, HandledObjectId);
         }
     }
 

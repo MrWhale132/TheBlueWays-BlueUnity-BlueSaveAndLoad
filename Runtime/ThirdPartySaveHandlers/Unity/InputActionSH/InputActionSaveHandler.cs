@@ -9,18 +9,16 @@ using System;
 using UnityEngine;
 namespace Assets._Project.Scripts.SaveHandlers.Manuals.InputActionSH
 {
-
     [SaveHandler(366884624243324234, nameof(InputAction), typeof(InputAction), order: -98, dependsOn: new[] { typeof(InputActionMap) })]
     public class InputActionSaveHandler : UnmanagedSaveHandler<InputAction, InputActionSaveData>
     {
-
-        public override void Init(object instance)
+        public override void WriteSaveData()
         {
-            base.Init(instance);
+            base.WriteSaveData();
 
             __saveData.name = __instance.name;
-            if (string.IsNullOrEmpty(__saveData.name))
-                Debug.Log("empty");
+            __saveData.enabled = __instance.enabled;
+
 
             if (__instance.actionMap != null)
             {
@@ -33,13 +31,6 @@ namespace Assets._Project.Scripts.SaveHandlers.Manuals.InputActionSH
                     __saveData.InputActionAssetId = GetObjectId(__instance.actionMap.asset);
                 }
             }
-        }
-
-        public override void WriteSaveData()
-        {
-            base.WriteSaveData();
-
-            __saveData.enabled = __instance.enabled;
         }
 
 
@@ -65,6 +56,8 @@ namespace Assets._Project.Scripts.SaveHandlers.Manuals.InputActionSH
             //    __instance = InputSystem.actions.FindActionMap(__saveData.InputActionMapName).FindAction(__saveData.name);
             //}
         }
+
+
         public override void LoadReferences()
         {
             base.LoadReferences();

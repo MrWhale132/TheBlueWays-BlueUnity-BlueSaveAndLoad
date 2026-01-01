@@ -27,7 +27,7 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
 
             SaveAndLoadManager.Singleton.ExpectingIsObjectLoadingRequest = false;
 
-            Infra.Singleton.RegisterReference(__instance, HandledObjectId);
+            Infra.Singleton.RegisterReference(__instance, HandledObjectId, rootObject: __saveData._isRootObject_);
 
 
             if (__instance.GetType().IsAssignableTo(typeof(IGameLoopIntegrator)))

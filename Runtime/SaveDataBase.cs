@@ -1,5 +1,4 @@
 ﻿using Assets._Project.Scripts.UtilScripts;
-using Newtonsoft.Json;
 
 namespace Assets._Project.Scripts.SaveAndLoad
 {
@@ -10,5 +9,6 @@ namespace Assets._Project.Scripts.SaveAndLoad
         public RandomId _ObjectId_;
         public string _AssemblyQualifiedName_;
         public string _DataGroupId_;
+        public bool _isRootObject_;
     }
 }

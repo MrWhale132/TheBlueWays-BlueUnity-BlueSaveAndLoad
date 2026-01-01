@@ -1,12 +1,9 @@
-using Assets._Project.Scripts.Infrastructure;
 using Assets._Project.Scripts.SaveAndLoad;
 using Assets._Project.Scripts.SaveAndLoad.Editor;
-using Assets._Project.Scripts.UtilScripts;
 using Assets._Project.Scripts.UtilScripts.CodeGen;
 using Assets._Project.Scripts.UtilScripts.Extensions;
 using Packages.com.theblueway.saveandload.Editor.SaveAndLoad;
 using System;
-using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -22,7 +19,6 @@ using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using static SaveHandlerAutoGenerator;
 using Debug = UnityEngine.Debug;
-
 
 
 public class SaveAndLoadCodeGenWindow : EditorWindow
@@ -734,7 +730,7 @@ public class SaveAndLoadCodeGenWindow : EditorWindow
 
             if (type == null)
             {
-                Debug.LogError($"Could not resolve type {typeName} in namespace '{namespaceName}' from assembly {assemblyName}. Make sure the assembly is loaded.");
+                Debug.LogError($"Could not resolve type {typeName} in namespace '{namespaceName}' from assembly '{assemblyName}'. Make sure the assembly is loaded.");
                 continue;
             }
 
@@ -938,7 +934,7 @@ public class SaveAndLoadCodeGenWindow : EditorWindow
         //this is not a type exclusion list, this is a checkIfOthersImplementThisType exclusion. So these types will still get their savehandlers
         HashSet<Type> visitedTypes = new()
         {
-            //pre-exclude this type from type discovery because we dont want to add and iterate over all of the types that inherits from them
+            //pre-exclude these types from type discovery because we dont want to add and iterate over all of the types that inherits from them
             typeof(object),
             typeof(System.ValueType),
             typeof(UnityEngine.Object),
@@ -1233,10 +1229,11 @@ public class SaveAndLoadCodeGenWindow : EditorWindow
                     events = events.Where(e => !e.IsDefined(typeof(ObsoleteAttribute))).ToList();
                 }
 
+
                 if (session.TypeGenerationSettingsRegistry.HasSettingsForHandledType(type, isStatic, out var settings))
                 {
                     //fields: fieldReport already takes into account the settings
-                    //todo: methods. methods are a different beast because of overloads with same name. See the design docuoment for details
+                    //todo: methods. methods are a different beast because of overloads with same name. See the design document for details
 
                     foreach (var prop in properties.ToList())
                     {
@@ -1296,7 +1293,19 @@ public class SaveAndLoadCodeGenWindow : EditorWindow
 
                 var staticReport = typeReport;
 
-                instanceReport.StaticReport = staticReport;
+                if (staticReport.FieldsReport.ValidFields.Count == 0
+                    && staticReport.Properties.Count() == 0
+                    && staticReport.Events.Count() == 0
+                    && staticReport.Methods.Length == 0)
+                {
+                    //if there is no static members, dont generate a static handler
+                    instanceReport.StaticReport = null;
+                }
+                else
+                {
+                    instanceReport.StaticReport = staticReport;
+                }
+
                 typeReport = instanceReport;
             }
 
@@ -1322,7 +1331,7 @@ public class SaveAndLoadCodeGenWindow : EditorWindow
 
                 dependencies.AddRange(GetDependencies(typeReport));
 
-                if (!type.IsStatic())
+                if (!type.IsStatic() && typeReport.StaticReport != null)
                 {
                     dependencies.AddRange(GetDependencies(typeReport.StaticReport));
                 }
@@ -1430,10 +1439,10 @@ public class SaveAndLoadCodeGenWindow : EditorWindow
                 }
 
 
-                if(parts.Count == 0)
+                if (parts.Count == 0)
                 {
-                   //everything is manually handled, nothing to generate
-                   Debug.Log($"Skipping generation for type {type.CleanAssemblyQualifiedName()} because it has manual handlers for all parts.");
+                    //everything is manually handled, nothing to generate
+                    Debug.Log($"Skipping generation for type {type.CleanAssemblyQualifiedName()} because it has manual handlers for all parts.");
                     continue;
                 }
 
@@ -1457,11 +1466,22 @@ public class SaveAndLoadCodeGenWindow : EditorWindow
                     namespaces.AddRange(generationResult.StaticSaveDataInfo.UsingStatements);
 
 
+                string nameSpace;
+
+                if (type.Namespace != null)
+                {
+                    nameSpace = type.Namespace.Replace(".", "_.") + "_";
+                }
+                else
+                {
+                    nameSpace = "GlobalNamespace";
+                }
+
 
                 CsFileBuilder builder = new CsFileBuilder()
                 {
                     GeneratedTypeText = mergedFileContent,
-                    NameSpace = "DevTest",
+                    NameSpace = nameSpace,
                     UsingStatements = namespaces.ToHashSet(),
                 };
 
@@ -1624,10 +1644,6 @@ public class SaveAndLoadCodeGenWindow : EditorWindow
 
                     string absDirPath;
 
-                    if (type.Name.Contains("InputUser"))
-                    {
-
-                    }
 
                     Type handlerTypeToLookFor = null;
 
@@ -1650,11 +1666,11 @@ public class SaveAndLoadCodeGenWindow : EditorWindow
 
                     path = "";//otherwise error: path is unassigned
 
-                    bool hasExistingHandler = handlerTypeToLookFor != null;
-                    bool canEditItsSourceFile = hasExistingHandler && session.HasEditableSourceFile(handlerTypeToLookFor, out path);
-                    bool fileContainsOnlyGeneratedCode = hasExistingHandler && Path.GetFileName(path) == fileName; //save to override as is
+                    bool hasExistingNotManualHandler = handlerTypeToLookFor != null;
+                    bool canEditItsSourceFile = hasExistingNotManualHandler && session.HasEditableSourceFile(handlerTypeToLookFor, out path);
+                    bool fileContainsOnlyGeneratedCode = hasExistingNotManualHandler && Path.GetFileName(path) == fileName; //save to override as is
 
-                    if (hasExistingHandler)
+                    if (hasExistingNotManualHandler)
                     {
                         if (canEditItsSourceFile)
                         {
@@ -1679,14 +1695,24 @@ public class SaveAndLoadCodeGenWindow : EditorWindow
 
 
 
-                    if (hasExistingHandler && canEditItsSourceFile && fileContainsOnlyGeneratedCode)
+                    if (hasExistingNotManualHandler && canEditItsSourceFile && fileContainsOnlyGeneratedCode)
                     {
+                        //todo: check if the namespace part of the path still matches the current namespace of the type, if not, move the file
                         absDirPath = Path.GetDirectoryName(path);
                     }
                     else
                     {
+                        var namespaceAsPath = type.Namespace != null ? type.Namespace.Replace(".", "/") : "";
+
+                        string assemblysFolder = $"_Project/Scripts/Generated/TheBlueWay/SaveHandlers/" +
+                                                 $"{type.Assembly.GetName().Name}";
+
                         //todo: configurable path
-                        string relativeDirPath = $"_Project/Scripts/SaveHandlers/{(type.IsStruct() ? "DevTestCustomDatas" : "DevTest")}";
+                        string relativeDirPath = assemblysFolder + "/" +
+                                                 $"{(type.IsStruct() ? "DevTestCustomDatas" : "DevTest")}/" +
+                                                 $"{namespaceAsPath}";
+
+
                         relativeDirPath = relativeDirPath.Replace("/", Path.DirectorySeparatorChar.ToString());
 
 
@@ -1695,6 +1721,50 @@ public class SaveAndLoadCodeGenWindow : EditorWindow
                         if (!Directory.Exists(absDirPath))
                         {
                             Directory.CreateDirectory(absDirPath);
+
+                        }
+
+
+                        if (type.Assembly.GetName().Name != "Assembly-CSharp")
+                        {
+                            List<string> referencedAssmeblies = new()
+                                {
+                                    type.Assembly.GetName().Name,
+                                    "SaveAndLoad",
+                                    "BlueUtils.Core"
+                                };
+
+                            var list = AssemblyResolver.GetAsmdefReferences(type.Assembly);
+                            referencedAssmeblies.AddRange(list);
+
+                            string references = "\"" + string.Join("\",\n\"", referencedAssmeblies) + "\"";
+
+
+                            string asmdefFileContent = $@"
+{{
+    ""name"": ""{type.Assembly.GetName().Name}.Generated"",
+    ""rootNamespace"": ""GlobalNamespace"",
+    ""references"": [
+        {references}
+    ],
+    ""includePlatforms"": [],
+    ""excludePlatforms"": [],
+    ""allowUnsafeCode"": false,
+    ""overrideReferences"": false,
+    ""precompiledReferences"": [],
+    ""autoReferenced"": true,
+    ""defineConstraints"": [],
+    ""versionDefines"": [],
+    ""noEngineReferences"": false
+}}
+";
+
+
+                            string asmDefFileName = type.Assembly.GetName().Name + ".Generated.asmdef";
+
+                            var asmdefPath = Path.Combine(Application.dataPath, assemblysFolder, asmDefFileName);
+
+                            File.WriteAllText(asmdefPath, asmdefFileContent);
                         }
                     }
 
@@ -2023,8 +2093,11 @@ prop.GetCustomAttributes(typeof(CompilerGeneratedAttribute), false).Any() ||
     [MenuItem("Window/Changed Files/Add Dummy")]
     public static void AddDummy()
     {
-        var type = Type.GetType("UnityEngine.InputSystem.InputDevice, Unity.InputSystem");
-        Debug.Log(type);
+        Type type = typeof(UnityEngine.UI.Slider);
+
+        var window = GetWindow<SaveAndLoadCodeGenWindow>();
+
+        window.CreateTypeReportsAndRunCodeGen(new List<Type> { type });
     }
 
 

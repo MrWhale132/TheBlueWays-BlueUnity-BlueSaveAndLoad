@@ -11,10 +11,7 @@ using UnityEngine.ResourceManagement.AsyncOperations;
 using System.Threading;
 using Object = UnityEngine.Object;
 using Assets._Project.Scripts.UtilScripts.Misc;
-
-
-
-
+using Packages.com.blueutils.core.Runtime.Misc;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -33,10 +30,8 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
             public RandomId id;
             public string address;
             public string typedAddress = "";
-            public string assetName;
+            public string assetName;//todo: its typed, add the "typed" prefix
         }
-
-        public List<Object> _unityBuiltInResources;
 
 
         [Serializable]
@@ -143,6 +138,11 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
 
 
 
+
+
+        public List<Object> _unityBuiltInResources;
+
+        public GameObject _defaults;
 
 
 
@@ -343,7 +343,9 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
 
             CreateUnityBuiltInResourceLookUp();
             LoadInUnityBuiltInResourceObjectIds();
+#if UNITY_EDITOR
             UpdateUnityBuiltInResourceObjectIdsIfNeeded();
+#endif
         }
 
 
@@ -356,7 +358,7 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
 
 
 
-
+#if UNITY_EDITOR
         public void UpdateUnityBuiltInResourceObjectIdsIfNeeded()
         {
             bool updateNeeded = false;
@@ -393,7 +395,14 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
 
             if (updateNeeded)
             {
-                using var fileStream = File.Open("UnityBuiltInResourceObjectIds.json", FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite);
+                var path = Path.Combine(Application.streamingAssetsPath, "UnityBuiltInResourceObjectIds.json");
+
+                if (!Directory.Exists(Application.streamingAssetsPath))
+                {
+                    Directory.CreateDirectory(Application.streamingAssetsPath);
+                }
+
+                using var fileStream = File.Open(path, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite);
 
                 using var writer = new StreamWriter(fileStream);
 
@@ -401,14 +410,21 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
 
                 writer.Write(json);
             }
+
+            if (updateNeeded)
+                LoadInUnityBuiltInResourceObjectIds();
         }
+#endif
 
 
         public void CreateUnityBuiltInResourceLookUp()
         {
             _unityBuiltInResourcesByExtendedName.Clear();
 
-            foreach (var obj in _unityBuiltInResources)
+            var resources = GetAdditionalUnityAssets();
+            resources.AddRange(_unityBuiltInResources);
+
+            foreach (var obj in resources)
             {
                 if (obj == null)
                 {
@@ -430,6 +446,10 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
         }
 
 
+        public string GetExtendedAssetName(string name, Type type)
+        {
+            return _service.GetExtendedAssetName(name, type);
+        }
         public string GetExtendedAssetName(Object asset)
         {
             return _service.GetExtendedAssetName(asset);
@@ -438,7 +458,21 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
 
         public void LoadInUnityBuiltInResourceObjectIds()
         {
-            using var fileStream = File.Open("UnityBuiltInResourceObjectIds.json", FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.ReadWrite);
+            var path = Path.Combine(Application.streamingAssetsPath, "UnityBuiltInResourceObjectIds.json");
+
+            if (!File.Exists(path))
+            {
+                _unityBuiltInResourceObjectIdsToExtendedNameMap = new();
+                _unityBuiltInResourceExtendedNamesToObjectIdsMap = new();
+#if !UNITY_EDITOR
+                Debug.LogError($"AddressableDb: Unity built-in resource object IDs file not found at {path}. " +
+                    $"Continuing with an empty map.");
+#endif
+                return;
+            }
+
+
+            using var fileStream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read);
 
             using var reader = new StreamReader(fileStream);
 
@@ -451,6 +485,21 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
         }
 
 
+
+
+        public List<Object> GetAdditionalUnityAssets()
+        {
+            var assets = new List<Object>();
+
+            var image = _defaults.GetComponentInChildren<UnityEngine.UI.Image>(true);
+            assets.Add(image.material);
+            assets.Add(image.material.shader);
+
+            var collider = _defaults.GetComponentInChildren<BoxCollider>(true);
+            assets.Add(collider.material);
+
+            return assets;
+        }
 
 
         public class Service
@@ -471,7 +520,15 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
 
             public string GetExtendedAssetName(string name, Type type)
             {
-                return $"{name} ({type.Name})";
+                var typeName = type.Name;
+
+                //todo: figure out something for this case
+                if (type == typeof(UnityEngine.Audio.AudioMixerGroup))
+                {
+                    typeName = "AudioMixerGroupController";
+                }
+
+                return $"{name} ({typeName})";
             }
 
 #if UNITY_EDITOR
@@ -510,61 +567,63 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
 
 
 
+        //todo: clean up later
+        //public RandomId GetAssetIdOfOriginalAssetFromCopy(UnityEngine.Object unityObj, out string originalName)
+        //{
+        //    if (unityObj == null)
+        //    {
+        //        originalName = string.Empty;
+        //        return RandomId.Default;
+        //    }
 
-        public RandomId GetAssetIdOfOriginalAssetFromCopy(UnityEngine.Object unityObj)
-        {
-            if (unityObj == null) return RandomId.Default;
+        //    //assume its name ends with " Instance" or " (Instance)"
+        //    string name = unityObj.name.Substring(0,unityObj.name.LastIndexOf(' '));
 
-            //assume its name ends with " Instance" or " (Instance)"
-            string name = unityObj.name.Substring(0,unityObj.name.LastIndexOf(' '));
-
-            string extendedName = _service.GetExtendedAssetName(name, unityObj.GetType());
+        //    string extendedName = _service.GetExtendedAssetName(name, unityObj.GetType());
 
 
-            RandomId id = _GetIdByAssetName(extendedName);
+        //    RandomId id = _GetIdByAssetName(extendedName);
 
-            if (id.IsDefault && !string.IsNullOrEmpty(unityObj.name))
-            {
-                if (unityObj.name != "Default UI Material"
-                )
-                {
-                    Debug.LogWarning($"AddressableDb: Did not find the ID of the original asset of copy: {unityObj.name}. Type: {unityObj.GetType().FullName}. Going to return a default value.");
-                    return RandomId.Default;
-                }
-            }
+        //    if (id.IsDefault)
+        //    {
+        //        //if (unityObj.name != "Default UI Material")
+        //        {
+        //            Debug.LogWarning($"AddressableDb: Did not find the ID of the original asset of copy: {unityObj.name}. Type: {unityObj.GetType().FullName}. Going to return a default value.",unityObj);
+        //            originalName = string.Empty;
+        //            return RandomId.Default;
+        //        }
+        //    }
 
-            return id;
-        }
+        //    originalName = name;
+        //    return id;
+        //}
 
 
         public RandomId GetAssetIdByAssetName(UnityEngine.Object unityObj)
         {
             if (unityObj == null) return RandomId.Default;
 
-            //if ((unityObj.name.EndsWith(" Instance", System.StringComparison.Ordinal))
-            //    || (unityObj.name.EndsWith(" (Instance)", System.StringComparison.Ordinal))
-            //    )
-            if (unityObj.name.StartsWith("Plane"))
-            {
-                //Debug.Log(unityObj.name);
-            }
-            if (unityObj.IsProbablyUnmodifiedCopyOfOriginalAsset())
-            {
-                string name = unityObj.name.Substring(0, unityObj.name.LastIndexOf(' '));
-                string extendedName2 = _service.GetExtendedAssetName(name,unityObj.GetType());
 
-                if (_unityBuiltInResourceExtendedNamesToObjectIdsMap.TryGetValue(extendedName2, out var id3))
-                {
-                    return id3;
-                }
+            string name = unityObj.name;
 
-                id3 = Infra.Singleton.GetObjectId(unityObj, Infra.Singleton.GlobalReferencing); //todo: GlobalReferencing should be a quick temp solution
-                return id3;
+            if (unityObj.IsDefensiveCopyOfOriginal())
+            {
+                name = unityObj.name.Substring(0, unityObj.name.LastIndexOf(' '));
+
+                //string extendedName2 = _service.GetExtendedAssetName(name,unityObj.GetType());
+
+                //if (_unityBuiltInResourceExtendedNamesToObjectIdsMap.TryGetValue(extendedName2, out var id3))
+                //{
+                //    return id3;
+                //}
+
+                /////todo: when the <see cref="SaveHandlerBase.GetAssetId"/> is retired, theoretically, this will no longer be needed
+                //id3 = Infra.Singleton.GetObjectId(unityObj, Infra.Singleton.GlobalReferencing); //todo: GlobalReferencing should be a quick temp solution
+                //return id3;
             }
 
 
-
-            string extendedName = GetExtendedAssetName(unityObj);
+            string extendedName = GetExtendedAssetName(name, unityObj.GetType());
 
             if (_unityBuiltInResourceExtendedNamesToObjectIdsMap.TryGetValue(extendedName, out var id2))
             {
@@ -574,12 +633,11 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
 
             RandomId id = _GetIdByAssetName(extendedName);
 
-            if (id.IsDefault && !string.IsNullOrEmpty(unityObj.name))
+            if (id.IsDefault /*&& !string.IsNullOrEmpty(unityObj.name)*/)
             {
-                if (unityObj.name != "Default UI Material"
-                && (!unityObj.name.EndsWith(" Instance", System.StringComparison.Ordinal))
-                && (!unityObj.name.EndsWith(" (Instance)", System.StringComparison.Ordinal))
-                )
+                //if (unityObj.name != "Default UI Material"
+                //&& (!unityObj.name.EndsWith(" Instance", System.StringComparison.Ordinal))
+                //&& (!unityObj.name.EndsWith(" (Instance)", System.StringComparison.Ordinal)))
                 {
                     Debug.LogWarning($"AddressableDb: No ID found for asset type {unityObj.GetType().FullName} with name {unityObj.name}. Going to return a default value.");
                 }
@@ -611,7 +669,7 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
 
 
 
-        private string _GetAddressById(RandomId id)
+        public string _GetAddressById(RandomId id)
         {
             if (id.IsDefault)
             {
@@ -670,21 +728,18 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
                 }
             }
 
-
             if (string.IsNullOrEmpty(address))
             {
                 Debug.LogError($"AddressableDb: Neither an address nor a registered object found for ID {id}. Cannot get asset.");
                 return null;
             }
-            new ManualResetEvent(false);
-
-            return Addressables.LoadAssetAsync<T>(address).WaitForCompletion();
-            //return AddressablesHelper.SafeLoadAssetBlocking<T>(address);
 
 
             var handle = Addressables.LoadAssetAsync<T>(address);
+            _handles.Add(handle);
 
-            while (!handle.IsDone) { }
+            return handle.WaitForCompletion();
+
 
             //handle.Completed += op =>
             {
@@ -700,6 +755,9 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
             }
         }
 
+        [HideInInspector]
+        public List<object> _handles = new();
+
 
         public T GetAssetByIdOrFallback<T>(in T fallbackAsset, ref RandomId id) where T : UnityEngine.Object
         {
@@ -712,6 +770,52 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
         }
 
 
+
+
+        public string GetTypedNameById(RandomId id)
+        {
+            if (__db._id.TryGetValue(id, out var dto))
+            {
+                return dto.assetName;
+            }
+            else
+            {
+                Debug.LogWarning($"AddressableDb: No asset name found for ID {id}. Going to return a default value.");
+                return null;
+            }
+        }
+
+
+        public string GetAssetNameById(RandomId id)
+        {
+            //if (id.IsDefault)
+            //{
+            //    Debug.LogWarning("AddressableDb: Attempted to get asset name by default ID. Returning null.");
+            //    return null;
+            //}
+
+            if (__db._id.TryGetValue(id, out var dto))
+            {
+                string typedName = dto.assetName;
+
+                string untypedName = GetNameFromTypedName(typedName);
+
+                return untypedName;
+            }
+            else
+            {
+                Debug.LogWarning($"AddressableDb: No asset name found for ID {id}. Going to return a default value.");
+                return null;
+            }
+        }
+
+
+
+        public string GetNameFromTypedName(string typedName)
+        {
+            string untypedName = typedName.Substring(0, typedName.LastIndexOf(" (", StringComparison.Ordinal));
+            return untypedName;
+        }
 
 
         public bool IsAssetType(Type type)
@@ -860,6 +964,21 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
             public DateTime creationDate;
         }
     }
+
+
+
+
+    [Serializable]
+    public class AssetNameAlias
+    {
+        public Component assetHolder;
+        public RandomId assetId;
+        //public RandomIdReference assetIdRef;
+
+        [Tooltip("Use this for arrays or lists, like MeshRenderer.sharedMaterials")]
+        public List<RandomIdReference> listElementAssetIds;
+    }
+
 
 
     public static class AddressableExtensions

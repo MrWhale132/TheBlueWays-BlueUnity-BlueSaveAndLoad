@@ -11,6 +11,7 @@ using System.Reflection;
 
 namespace DevTest
 {
+	//todo
 	[SaveHandler(521664889686445854, "ParticleSystem", typeof(UnityEngine.ParticleSystem), generationMode: SaveHandlerGenerationMode.FullAutomata)]
 	public class ParticleSystemSaveHandler : MonoSaveHandler<UnityEngine.ParticleSystem, ParticleSystemSaveData> 
 	{
@@ -26,10 +27,12 @@ namespace DevTest
 		public override void LoadReferences()
 		{
 			base.LoadReferences();
+			__instance.Stop();
 			__instance.time = __saveData.time;
 			__instance.randomSeed = __saveData.randomSeed;
 			__instance.useAutoRandomSeed = __saveData.useAutoRandomSeed;
 			__instance.hideFlags = __saveData.hideFlags;
+			__instance.Play();
 		}
 
 		static ParticleSystemSaveHandler()

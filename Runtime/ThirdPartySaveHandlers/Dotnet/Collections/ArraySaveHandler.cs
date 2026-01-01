@@ -213,11 +213,8 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.Dotnet.Coll
 
 
 
-        public override void CreateObject()
+        public override void _AssignInstance()
         {
-            base.CreateObject();
-
-
             __elementTypeHasSaveHandler = __saveData.ElementTypeHasSaveHandler;
             Type arrayType = Type.GetType(__saveData._AssemblyQualifiedName_);
 
@@ -235,9 +232,6 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.Dotnet.Coll
             {
                 __instance = (Array)JsonConvert.DeserializeObject(__saveData.Elements.ToString(), arrayType);
             }
-
-
-            Infra.Singleton.RegisterReference(__instance, HandledObjectId);
         }
 
 

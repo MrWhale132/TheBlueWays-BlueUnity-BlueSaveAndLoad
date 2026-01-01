@@ -33,6 +33,8 @@ namespace Packages.com.theblueway.saveandload.Editor.SaveAndLoad
     {
         public bool _triggerValidate;
 
+        public int _loadOrder;
+
         [HandledTypeSaveHandlerId]
         public long handlerIdOfConfiguredType;
         public List<MemberConfig> memberConfigs;
@@ -54,13 +56,25 @@ namespace Packages.com.theblueway.saveandload.Editor.SaveAndLoad
         {
             bool isValid = true;
 
-            Type configuredType = SaveAndLoadManager.Service_.GetHandledTypeByHandlerId(handlerIdOfConfiguredType);
+            Type configuredType = SaveAndLoadManager.Service_.GetHandledTypeByHandlerId(handlerIdOfConfiguredType, out var isStatic);
             if (configuredType == null)
             {
                 if (logErrorMessages)
                     Debug.LogError($"SaveHandlerTypeGenerationConfig: Configured type with handler ID {handlerIdOfConfiguredType} could not be found.", context);
                 return false;
             }
+
+            bool manuallyHandled = SaveAndLoadManager.Service_.IsTypeManuallyHandled_Editor(configuredType, isStatic);
+
+            if (manuallyHandled)
+            {
+                if (logErrorMessages)
+                {
+                    Debug.LogError($"SaveHandlerTypeGenerationConfig: Configured type {configuredType.AssemblyQualifiedName} {handlerIdOfConfiguredType} is marked as manually handled. Cannot generate save handler for manually handled types.", context);
+                }
+                return false;
+            }
+
 
             if (memberConfigs.Count > 0)
             {

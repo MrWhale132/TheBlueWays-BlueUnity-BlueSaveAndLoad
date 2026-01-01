@@ -10,6 +10,7 @@ using UnityEngine;
 
 namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
 {
+    [Serializable]
     public class InitContext
     {
         public bool isPrefabPart;
@@ -82,14 +83,6 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
 
         ///these helper methods copied to <see cref="CustomSaveData"/>
         ///
-        public RandomId GetObjectId(Component obj, bool setLoadingOrder = false)
-        {
-            return Infra.Singleton.GetObjectId(obj, HandledObjectId, setLoadingOrder);
-        }
-        public RandomId GetObjectId(GameObject obj, bool setLoadingOrder = false)
-        {
-            return Infra.Singleton.GetObjectId(obj, HandledObjectId, setLoadingOrder);
-        }
         public RandomId GetObjectId(object obj, bool setLoadingOrder = false)
         {
             return Infra.Singleton.GetObjectId(obj, HandledObjectId, setLoadingOrder);
@@ -97,11 +90,12 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
 
         public RandomId GetAssetId(UnityEngine.Object asset)
         {
-            //var id  = AddressableDb.Singleton.GetAssetIdByAssetName(asset);
-            //if (id.IsDefault)
-            //{
-            //    Debug.LogError(HandledObjectId);
-            //}
+            return Infra.Singleton.GetObjectId(asset, HandledObjectId, setLoadingOrder:true);
+            //return AddressableDb.Singleton.GetAssetIdByAssetName(asset);
+        }
+        //todo: remove the 2 from the name when GetAssetId is no longer used
+        public RandomId GetAssetId2(UnityEngine.Object asset)
+        {
             return AddressableDb.Singleton.GetAssetIdByAssetName(asset);
         }
 
@@ -119,7 +113,21 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
 
         public T GetAssetById<T>(RandomId id, T fallback)where T: UnityEngine.Object
         {
-            var asset= AddressableDb.Singleton.GetAssetByIdOrFallback<T>(fallback, ref id);
+            var obj=Infra.Singleton.GetObjectById<T>(id);
+
+            if (obj != null)
+                return obj;
+
+            return fallback;
+
+            //var asset= AddressableDb.Singleton.GetAssetByIdOrFallback<T>(fallback, ref id);
+
+            //return asset;
+        }
+
+        public T GetAssetById2<T>(RandomId id, T fallback)where T: UnityEngine.Object
+        {
+            var asset = AddressableDb.Singleton.GetAssetByIdOrFallback<T>(fallback, ref id);
 
             return asset;
         }
@@ -145,32 +153,25 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
 
 
         //from interface
-        public virtual void Deserialize(string json)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public virtual void RegisterDelegates()
-        {
-
-        }
 
         public virtual void LoadValues()
         {
-            //throw new System.NotImplementedException();
         }
 
         public virtual void LoadReferences()
         {
-            RegisterDelegates();
         }
 
         public virtual void WriteSaveData()
         {
-            //throw new System.NotImplementedException();
         }
 
         public virtual string Serialize()
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public virtual void Deserialize(string json)
         {
             throw new System.NotImplementedException();
         }
@@ -188,6 +189,15 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
 
 
 
+        public static SaveHandlerAttribute ManualSaveHandlerAttributeCreation(Type handledType, Type theHandlerType)
+        {
+            var attr = theHandlerType.GetCustomAttribute<SaveHandlerAttribute>();
+
+            attr.SetHandledType(handledType);
+            attr.RequiresManualAttributeCreation = false;
+
+            return attr;
+        }
 
 #if UNITY_EDITOR
         public class TypeMetaData
@@ -212,12 +222,12 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
             reference = obj;
         }
 
-        public static void AssignAssetById<T>(this ref RandomId id, ref T reference) where T : UnityEngine.Object
-        {
-            var obj = AddressableDb.Singleton.GetAssetByIdOrFallback(reference, ref id);
+        //public static void AssignAssetById<T>(this ref RandomId id, ref T reference) where T : UnityEngine.Object
+        //{
+        //    var obj = AddressableDb.Singleton.GetAssetByIdOrFallback(reference, ref id);
 
-            reference = obj;
-        }
+        //    reference = obj;
+        //}
 
         public static void AssignDelegateById<T>(this InvocationList list, ref T reference) where T : Delegate
         {

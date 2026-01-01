@@ -23,7 +23,6 @@ namespace Assets._Project.Scripts.SaveAndLoad
         //load
         public void Deserialize(string json);
         public void CreateObject();
-        public void RegisterDelegates();
         public void LoadReferences();
         public void LoadValues();
     }

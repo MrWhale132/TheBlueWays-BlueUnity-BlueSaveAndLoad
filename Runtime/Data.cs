@@ -37,16 +37,16 @@ namespace Assets._Project.Scripts.SaveAndLoad
         {
             var type = typeof(T);
 
-
-            if (AddressableDb.Singleton.IsAssetType(type))
-            {
-                _setter = (value) => _AssetId = AddressableDb.Singleton.GetAssetIdByAssetName((UnityEngine.Object)(object)value);
-                _getter = () =>
-                {
-                    return (T)(object)AddressableDb.Singleton.GetAssetByIdOrFallback<Object>(null, ref _AssetId);
-                };
-            }
-            else if (SaveAndLoadManager.Singleton.HasSaveHandlerForType(typeof(T))
+            //todo:cleanup
+            //if (AddressableDb.Singleton.IsAssetType(type))
+            //{
+            //    _setter = (value) => _AssetId = AddressableDb.Singleton.GetAssetIdByAssetName((UnityEngine.Object)(object)value);
+            //    _getter = () =>
+            //    {
+            //        return (T)(object)AddressableDb.Singleton.GetAssetByIdOrFallback<Object>(null, ref _AssetId);
+            //    };
+            //}
+            if (SaveAndLoadManager.Singleton.HasSaveHandlerForType(typeof(T))
                 || typeof(T).IsInterface) //WARNING: HUGE, huge temporary solution is this. This assumes and requires that if an interface used as a 
                                           //generic type param, than only class type types implement it
             {

@@ -13,6 +13,7 @@ using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Threading.Tasks;
 using Theblueway.SaveAndLoad.Packages.com.theblueway.saveandload.Runtime.InfraScripts;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -89,7 +90,15 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
             InitSaveHandlerWork();
 
-            CollectSaveHandlers();
+            try
+            {
+                CollectSaveHandlers();
+            }
+            catch (Exception e)
+            {
+                Debug.LogError(e.ToString());
+                throw;
+            }
 
             BuildCustomSaveDataLookUp();
             BuildCustomSaveDataFactories(__isTypesHandledByCustomSaveDataLookup.Keys, __isTypesHandledByCustomSaveDataLookup.Values);
@@ -430,7 +439,7 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
 
 
-            //todo: this covers savehandlers only. Add customdatas and serializables
+            //todo: do we need to check serializables too?
             public bool IsTypeHandled_Editor(Type type, bool isStatic, out Type handlerType)
             {
                 if (type.IsGenericType && !type.IsGenericTypeDefinition)
@@ -484,7 +493,7 @@ namespace Assets._Project.Scripts.SaveAndLoad
                     return true;
                 }
 
-                if(__customSaveDataAttributesByType.TryGetValue(type, out var customSaveDataAttribute))
+                if (__customSaveDataAttributesByType.TryGetValue(type, out var customSaveDataAttribute))
                 {
                     handlerType = customSaveDataAttribute.SaveHandlerType;
                     return true;
@@ -515,6 +524,20 @@ namespace Assets._Project.Scripts.SaveAndLoad
             public bool IsTypeHandled_Editor(Type type)
             {
                 return IsTypeHandled_Editor(type, isStatic: false) && IsTypeHandled_Editor(type, isStatic: true);
+            }
+
+            public bool IsTypeManuallyHandled_Editor(Type type, bool isStatic)
+            {
+                IsTypeManuallyHandled_Editor(type, out var hasManualInstanceHandler, out var hasManualStaticHandler);
+
+                if (isStatic)
+                {
+                    return hasManualStaticHandler;
+                }
+                else
+                {
+                    return hasManualInstanceHandler;
+                }
             }
 
             public void IsTypeManuallyHandled_Editor(Type type, out bool hasManualInstanceHandler, out bool hasManualStaticHandler)
@@ -1028,7 +1051,7 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
             public Type GetHandledTypeByHandlerId(long id)
             {
-                return GetHandledTypeByHandlerId(id,out var _);
+                return GetHandledTypeByHandlerId(id, out var _);
             }
 
             public Type GetHandledTypeByHandlerId(long id, out bool isStatic)
@@ -1095,7 +1118,7 @@ namespace Assets._Project.Scripts.SaveAndLoad
                 foreach (var handler in handlers)
                 {
                     //todo: here the handled type is the subtitue type. Get the subtituted type
-                    handlerIdsByTypeName[handler.Id] = (handler.HandledType.CleanAssemblyQualifiedName(), isStatic: true);
+                    handlerIdsByTypeName[handler.Id] = (handler.StaticHandlerOf.CleanAssemblyQualifiedName(), isStatic: true);
                 }
 
                 return handlerIdsByTypeName;
@@ -1437,7 +1460,7 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
             {
                 if (!_muteMissingSaveHandlerWarnings)
-                    Debug.LogError($"No SaveHandler found for type {objectType.FullName}. " +
+                    Debug.LogError($"No SaveHandler found for type {objectType.CleanAssemblyQualifiedName()}. " +
                         $"This means that this type does not have a SaveHandler registered for it. ");
                 return null;
             }
@@ -1944,6 +1967,12 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
         public void Save()
         {
+            //todo: check against multiple save requests
+            StartCoroutine(SaveRoutine());
+        }
+
+        public IEnumerator SaveRoutine()
+        {
             IsIteratingSaveHandlers = true;
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
@@ -1979,7 +2008,7 @@ namespace Assets._Project.Scripts.SaveAndLoad
             }
             while (!_ShouldStopIteratingSaveHandlers());
 
-            Debug.LogWarning("write " + stopwatch.ElapsedMilliseconds / 1000f);
+            //Debug.LogWarning("write " + stopwatch.ElapsedMilliseconds / 1000f);
 
             IsIteratingSaveHandlers = false;
 
@@ -1987,51 +2016,94 @@ namespace Assets._Project.Scripts.SaveAndLoad
             if (__currentSaveState == SaveState.Terminate)
             {
                 Debug.LogError($"The saving of the objects was terminated. Going to skip the rest of process.");
-                return;
+                yield break;
             }
 
 
             foreach (var handler in handlersToRemove)
             {
-                __mainSaveHandlers.Remove(handler);
-            }
+                //Debug.Log($"[Trace] Removing invalid save handler, datagroup: {handler.DataGroupId}, handled object id: {handler.HandledObjectId}");
+                //__mainSaveHandlers.Remove(handler);
+                Infra.Singleton.Unregister(handler.HandledObjectId);
 
-
-            ////////////////////////////////////////////////////
-
-            HashSet<RandomId> referencedObjects = Infra.Singleton.GetReferencedObjects();
-
-
-            var processedHandlers = new List<ISaveAndLoad>(__mainSaveHandlers);
-
-
-            for (int i = processedHandlers.Count - 1; i > -1; i--)
-            {
-                var handler = processedHandlers[i];
-
-                if (!referencedObjects.Contains(handler.HandledObjectId))
+                //if (handler is GameObjectSaveHandler goHandler)
                 {
-                    processedHandlers.RemoveAt(i);
-                    __mainSaveHandlers.Remove(handler);
-
-                    handler.ReleaseObject();
-                    //todo: remove the handled object's delegates from the delegate map
-
-
-                    //used this to debug, leaving it here for a while to see if anything unexpected happens
-                    Debug.LogWarning($"removing handler, datagroup: {handler.DataGroupId}, handled object id: {handler.HandledObjectId}");
+                    //Debug.LogWarning(goHandler.__saveData.HierarchyPath);
                 }
             }
-            Debug.LogWarning("discover " + stopwatch.ElapsedMilliseconds / 1000f);
 
-            ////////////////////////////////////////////////////
-
+            Infra.Singleton.RemoveUnreferencedObjects();
 
 
+
+            //todo: create an immutable snapshot of the data accesd by background tasks
+
+            var snapshot = new List<ISaveAndLoad>(__mainSaveHandlers);
+
+            //perf test
+            //for (int i = 0; i < 100; i++)
+            //{
+            //    snapshot.AddRange(__mainSaveHandlers);
+            //}
+
+            var serTask = Task.Run(() => { return SerializeSnapshot(snapshot); });
+
+            while (!serTask.IsCompleted)
+                yield return null;
+
+            if (serTask.Exception != null)
+            {
+                Debug.LogError("Exception during serialization of save data: " + serTask.Exception);
+                yield break;
+            }
+
+            IEnumerable<string> flatList = serTask.Result;
+
+            //Debug.LogWarning("serialize " + stopwatch.ElapsedMilliseconds / 1000f);
+
+
+            string now = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
+
+            string fileName = "/savedata_" + now + ".json";
+
+            string relPath = Paths.Singleton.WorldSavePath + fileName;
+
+            var basePath = Application.persistentDataPath; //this is not thread-safe, thats why it is here
+            var absPath = Path.Combine(basePath, relPath);
+
+            Debug.Log($"Saving data to {absPath}.");
+
+            var writeTask = Task.Run(() => { WriteSnapshotToDisk(absPath, flatList); });
+
+            while (!writeTask.IsCompleted)
+                yield return null;
+
+            if (writeTask.Exception != null)
+            {
+                Debug.LogError("Exception during writing to disk of save data: " + writeTask.Exception);
+                yield break;
+            }
+
+
+            stopwatch.Stop();
+            //Debug.LogWarning("save to disk " + stopwatch.ElapsedMilliseconds / 1000f);
+            Debug.Log("Save completed.");
+        }
+
+
+
+        public void WriteSnapshotToDisk(string path, IEnumerable<string> snapshot)
+        {
+            JsonUtil.WriteObjects(path, snapshot, relative: false);
+        }
+
+
+        public IEnumerable<string> SerializeSnapshot(IEnumerable<ISaveAndLoad> handlers)
+        {
             var saveData = new Dictionary<string, List<string>>();
 
 
-            foreach (var handler in processedHandlers)
+            foreach (var handler in handlers)
             {
                 {
                     if (handler == null)
@@ -2053,26 +2125,16 @@ namespace Assets._Project.Scripts.SaveAndLoad
                     saveData[handler.DataGroupId].Add(data);
                 }
             }
-            Debug.LogWarning("serialize " + stopwatch.ElapsedMilliseconds / 1000f);
 
 
             IEnumerable<string> flatList = saveData.SelectMany(x => x.Value);
 
-
-            string now = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
-
-            string fileName = "/savedata_" + now + ".json";
-
-            string path = Paths.Singleton.WorldSavePath + fileName;
-
-            Debug.Log($"Saving data to {path}.");
-
-            JsonUtil.WriteObjects(path, flatList);
-
-            stopwatch.Stop();
-            //Debug.LogWarning("save to disk " + stopwatch.ElapsedMilliseconds / 1000f);
-            Debug.LogWarning(stopwatch.ElapsedMilliseconds / 1000f);
+            return flatList;
         }
+
+
+
+
 
 
 
@@ -2132,9 +2194,9 @@ namespace Assets._Project.Scripts.SaveAndLoad
             }
 
 
-            yield return StartCoroutine(LoadEmptyScene());
+            //yield return StartCoroutine(LoadEmptyScene());
 
-            yield return StartCoroutine(UnLoadMainMenuScene());
+            //yield return StartCoroutine(UnLoadMainMenuScene());
 
 
 
@@ -2386,7 +2448,6 @@ namespace Assets._Project.Scripts.SaveAndLoad
             {
                 Debug.Log("Saving game...");
                 Save();
-                Debug.Log("Save completed.");
             }
 
             if (Input.GetKeyDown(KeyCode.F2))
@@ -2460,15 +2521,16 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
             var dataGroupId = saveHandler.DataGroupId;
 
-            if (dataGroupId == null || string.IsNullOrEmpty(dataGroupId))
+            if (string.IsNullOrEmpty(dataGroupId))
             {
-                Debug.LogError("Invalid DataGroupId provided.");
+                Debug.LogError("Invalid DataGroupId provided. (null or empty)");
                 return;
             }
 
             __mainSaveHandlers.Remove(saveHandler);
             __saveHandlerByHandledObjectIdLookUp.Remove(saveHandler.HandledObjectId);
 
+            //todo: remove the handled object's delegates from the delegate map
 
 
 
@@ -2553,6 +2615,13 @@ namespace Assets._Project.Scripts.SaveAndLoad
         public Dictionary<RandomId, object> _prefabPartsByInstanceId = new();
 
 
+        public void RemoveIfPartOfPrefab(RandomId instanceId)
+        {
+            if (!_IsPartOfPrefab(instanceId)) return;
+
+            _prefabDescriptionByPrefabPartInstanceId.Remove(instanceId);
+            _prefabPartsByInstanceId.Remove(instanceId);
+        }
 
 
         public bool IsPartOfPrefab<T>(RandomId instanceId, out T instance)
@@ -2758,13 +2827,19 @@ namespace Assets._Project.Scripts.SaveAndLoad
                 if (SaveAndLoadManager.PrefabDescriptionRegistry != null)
                 {
                     Infra.Singleton.Unregister(SaveAndLoadManager.PrefabDescriptionRegistry);
-                    SaveAndLoadManager.PrefabDescriptionRegistry = null;
+                    //SaveAndLoadManager.PrefabDescriptionRegistry = null;
                 }
 
                 base.CreateObject();
 
-                SaveAndLoadManager.PrefabDescriptionRegistry = __instance;
+                //SaveAndLoadManager.PrefabDescriptionRegistry = __instance;
             }
+
+            public override void _AssignInstance()
+            {
+                __instance = SaveAndLoadManager.PrefabDescriptionRegistry;
+            }
+
 
             public override void LoadReferences()
             {
@@ -2817,11 +2892,28 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
 
 
+    public class SceneDescription
+    {
+        public RandomId sceneId;
+        public List<MemberToInstanceId> memberToInstanceIds = new();
+        public List<ArrayMemberToElementIds> arrayMemberToElementIdsList = new();
+    }
+
+
     public class ScenePlacedObjectRegistry
     {
         public Dictionary<RandomId, SceneDescription> _sceneDescriptionBySceneObjectId = new();
 
         public Dictionary<RandomId, object> _sceneObjectsById = new();
+
+
+        public void RemoveIfScenePlaced(RandomId objectId)
+        {
+            if (!_IsScenePlaced(objectId)) return;
+
+            _sceneDescriptionBySceneObjectId.Remove(objectId);
+            _sceneObjectsById.Remove(objectId);
+        }
 
 
         public bool IsScenePlaced<T>(RandomId instanceId, out T instance)
@@ -2861,14 +2953,6 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
                 SceneInfra infra = Infra.SceneManagement.SceneInfrasBySceneHandle[scene.handle];
 
-                //old workflow
-                //if (infra == null)
-                //{
-                //    Debug.LogError($"Scene with index {desc.sceneIndex} is not loaded yet or has no SceneInfra registered for it. " +
-                //        $"Make sure the scene contains a SceneInfra object. " +
-                //        $"Cannot get scene placed object with id {sceneObjectInstanceId}.");
-                //    return default;
-                //}
 
                 var results = infra.CollectScenePlacedObjects();
 
@@ -2991,13 +3075,6 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
 
 
-        public class SceneDescription
-        {
-            public RandomId sceneId;
-            public List<MemberToInstanceId> memberToInstanceIds = new();
-            public List<ArrayMemberToElementIds> arrayMemberToElementIdsList = new();
-        }
-
 
 
 
@@ -3016,13 +3093,19 @@ namespace Assets._Project.Scripts.SaveAndLoad
                 if (SaveAndLoadManager.ScenePlacedObjectRegistry != null)
                 {
                     Infra.Singleton.Unregister(SaveAndLoadManager.ScenePlacedObjectRegistry);
-                    SaveAndLoadManager.ScenePlacedObjectRegistry = null;
+                    //SaveAndLoadManager.ScenePlacedObjectRegistry = null;
                 }
 
                 base.CreateObject();
 
-                SaveAndLoadManager.ScenePlacedObjectRegistry = __instance;
+                //SaveAndLoadManager.ScenePlacedObjectRegistry = __instance;
             }
+
+            public override void _AssignInstance()
+            {
+                __instance = SaveAndLoadManager.ScenePlacedObjectRegistry;
+            }
+
 
             public override void LoadReferences()
             {

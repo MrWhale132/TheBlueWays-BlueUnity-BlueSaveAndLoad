@@ -37,16 +37,11 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers
 
 
 
-
-        public override void CreateObject()
+        public override void _AssignInstance()
         {
-            HandledObjectId = __saveData._ObjectId_;
-
             var go = Infra.Singleton.GetObjectById<GameObject>(__saveData.GameObjectId);
-            
-            __instance = go.transform;
 
-            Infra.Singleton.RegisterReference(__instance, __saveData._ObjectId_);
+            __instance = go.transform;
         }
 
 

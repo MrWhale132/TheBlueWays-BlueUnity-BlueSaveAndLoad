@@ -25,7 +25,7 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
 
 
 
-            Infra.Singleton.RegisterReference(__instance, __saveData._ObjectId_,rootObject:true);
+            Infra.Singleton.RegisterReference(__instance, __saveData._ObjectId_, rootObject: __saveData._isRootObject_);
         }
 
         public override void _AssignInstance()

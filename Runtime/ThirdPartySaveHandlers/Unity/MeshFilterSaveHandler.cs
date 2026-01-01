@@ -12,15 +12,15 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers
         public override void WriteSaveData()
         {
             base.WriteSaveData();
-            __saveData.sharedMesh = GetAssetId(__instance.sharedMesh);
-            __saveData.mesh = GetAssetId(__instance.mesh);
+            __saveData.sharedMesh = GetObjectId(__instance.sharedMesh);
+            __saveData.mesh = GetObjectId(__instance.mesh);
             __saveData.hideFlags = __instance.hideFlags;
         }
         public override void LoadReferences()
         {
             base.LoadReferences();
-            __instance.sharedMesh = GetAssetById(__saveData.sharedMesh, __instance.sharedMesh);
-            __instance.mesh = GetAssetById(__saveData.mesh, __instance.mesh);
+            __instance.sharedMesh = GetObjectById<Mesh>(__saveData.sharedMesh);
+            __instance.mesh = GetObjectById<Mesh>(__saveData.mesh);
             __instance.hideFlags = __saveData.hideFlags;
         }
     }

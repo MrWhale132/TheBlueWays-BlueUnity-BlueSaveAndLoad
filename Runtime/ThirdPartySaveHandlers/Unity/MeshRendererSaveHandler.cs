@@ -3,6 +3,7 @@ using Assets._Project.Scripts.Infrastructure.AddressableInfra;
 using Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases;
 using Assets._Project.Scripts.UtilScripts;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.UnitySHs
@@ -36,48 +37,27 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.UnitySHs
             __saveData.lightProbeProxyVolumeOverride = GetObjectId(__instance.lightProbeProxyVolumeOverride);
             __saveData.probeAnchor = GetObjectId(__instance.probeAnchor);
             __saveData.hideFlags = __instance.hideFlags;
-            //__saveData.sharedMaterials = GetObjectId(__instance.sharedMaterials);
-            //__saveData.materials = GetObjectId(__instance.materials);
-            GetAssetIdList(__instance.sharedMaterials,__saveData.sharedMaterials);
-            GetAssetIdList(__instance.materials,__saveData.materials);
-            //__saveData.sharedMaterials.Clear();
+            __saveData.sharedMaterials = GetObjectId(__instance.sharedMaterials,setLoadingOrder:true);
+            __saveData.materials = GetObjectId(__instance.materials,setLoadingOrder:true);
+        }
 
-            //for (int i = 0; i < __instance.sharedMaterials.Length; i++)
-            //{
-            //    var material = __instance.sharedMaterials[i];
-            //    if (material != null)
-            //    {
-            //        var assetId = AddressableDb.Singleton.GetAssetIdByAssetName(material);
-            //        __saveData.sharedMaterials.Add(assetId);
-            //    }
-            //}
+        public override void LoadValues()
+        {
+            base.LoadValues();
+
+            //by the time assigning these, the array must contain the materials, but the handler of the array adds the element in the LoadReferences step
+            //which may or may not happens before this handler's LoadReferences step
+            __instance.sharedMaterials = GetObjectById<UnityEngine.Material[]>(__saveData.sharedMaterials);
+            __instance.materials = GetObjectById<UnityEngine.Material[]>(__saveData.materials);
         }
 
         public override void LoadReferences()
         {
             base.LoadReferences();
 
-            //List<Material> materials = new List<Material>();
-
-            //foreach (var assetId in __saveData.sharedMaterials)
-            //{
-            //    var id = assetId;
-
-            //    var material = AddressableDb.Singleton.GetAssetByIdOrFallback<Material>(null, ref id);
-
-            //    if (material != null)
-            //    {
-            //        materials.Add(material);
-            //    }
-            //}
-
-            //__instance.sharedMaterials = materials.ToArray();
-            //__instance.sharedMaterials = GetObjectById<UnityEngine.Material[]>(__saveData.sharedMaterials);
-            //__instance.materials = GetObjectById<UnityEngine.Material[]>(__saveData.materials);
-            __instance.sharedMaterials = GetAssetList<UnityEngine.Material>(__saveData.sharedMaterials);
-            __instance.materials = GetAssetList<UnityEngine.Material>(__saveData.materials);
             __instance.additionalVertexStreams = GetAssetById(__saveData.additionalVertexStreams, __instance.additionalVertexStreams);
             __instance.enlightenVertexStream = GetAssetById(__saveData.enlightenVertexStream, __instance.enlightenVertexStream);
+            //todo:
             //__saveData.bounds.WriteTo(__instance.bounds);
             //__saveData.localBounds.WriteTo(__instance.localBounds);
             __instance.enabled = __saveData.enabled;
@@ -104,8 +84,10 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.UnitySHs
 
     public class MeshRendererSaveData : MonoSaveDataBase
     {
-        public List<RandomId> sharedMaterials=new();
-        public List<RandomId> materials=new();
+        //public List<RandomId> sharedMaterials=new();
+        //public List<RandomId> materials=new();
+        public RandomId sharedMaterials;
+        public RandomId materials;
         public RandomId additionalVertexStreams;
         public RandomId enlightenVertexStream;
         //public DevTest.BoundsSaveData bounds = new();

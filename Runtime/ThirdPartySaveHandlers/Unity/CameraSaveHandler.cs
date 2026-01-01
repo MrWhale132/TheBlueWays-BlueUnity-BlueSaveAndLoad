@@ -27,7 +27,7 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.Unity
             __saveData.CullingMask = __instance.cullingMask;
             __saveData.OcclusionCulling = __instance.useOcclusionCulling;
             __saveData.TargetDisplay = __instance.targetDisplay;
-            __saveData.TargetTexture = AddressableDb.Singleton.GetAssetIdByAssetName(__instance.targetTexture);
+            __saveData.TargetTexture = GetObjectId(__instance.targetTexture);
             __saveData.Depth = __instance.depth;
             __saveData.Rect = __instance.rect;
         }
@@ -45,7 +45,7 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.Unity
         {
             base.LoadReferences();
 
-            __instance.targetTexture = AddressableDb.Singleton.GetAssetByIdOrFallback(__instance.targetTexture, ref __saveData.TargetTexture);
+            __instance.targetTexture = GetObjectById<RenderTexture>(__saveData.TargetTexture);
         }
 
         public override void LoadValues()

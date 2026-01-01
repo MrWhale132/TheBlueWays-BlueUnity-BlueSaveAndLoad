@@ -18,15 +18,7 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
         public TSavable __instance;
         public TSaveData __saveData;
 
-        public SaveHandlerGenericBase()
-        {
 
-        }
-
-        public SaveHandlerGenericBase(TSavable instance) : base()
-        {
-            _Init(instance);
-        }
 
         public override ObjectMetaData MetaData => __saveData._MetaData_;
         public override int Order { get => __saveData._MetaData_.Order; set => __saveData._MetaData_.Order = value; }
@@ -67,6 +59,7 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
 
             __saveData._DataGroupId_ = DataGroupId;
             __saveData._AssemblyQualifiedName_ = instance.GetType().AssemblyQualifiedName;
+            __saveData._isRootObject_ = Infra.Singleton.IsRootObject(HandledObjectId);
         }
 
 
@@ -138,10 +131,10 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
             int i = 0;
             foreach (var obj in objs)
             {
-                var material = obj;
-                if (material != null)
+                if (obj != null)
                 {
-                    var assetId = AddressableDb.Singleton.GetAssetIdByAssetName(material);
+                    var assetId = GetAssetId2(obj);
+                    //Infra.Singleton.KeepAlive(assetId, HandledObjectId);
                     ids.Add(assetId);
                 }
                 i++;
@@ -156,7 +149,7 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
             {
                 var id = ids[i];
 
-                var asset = AddressableDb.Singleton.GetAssetByIdOrFallback<T>(null, ref id);
+                var asset = GetAssetById2<T>(id,null);
 
                 if (asset != null)
                     assets[i] = asset;

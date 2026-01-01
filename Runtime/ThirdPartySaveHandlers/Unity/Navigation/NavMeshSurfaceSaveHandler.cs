@@ -58,7 +58,7 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.Unity.Navig
             
             __instance.BuildNavMesh();
 
-            Infra.Singleton.RegisterReference(__instance.navMeshData, __saveData.navMeshData);
+            Infra.Singleton.RegisterReference(__instance.navMeshData, __saveData.navMeshData, rootObject:false);
         }
         static NavMeshSurfaceSaveHandler()
         {

@@ -188,6 +188,12 @@ public class SaveHandlerAutoGenerator : ScriptableObject
 
         var staticReport = isStatic ? typeReport : typeReport.StaticReport;
 
+        if(staticReport == null)
+        {
+            return result;
+        }
+
+
         Type staticType = staticReport.ReportedType;
 
         //Debug.Log(staticReport.FieldsReport.ValidFields.Count);
@@ -303,8 +309,8 @@ public class SaveHandlerAutoGenerator : ScriptableObject
     [NonSerialized]
     public string _UnityEventSaveHandlerTemplate =
         SaveHandlerAttribute + _NewLine +
-        $"public class {GeneratedTypeName}SaveHandler{GenericParameterList} : " +
-        $"UnityEventSaveHandlerBase<{TargetTypeReference}> {GenericConstraints}" + _NewLine +
+        $"public class {GeneratedTypeName}SaveHandler : " +
+        $"UnityEventSaveHandler{GenericParameterList} {GenericConstraints}" + _NewLine +
         "{ }" +
         "";
 
@@ -321,7 +327,15 @@ public class SaveHandlerAutoGenerator : ScriptableObject
         {
             string generatedTypeName = FlattenTypeNameIfNested(typeToHandle);
             string genericConstraints = GetgenericConstraintsText(typeToHandle);
+            //string baseTypeGenericParameterList = CodeGenUtils.GetGenericParameterListText(typeToHandle.BaseType);
             string attribute = GetAttributeText(typeToHandle);
+
+            IEnumerable<string> typeArgNames = typeToHandle.BaseType.IsGenericType ?
+                typeToHandle.BaseType.GetGenericArguments().Select(arg => CodeGenUtils.ToTypeReferenceText(arg,withNameSpace:true))
+                : Enumerable.Empty<string>();
+
+            var baseTypeGenericParameterList = typeToHandle.BaseType.IsGenericType ? "<" + string.Join(", ", typeArgNames) + ">" : "";
+
 
             var namespaces = new List<string>
             {
@@ -338,8 +352,9 @@ public class SaveHandlerAutoGenerator : ScriptableObject
                 GeneratedTypeText = _UnityEventSaveHandlerTemplate
                     .Replace(SaveHandlerAttribute, attribute)
                     .Replace(GeneratedTypeName, generatedTypeName)
-                    .Replace(TargetTypeReference, CodeGenUtils.ToTypeReferenceText(typeToHandle, withNameSpace: true))
-                    .Replace(GenericParameterList, CodeGenUtils.GetGenericParameterListText(typeToHandle))
+                    //todo: cleanup
+                    //.Replace(TargetTypeReference, CodeGenUtils.ToTypeReferenceText(typeToHandle, withNameSpace: true))
+                    .Replace(GenericParameterList, baseTypeGenericParameterList)
                     .Replace(GenericConstraints, genericConstraints)
                     ,
             };
@@ -398,18 +413,34 @@ public class SaveHandlerAutoGenerator : ScriptableObject
         {
             string dataGroupId = typeToHandle.Name;
 
+            var additionalParamList = new List<string>();
+
 
             string generationModeEnumText;
 
             if (session.TypeGenerationSettingsRegistry.HasSettingsForHandledType(typeReport.ReportedType, isStatic: false, out var settings))
             {
                 generationModeEnumText = nameof(SaveHandlerGenerationMode) + "." + nameof(SaveHandlerGenerationMode.Configured);
+
+                if(settings.HasAttributeGenerationSettings(out var attributeSettings))
+                {
+                    if (attributeSettings.loadOrder.HasValue)
+                    {
+                        string loadOrderText = $"order: {attributeSettings.loadOrder}";
+                        additionalParamList.Add(loadOrderText);
+                    }
+                }
             }
             else
             {
                 generationModeEnumText = nameof(SaveHandlerGenerationMode) + "." + nameof(SaveHandlerGenerationMode.FullAutomata);
             }
 
+
+            string additionalParamListTest = "";
+
+            if (additionalParamList.Count > 0)
+                additionalParamListTest = ", " + string.Join(", ", additionalParamList);
 
 
             string id = GetOrCreateSaveHandlerId(typeToHandle, isStatic: false);
@@ -420,7 +451,7 @@ public class SaveHandlerAutoGenerator : ScriptableObject
                 .Replace(DataGroupId, dataGroupId)
                 .Replace(HandledType, CodeGenUtils.ToTypeDefinitionText(typeToHandle, withNameSpace: true))
                 .Replace(GenerationMode, generationModeEnumText)
-                .Replace(AdditionalParamList, "")
+                .Replace(AdditionalParamList, additionalParamListTest)
                 ;
 
             return attribute;
@@ -506,6 +537,8 @@ public class SaveHandlerAutoGenerator : ScriptableObject
 
             string fieldName = memberInfo.Name;
 
+            bool isField = memberInfo is FieldInfo;
+
             var typeReference = CodeGenUtils.ToTypeReferenceText(type, withNameSpace: true);
 
 
@@ -524,9 +557,12 @@ public class SaveHandlerAutoGenerator : ScriptableObject
                 {
                     saveDataField = $"public {CodeGenUtils.ToTypeReferenceText(customSaveDataType, withNameSpace: true)} {fieldName} = new();";
 
-                    writeData = $"{saveDataAccessor}{fieldName}.{nameof(CustomSaveData<int>.ReadFrom)}({instanceAccessor}{fieldName});";
+                    string readModifier = isField ? "in " : "";
+                    string writeModifier = isField ? "ref " : "";
 
-                    readData = $"{saveDataAccessor}{fieldName}.{nameof(CustomSaveData<int>.WriteTo)}({instanceAccessor}{fieldName});";
+                    writeData = $"{saveDataAccessor}{fieldName}.{nameof(CustomSaveData<int>.ReadFrom)}({readModifier}{instanceAccessor}{fieldName});";
+
+                    readData = $"{saveDataAccessor}{fieldName}.{nameof(CustomSaveData<int>.WriteTo)}({writeModifier}{instanceAccessor}{fieldName});";
 
                     //additionalNameSpaces.Add(customSaveDataType.Namespace);
                 }
@@ -550,12 +586,12 @@ public class SaveHandlerAutoGenerator : ScriptableObject
             {
                 saveDataField = $"public RandomId {fieldName};";
 
-                if (IsAsset(type))
-                {
-                    writeData = $"{saveDataAccessor}{fieldName} = {nameof(SaveHandlerBase.GetAssetId)}({instanceAccessor}{fieldName});";
-                    readData = $"{instanceAccessor}{fieldName} = {nameof(SaveHandlerBase.GetAssetById)}({saveDataAccessor}{fieldName}, {instanceAccessor}{fieldName});";
-                }
-                else
+                //if (IsAsset(type))
+                //{
+                //    writeData = $"{saveDataAccessor}{fieldName} = {nameof(SaveHandlerBase.GetAssetId)}({instanceAccessor}{fieldName});";
+                //    readData = $"{instanceAccessor}{fieldName} = {nameof(SaveHandlerBase.GetAssetById)}({saveDataAccessor}{fieldName}, {instanceAccessor}{fieldName});";
+                //}
+                //else
                 {
                     writeData = $"{saveDataAccessor}{fieldName} = {nameof(SaveHandlerBase.GetObjectId)}({instanceAccessor}{fieldName});";
                     readData = $"{instanceAccessor}{fieldName} = {nameof(SaveHandlerBase.GetObjectById)}<{typeReference}>({saveDataAccessor}{fieldName});";
@@ -841,11 +877,6 @@ public class SaveHandlerAutoGenerator : ScriptableObject
         additionalNameSpaces = additionalNameSpaces.Where(ns => ns != null).Distinct()
             .Select(ns => $"using {ns};").ToList();
 
-
-        string fileNameSpace = typeToHandle.Namespace ?? "Assets._Project.Scripts.SaveAndLoad.SaveHandlers.DevTest";
-
-        //remove fater testing
-        fileNameSpace = "DevTest";
 
 
         IEnumerable<string> csFiles = csFileTemplates.Select(template =>

@@ -1,6 +1,6 @@
 {
     "name": "SaveAndLoad.Editor",
-    "rootNamespace": "",
+    "rootNamespace": "Theblueway.SaveAndLoad.Editor",
     "references": [
         "GUID:6fde86d971e9f584ca799004c9e38439",
         "GUID:11f9f0384cd82b14ea5d004a22a3f210",

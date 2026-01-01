@@ -14,14 +14,15 @@ namespace Assets._Project.Scripts.SaveHandlers.Manuals.InputActionSH
     [SaveHandler(6787213423445435, nameof(InputActionMap), typeof(InputActionMap), order: -99, dependsOn: new[] { typeof(InputActionAsset) })]
     public class InputActionMapSaveHandler : UnmanagedSaveHandler<InputActionMap, InputActionMapSaveData>
     {
-        public override void Init(object instance)
+        public override void WriteSaveData()
         {
-            base.Init(instance);
-
-
+            base.WriteSaveData();
+            
             __saveData.asset = GetObjectId(__instance.asset);
             __saveData.name = __instance.name;
+            __saveData.enabled = __instance.enabled;
         }
+
 
         public override void _AssignInstance()
         {
@@ -54,20 +55,23 @@ namespace Assets._Project.Scripts.SaveHandlers.Manuals.InputActionSH
             //}
         }
 
-        //public override void CreateObject()
-        //{
-        //    var inputAsset = AddressableDb.Singleton.GetAssetByIdOrFallback<InputActionAsset>(null, ref __saveData.InputAssetId);
 
-        //    __instance = inputAsset.FindActionMap(__saveData.InputActionMapGuid);
+        public override void LoadReferences()
+        {
+            base.LoadReferences();
 
-        //    HandledObjectId = __saveData._ObjectId_;
-
-        //    Infra.Singleton.RegisterReference(__instance, HandledObjectId);
-        //}
+            if (__saveData.enabled)
+            {
+                __instance.Enable();
+            }
+            else __instance.Disable();
+        }
     }
+
     public class InputActionMapSaveData : SaveDataBase
     {
         public RandomId asset;
         public string name;
+        public bool enabled;
     }
 }

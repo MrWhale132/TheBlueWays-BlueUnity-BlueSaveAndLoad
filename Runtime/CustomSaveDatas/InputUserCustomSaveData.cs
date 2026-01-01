@@ -11,9 +11,14 @@ namespace Packages.com.theblueway.saveandload.Runtime.CustomSaveDatas
         public string controlScheme;
         public RandomId actions;
         public List<RandomId> pairedDevices = new();
+        public bool valid;
 
         public override void ReadFrom(in UnityEngine.InputSystem.Users.InputUser instance)
         {
+            valid = instance.valid;
+            if(!valid)
+                return;
+
             if (instance.controlScheme != null)
                 controlScheme = instance.controlScheme.Value.name;
 
@@ -28,6 +33,12 @@ namespace Packages.com.theblueway.saveandload.Runtime.CustomSaveDatas
         }
         public override void WriteTo(ref UnityEngine.InputSystem.Users.InputUser instance)
         {
+            if(!valid)
+            {
+                instance = default;
+                return;
+            }
+
             foreach (var deviceId in pairedDevices)
             {
                 var device = GetObjectById<UnityEngine.InputSystem.InputDevice>(deviceId);

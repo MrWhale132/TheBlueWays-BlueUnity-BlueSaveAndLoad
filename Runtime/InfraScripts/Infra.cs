@@ -7,14 +7,16 @@ using Assets._Project.Scripts.UtilScripts.CodeGen;
 using Assets._Project.Scripts.UtilScripts.Extensions;
 using Assets._Project.Scripts.UtilScripts.Misc;
 using Newtonsoft.Json;
+using Packages.com.blueutils.core.Runtime.Misc;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using Theblueway.SaveAndLoad.Packages.com.theblueway.saveandload.Runtime.InfraScripts;
-using UnityEditor;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
 
@@ -29,7 +31,6 @@ namespace Assets._Project.Scripts.Infrastructure
         public static SceneManagement SceneManagement { get; set; } = new();
 
         public RandomId GlobalReferencing => __staticSubtituteIdsByType[typeof(Infra)];
-
 
 
         public HashSet<RandomId> __rootObjectIds;
@@ -53,7 +54,7 @@ namespace Assets._Project.Scripts.Infrastructure
                 Destroy(gameObject);
                 return;
             }
-            
+
             Singleton = this;
             DontDestroyOnLoad(gameObject);
 
@@ -81,17 +82,59 @@ namespace Assets._Project.Scripts.Infrastructure
         }
 
 
+
+        public void RemoveUnreferencedObjects()
+        {
+            var unreferenced = GetUnreferencedObjects();
+
+            foreach (var id in unreferenced)
+            {
+                Unregister(id);
+            }
+        }
+
+
+        public HashSet<RandomId> GetUnreferencedObjects()
+        {
+            var referenced = GetReferencedObjects();
+
+            HashSet<RandomId> allRegisteredObjects = GetAllObjectIds();
+
+            //todo: cleanup
+            //HashSet<RandomId> allRegisteredObjects = new();
+
+            //foreach ((var referencing, var references) in __objectReferences)
+            //{
+            //    allRegisteredObjects.Add(referencing);
+            //    allRegisteredObjects.AddRange(references);
+            //}
+
+            var unreferenced = new HashSet<RandomId>(allRegisteredObjects.Except(referenced));
+
+            return unreferenced;
+        }
+
+
         public HashSet<RandomId> GetReferencedObjects()
         {
             return _GetReachableObjects(__objectReferences, __rootObjectIds);
         }
 
 
+        [HideInInspector]
+        public int d_counter;
+
         //depth first search algorithm
         public HashSet<RandomId> _GetReachableObjects(
                         Dictionary<RandomId, List<RandomId>> objectReferences,
                         IEnumerable<RandomId> rootIds)
         {
+            var json = JsonConvert.SerializeObject(objectReferences);
+            System.IO.File.WriteAllText($"C://temp/objectReferences_{d_counter}.json", json);
+            json = JsonConvert.SerializeObject(rootIds);
+            System.IO.File.WriteAllText($"C://temp/rootIds_{d_counter}.json", json);
+            d_counter++;
+
             var reachable = new HashSet<RandomId>();
             var stack = new Stack<RandomId>(rootIds);
 
@@ -142,6 +185,11 @@ namespace Assets._Project.Scripts.Infrastructure
 
 
 
+        public bool IsRootObject(RandomId id)
+        {
+            return __rootObjectIds.Contains(id);
+        }
+
 
 
 
@@ -186,7 +234,7 @@ namespace Assets._Project.Scripts.Infrastructure
                 else
                     Debug.LogError($"Infra: Object reference is already registered with a different id. " +
                         $"Requested id: {key} " +
-                        $"Found id: {__objectIds[reference]}");
+                        $"Found id: {__objectIds[reference]}", reference as UnityEngine.Object);
 
                 return;
             }
@@ -206,7 +254,6 @@ namespace Assets._Project.Scripts.Infrastructure
             {
                 return null;
             }
-
 
             if (__globalReferenceCache.TryGetValue(key, out var reference))
             {
@@ -241,112 +288,6 @@ namespace Assets._Project.Scripts.Infrastructure
 
 
 
-
-
-
-        //public RandomId GetObjectId(Component obj, RandomId referencedBy, bool setLoadingOrder = false)
-        //{
-        //    if (obj == null) return RandomId.Default;
-
-
-        //    if (referencedBy.IsDefault)
-        //    {
-        //        Debug.LogError($"An object can not be referenced by a DefaultId.");
-        //    }
-
-
-        //    var objectId = _GetObjectIdWithoutReferencing(obj, autoRegister: false);
-
-        //    if (!objectId.IsDefault)
-        //    {
-        //        _AddToReferenceGraph(objectId, referencedBy);
-
-        //        if (setLoadingOrder)
-        //        {
-        //            _SetLoadingOrder(objectId, referencedBy);
-        //        }
-
-        //        return objectId;
-        //    }
-
-
-        //    bool isProbablyPrefab = obj.gameObject.IsProbablyPrefabAsset();
-
-        //    if (isProbablyPrefab && !IsRegistered(obj.gameObject))
-        //    {
-        //        _RegisterPrefab(obj.gameObject);
-        //    }
-
-        //    objectId = Register(obj, rootObject: true, createSaveHandler: !isProbablyPrefab);
-        //    return objectId;
-        //}
-
-
-        //public RandomId GetObjectId(GameObject obj, RandomId referencedBy, bool setLoadingOrder = false)
-        //{
-        //    if (obj == null) return RandomId.Default;
-
-
-        //    if (referencedBy.IsDefault)
-        //    {
-        //        Debug.LogError($"An object can not be referenced by a DefaultId.");
-        //    }
-
-
-        //    var objectId = _GetObjectIdWithoutReferencing(obj, autoRegister: false);
-
-        //    if (!objectId.IsDefault)
-        //    {
-        //        _AddToReferenceGraph(objectId, referencedBy);
-
-        //        if (setLoadingOrder)
-        //        {
-        //            _SetLoadingOrder(objectId, referencedBy);
-        //        }
-
-        //        return objectId;
-        //    }
-
-
-        //    if (obj.IsProbablyPrefabAsset())
-        //    {
-        //        return _RegisterPrefab(obj);
-        //    }
-        //    else
-        //    {
-        //        objectId = Register(obj, rootObject: true, createSaveHandler: true);
-        //        return objectId;
-        //    }
-        //}
-
-
-        //public RandomId _RegisterPrefab(GameObject obj)
-        //{
-        //    //Debug.Log("register prefab "+obj.name);
-        //    if (obj.transform.parent != null)
-        //    {
-        //        Debug.LogError($"Only the root of a prefab can be registered. " +
-        //            "This error most likely indicates that has reference to a child object of a prefab template. " +
-        //            $"Child object path: {obj.transform.root.gameObject.HierarchyPath()} ");
-        //        return RandomId.Default;
-        //    }
-
-
-        //    var objectId = AddressableDb.Singleton.GetAssetIdByAssetName(obj);
-
-        //    if (objectId.IsDefault) return objectId;
-
-
-        //    RegisterReference(obj, objectId, rootObject: true);
-
-
-        //    _CreateSaveHandler(obj);
-
-        //    //Debug.LogWarning("registered prefab " + obj.name +" with "+ objectId);
-        //    return objectId;
-        //}
-
-
         public RandomId GetObjectId(object obj, RandomId referencedBy, bool setLoadingOrder = false)
         {
             if (referencedBy.IsDefault)
@@ -355,6 +296,9 @@ namespace Assets._Project.Scripts.Infrastructure
             }
 
             var objectId = _GetObjectIdWithoutReferencing(obj, autoRegister: true);
+
+            if (objectId.IsDefault) return objectId;
+
 
             _AddToReferenceGraph(objectId, referencedBy);
 
@@ -415,20 +359,37 @@ namespace Assets._Project.Scripts.Infrastructure
             if (__objectIds.ContainsKey(obj))
             {
                 var id = __objectIds[obj];
+
+                if (context != null)
+                {
+                    Debug.LogError($"An object with id {id} is already registered but a non-null init context is supplied. The context will be ignored.", obj as UnityEngine.Object);
+                }
                 //Debug.LogWarning($"Infra: object with id {id} is already registered. Skipping registration.");
                 //todo: check if it has savehandler, it should if it is already enlisted. Except if multiple caller want to register this obj and they supply different value for createSaveHandler
-                //if (rootObject)
-                //{
-                //    if (!__rootObjectIds.Contains(id))
-                //    {
-                //        Debug.LogError("an object is already registered but it was not requested to be a root object that time.");
-                //    }
-                //}
+                if (rootObject)
+                {
+                    if (!__rootObjectIds.Contains(id))
+                    {
+                        Debug.LogError($"an object with id {id} is already registered but it was not requested to be a root object that time.");
+                    }
+                }
                 return id;
             }
 
 
             RandomId objId = RandomId.Get();
+
+            //todo: let the handlers decide if the object is rootobject and provide a Set api, for example, PromoteToRootObject
+            if (obj is GameObject or Component or ScriptableObject)
+            {
+                rootObject = true;
+            }
+
+            //if (obj is GameObject go2 && go2.name == "BackgroundMusic")
+            //{
+            //    Debug.Log("here "+objId, go2);
+            //}
+
 
             __objectIds.Add(obj, objId);
             __globalReferenceCache.Add(objId, obj);
@@ -437,12 +398,19 @@ namespace Assets._Project.Scripts.Infrastructure
             {
                 __rootObjectIds.Add(objId);
             }
-
+            else if (obj is GameObject go)
+            {
+                Debug.LogWarning($"non-root GameObject registered: {go.HierarchyPath()} (id: {objId})");
+            }
+            else if (obj is Component component)
+            {
+                Debug.LogWarning($"non-root Component registered: {component.name}, {component.gameObject.HierarchyPath()} (id: {objId})");
+            }
 
 
             if (createSaveHandler)
             {
-                _CreateSaveHandler(obj,context);
+                _CreateSaveHandler(obj, context);
             }
 
 
@@ -456,7 +424,7 @@ namespace Assets._Project.Scripts.Infrastructure
             var handler = SaveAndLoadManager.Singleton.GetSaveHandlerFor(obj);
             if (handler != null)
             {
-                handler.Init(obj,context);
+                handler.Init(obj, context);
                 SaveAndLoadManager.Singleton.AddSaveHandler(handler);
             }
             else
@@ -472,21 +440,53 @@ namespace Assets._Project.Scripts.Infrastructure
 
 
 
+        public void Unregister(RandomId id)
+        {
+            if (__globalReferenceCache.TryGetValue(id, out var obj))
+            {
+                Unregister(obj);
+            }
+        }
+
         public void Unregister(object obj)
         {
             if (!__objectIds.TryGetValue(obj, out var id))
             {
-                Debug.LogWarning($"Infra: object is not registered. Skipping unregistration.");
+                //Debug.LogWarning($"Infra: object is not registered. Skipping unregistration.");
                 return;
             }
 
 
             SaveAndLoadManager.Singleton.RemoveSaveHandler(id);
 
+            SaveAndLoadManager.PrefabDescriptionRegistry.RemoveIfPartOfPrefab(id);
+            SaveAndLoadManager.ScenePlacedObjectRegistry.RemoveIfScenePlaced(id);
+
 
             if (__rootObjectIds.Contains(id))
             {
                 __rootObjectIds.Remove(id);
+            }
+
+            if (__delegateMapPerInstance.ContainsKey(id))
+            {
+                __delegateMapPerInstance.Remove(id);
+            }
+
+            if(__routinesByTargetMono.ContainsKey(id))
+            {
+                var routines = __routinesByTargetMono[id];
+
+                foreach(var routine in routines)
+                {
+                    var routineHandler = __coroutineSaveDataLookUp[routine];
+
+                    Unregister(routineHandler._routineState);
+
+                    __coroutineSaveDataLookUp.Remove(routine);
+                }
+
+                __routinesByTargetMono.Remove(id);
             }
 
             __objectIds.Remove(obj);
@@ -500,6 +500,14 @@ namespace Assets._Project.Scripts.Infrastructure
             if (obj == null) return false;
 
             return __objectIds.ContainsKey(obj);
+        }
+
+
+
+
+        public HashSet<RandomId> GetAllObjectIds()
+        {
+            return __globalReferenceCache.Keys.ToHashSet();
         }
 
 
@@ -866,6 +874,29 @@ namespace Assets._Project.Scripts.Infrastructure
 
         public DelegateSaveInfo GetDelegateSaveInfo(MethodInfo Method, object Target)
         {
+            if (Target != null && Target.GetType().IsDefined(typeof(CompilerGeneratedAttribute)))
+            {
+                //Debug.LogError($"Can not get delegate save info for compiler generated types. Method: {Method.Name}, Target Type: {Target.GetType().CleanAssemblyQualifiedName()} . " +
+                //    $"Please ensure you are not trying to save delegates that point to anonymous methods or lambda expressions. " +
+                //    $"Going to return null.");
+                return null;
+            }
+
+            if (Method != null && Method.IsDefined(typeof(CompilerGeneratedAttribute)))
+            {
+
+            }
+
+            if (Method != null && Method.Name.Contains("vas_preWillRenderCanvase"))
+            {
+                Debug.Log("prewill");
+                if (Method.IsDefined(typeof(CompilerGeneratedAttribute)))
+                {
+                    Debug.Log("hey");
+                }
+            }
+
+
             bool isStatic = Target == null;
 
             RandomId targetId = isStatic ?
@@ -1254,14 +1285,14 @@ namespace Assets._Project.Scripts.Infrastructure
         private void OnSceneLoaded(Scene scene, LoadSceneMode loadSceneMode)
         {
             var id = RandomId.Get();
-            
+
             var info = new SceneInfo
             {
                 buildIndex = scene.buildIndex,
                 sceneHandle = scene.handle,
                 InstanceId = id,
             };
-
+            
             _loadedSceneInfos.Add(info);
             _byHandle.Add(scene.handle, info);
             _byInstanceId.Add(id, info);
@@ -1272,7 +1303,7 @@ namespace Assets._Project.Scripts.Infrastructure
         private void OnSceneUnloaded(Scene scene)
         {
             if (_firstUnload) { _firstUnload = false; return; }
-
+            
             var info = _byHandle[scene.handle];
             _loadedSceneInfos.Remove(info);
             _byHandle.Remove(scene.handle);
@@ -1291,15 +1322,22 @@ namespace Assets._Project.Scripts.Infrastructure
 
                 if (!_byInstanceId.ContainsKey(oldSceneIdFromSaveFile))
                 {
-                    SceneManager.sceneLoaded += OverrideGeneratedIdWithIdFromSaveFile;
+                    UnityAction<Scene, LoadSceneMode> onSceneLoaded = null;
+                    onSceneLoaded = OverrideGeneratedIdWithIdFromSaveFile;
+
+                    SceneManager.sceneLoaded += onSceneLoaded;
                     var op = SceneManager.LoadSceneAsync(sceneInfo.buildIndex, LoadSceneMode.Additive);
-                    
-                    op.completed += _ => SceneManager.sceneLoaded -= OverrideGeneratedIdWithIdFromSaveFile;
+
 
                     tasks.Add(op);
 
                     void OverrideGeneratedIdWithIdFromSaveFile(Scene scene, LoadSceneMode loadSceneMode)
                     {
+                        //Debug.Log($"Overriding generated scene id with id from save file: {oldSceneIdFromSaveFile} for scene {scene.handle}, {scene.name}, {sceneInfo.buildIndex}.");
+
+                        bool notTheExptected = scene.buildIndex != sceneInfo.buildIndex;
+                        if (notTheExptected) return;
+
                         var info = _byHandle[scene.handle];
                         var generatedId = info.InstanceId;
                         info.InstanceId = oldSceneIdFromSaveFile;
@@ -1307,11 +1345,13 @@ namespace Assets._Project.Scripts.Infrastructure
                         _byInstanceId.Add(oldSceneIdFromSaveFile, info);
                         _scenesByInstanceId.Remove(generatedId);
                         _scenesByInstanceId.Add(oldSceneIdFromSaveFile, scene);
+
+                        SceneManager.sceneLoaded -= onSceneLoaded;
                     }
                 }
             }
 
-            while(tasks.Any(t => !t.isDone)) 
+            while (tasks.Any(t => !t.isDone))
             {
                 yield return null;
             }
@@ -1336,30 +1376,37 @@ namespace Assets._Project.Scripts.Infrastructure
             public override void WriteSaveData()
             {
                 base.WriteSaveData();
-                
                 __saveData._loadedSceneInfos = GetObjectId(__instance._loadedSceneInfos, setLoadingOrder: true);
                 Scene activeScene = SceneManager.GetActiveScene();
                 __saveData.ActiveSceneInstanceIdFromSaveFile = Infra.SceneManagement.SceneIdByHandle(activeScene.handle);
             }
 
 
+            //todo: this wont work with streaming data
             public override void CreateObject()
             {
                 if (Infra.SceneManagement != null)
                 {
                     Infra.Singleton.Unregister(Infra.SceneManagement);
-                    Infra.SceneManagement = null;
+                    //Infra.SceneManagement = null;
                 }
 
                 base.CreateObject();
 
-                Infra.SceneManagement = __instance;
+                //Infra.SceneManagement = __instance;
             }
+
+            public override void _AssignInstance()
+            {
+                __instance = Infra.SceneManagement;
+            }
+
 
 
             public override void LoadReferences()
             {
                 base.LoadReferences();
+                ///note: you see <see cref="__saveData._loadedSceneInfos"/> removed as unreferenced beacuse of this line. It's not assigned back to its field.
                 __instance._savedSceneInfos = GetObjectById<List<SceneInfo>>(__saveData._loadedSceneInfos);
                 __instance._activeSceneInstanceIdFromSaveFile = __saveData.ActiveSceneInstanceIdFromSaveFile;
             }
@@ -1400,7 +1447,7 @@ namespace Assets._Project.Scripts.Infrastructure
 
     public class StaticInfraSubtitute : StaticSubtitute<Infra> { }
 
-    [SaveHandler(83297439587234832, nameof(StaticInfraSubtitute), typeof(StaticInfraSubtitute), isStatic: true, staticHandlerOf:typeof(Infra))]
+    [SaveHandler(83297439587234832, nameof(StaticInfraSubtitute), typeof(StaticInfraSubtitute), isStatic: true, staticHandlerOf: typeof(Infra))]
     public class StaticInfraSaveHandler : StaticSaveHandlerBase<StaticInfraSubtitute, StaticInfraSaveData>
     {
 

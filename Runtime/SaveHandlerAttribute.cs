@@ -11,6 +11,7 @@ namespace Assets._Project.Scripts.SaveAndLoad
         FullAutomata,
     }
 
+    [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
     public class SaveHandlerAttribute: System.Attribute
     {
         //These param names hardcoded in the codegen logic
@@ -37,6 +38,10 @@ namespace Assets._Project.Scripts.SaveAndLoad
         public long Id { get; private set; }
         public string DataGroupName { get;private set; }
         public Type HandledType { get; private set; }
+        public void SetHandledType(Type type)
+        {
+            HandledType = type;
+        }
         public Type HandlerType { get; set; }
         public bool _IsStatic;
         public bool IsStatic => _IsStatic || StaticHandlerOf != null;
@@ -45,6 +50,6 @@ namespace Assets._Project.Scripts.SaveAndLoad
         public int Order { get; }
         public Type[] LoadDependencies { get; }
         public Type StaticHandlerOf { get; }
-        public bool RequiresManualAttributeCreation { get; init; }
+        public bool RequiresManualAttributeCreation { get; set; }
     }
 }

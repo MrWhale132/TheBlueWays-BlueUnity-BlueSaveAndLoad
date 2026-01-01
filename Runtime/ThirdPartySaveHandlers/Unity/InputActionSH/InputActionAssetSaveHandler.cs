@@ -13,8 +13,16 @@ namespace Assets._Project.Scripts.SaveHandlers.Manuals.InputActionSH
             base.Init(instance, context);
 
             var isClone = InputSystem.actions != __instance;
-
+            
             __saveData.isClone = isClone;
+        }
+
+        public override void WriteSaveData()
+        {
+            base.WriteSaveData();
+
+            __saveData.enabled = __instance.enabled;
+            __saveData.name = __instance.name;
         }
 
         public override void _AssignInstance()
@@ -29,10 +37,24 @@ namespace Assets._Project.Scripts.SaveHandlers.Manuals.InputActionSH
                 __instance = InputSystem.actions;
             }
         }
+
+
+        public override void LoadReferences()
+        {
+            base.LoadReferences();
+
+            if (__saveData.enabled)
+            {
+                __instance.Enable();
+            }
+            else __instance.Disable();
+        }
     }
 
     public class InputActionAssetSaveData : SaveDataBase
     {
         public bool isClone;
+        public string name;
+        public bool enabled;
     }
 }

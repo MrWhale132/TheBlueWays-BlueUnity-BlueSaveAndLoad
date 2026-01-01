@@ -5,6 +5,11 @@ using UnityEngine;
 
 namespace Packages.com.theblueway.saveandload.Editor.SaveAndLoad
 {
+    public class SaveHandlerAttributeGenerationSettings
+    {
+        public int? loadOrder;
+    }
+
     public class SaveHandlerTypeGenerationSettings
     {
 
@@ -12,6 +17,8 @@ namespace Packages.com.theblueway.saveandload.Editor.SaveAndLoad
 
         public Dictionary<MemberKey, MemberInclusionMode> _memberInclusionMode = new();
         public Dictionary<MemberKey, string> _memberDirective = new();
+        public SaveHandlerAttributeGenerationSettings _attributeGenerationSettings;
+
 
         public SaveHandlerTypeGenerationSettings(List<SaveHandlerTypeGenerationConfig> typeGenerationConfigs = null)
         {
@@ -58,19 +65,54 @@ namespace Packages.com.theblueway.saveandload.Editor.SaveAndLoad
         }
 
 
+        public bool HasAttributeGenerationSettings(out SaveHandlerAttributeGenerationSettings settings)
+        {
+            if (_attributeGenerationSettings != null)
+            {
+                settings = _attributeGenerationSettings;
+                return true;
+            }
+            settings = null;
+            return false;
+        }
+
+
         public bool IsValid(bool logErrorMessages = false)
         {
             bool isValid = true;
 
             if (_configs != null)
             {
+                var attributeSettings = new SaveHandlerAttributeGenerationSettings();
+                bool hasAttributeSettings = false;
+
+
                 foreach (var typeConfig in _configs)
                 {
+                    if(typeConfig._loadOrder != 0)
+                    {
+                        if (attributeSettings.loadOrder.HasValue)
+                        {
+                            if(attributeSettings.loadOrder.Value != typeConfig._loadOrder)
+                            {
+                                isValid = false;
+                                if (logErrorMessages)
+                                    Debug.LogError($"SaveHandlerTypeGenerationSettings: Conflicting load orders for type '{typeConfig.handlerIdOfConfiguredType}': '{attributeSettings.loadOrder.Value}' vs '{typeConfig._loadOrder}'.", typeConfig.logContext);
+                            }
+                        }
+                        else
+                        {
+                            hasAttributeSettings = true;
+                            attributeSettings.loadOrder = typeConfig._loadOrder;
+                        }
+                    }
+
+                    
                     foreach (var memberConfig in typeConfig.memberConfigs)
                     {
                         MemberKey key;
 
-                        if(memberConfig.methodId != 0)
+                        if (memberConfig.methodId != 0)
                         {
                             key = MemberKey.From(memberConfig.methodId.ToString());
                         }
@@ -95,7 +137,6 @@ namespace Packages.com.theblueway.saveandload.Editor.SaveAndLoad
                         }
 
 
-
                         if (_memberDirective.TryGetValue(key, out var existingDirective))
                         {
                             _memberDirective[key] = existingDirective + " || " + memberConfig.directive;
@@ -106,6 +147,9 @@ namespace Packages.com.theblueway.saveandload.Editor.SaveAndLoad
                         }
                     }
                 }
+
+                if (hasAttributeSettings)
+                    _attributeGenerationSettings = attributeSettings;
             }
 
             return isValid;

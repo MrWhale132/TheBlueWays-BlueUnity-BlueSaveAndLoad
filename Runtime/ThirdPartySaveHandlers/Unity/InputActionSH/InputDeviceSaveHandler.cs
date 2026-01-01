@@ -31,14 +31,7 @@ namespace Theblueway.Saveandload.Runtime.ThirdPartySaveHandlers.Unity.InputActio
         {
             Type handledType = System.Type.GetType("UnityEngine.InputSystem.FastKeyboard, Unity.InputSystem");
 
-            var attr = typeof(FastKeyboardSaveHandler).GetCustomAttribute<SaveHandlerAttribute>();
-
-            var manual = new SaveHandlerAttribute(attr.Id, attr.DataGroupName, handledType)
-            {
-                RequiresManualAttributeCreation = false
-            };
-
-            return manual;
+            return SaveHandlerBase.ManualSaveHandlerAttributeCreation(handledType, typeof(FastKeyboardSaveHandler));
         }
     }
 

@@ -13,18 +13,19 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.UnitySHs
 	{
 		public override void WriteSaveData()
 		{
-			if (IsProbablyUnmodifiedCopyOfOriginalAsset) return;
+			if (IsDefensiveCopyOfOriginal) return;
 			base.WriteSaveData();
 			__saveData.indexFormat = __instance.indexFormat;
 			__saveData.vertexBufferTarget = __instance.vertexBufferTarget;
 			__saveData.indexBufferTarget = __instance.indexBufferTarget;
 			__saveData.bindposes = GetObjectId(__instance.bindposes, setLoadingOrder:true);
 			__saveData.subMeshCount = __instance.subMeshCount;
+			__saveData.name = __instance.name;
 		}
 
 		public override void LoadReferences()
 		{
-			if (IsProbablyUnmodifiedCopyOfOriginalAsset) return;
+			if (IsDefensiveCopyOfOriginal) return;
 			base.LoadReferences();
 			__instance.indexFormat = __saveData.indexFormat;
 			__instance.vertexBufferTarget = __saveData.vertexBufferTarget;
@@ -427,5 +428,6 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.UnitySHs
 		public UnityEngine.GraphicsBuffer.Target indexBufferTarget;
 		public RandomId bindposes;
 		public System.Int32 subMeshCount;
+		public string name;
 	}
 }

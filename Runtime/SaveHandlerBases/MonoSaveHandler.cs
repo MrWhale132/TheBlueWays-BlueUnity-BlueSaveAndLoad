@@ -38,7 +38,7 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
             {
                 _AssignInstance();
 
-                Infra.Singleton.RegisterReference(__instance, __saveData._ObjectId_);
+                Infra.Singleton.RegisterReference(__instance, __saveData._ObjectId_, rootObject: __saveData._isRootObject_);
             }
 
 

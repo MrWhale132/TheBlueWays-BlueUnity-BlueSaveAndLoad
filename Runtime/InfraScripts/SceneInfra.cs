@@ -51,14 +51,25 @@ namespace Theblueway.SaveAndLoad.Packages.com.theblueway.saveandload.Runtime.Inf
         {
             if (!Application.isPlaying) return;
 
+            if (Infra.Singleton == null) return;
+
             ScenePlacedGOInfras = scenePlacedGOInfras_EditorView.ToHashSet();
+
+
+            //this is done by SceneInfra because not every gameobject is active at start, so GOInfra Awake may not be called
+            foreach(var infra in ScenePlacedGOInfras)
+            {
+                GOInfra.AddToAllInfras(infra);
+            }
         }
 
 
         private void Start()
         {
             if (!Application.isPlaying) return;
-            
+
+            if (Infra.Singleton == null) return;
+
             if (IsObjectLoading)
             {
                 Infra.SceneManagement.SceneInfrasBySceneHandle.Add(gameObject.scene.handle, this);
@@ -76,6 +87,9 @@ namespace Theblueway.SaveAndLoad.Packages.com.theblueway.saveandload.Runtime.Inf
                         "You might forgot to refresh the list after you removed GOInfra components from the scene.");
                     continue;
                 }
+
+                infra.ApplyAssetNameAliases();
+
                 if (infra.DescribeSceneObject(out var result))
                 {
                     results.Add(result);
@@ -89,6 +103,8 @@ namespace Theblueway.SaveAndLoad.Packages.com.theblueway.saveandload.Runtime.Inf
         private void OnDestroy()
         {
             if (!Application.isPlaying) return;
+
+            if (Infra.Singleton == null) return;
 
             Infra.SceneManagement.SceneInfrasBySceneHandle.Remove(gameObject.scene.handle);
         }

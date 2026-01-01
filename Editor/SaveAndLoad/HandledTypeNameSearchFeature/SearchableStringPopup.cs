@@ -42,7 +42,7 @@ namespace Packages.com.theblueway.saveandload.Editor.SaveAndLoad.HandledTypeName
                     : allOptions
                         .Where(o => o.IndexOf(search, StringComparison.OrdinalIgnoreCase) >= 0);
             }
-
+            
             scroll = EditorGUILayout.BeginScrollView(scroll);
 
             foreach (var option in filteredOptions)

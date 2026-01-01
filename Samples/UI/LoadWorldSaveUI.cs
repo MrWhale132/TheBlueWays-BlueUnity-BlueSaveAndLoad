@@ -2,6 +2,8 @@ using Assets._Project.Scripts.SaveAndLoad;
 using Assets._Project.Scripts.UI.MainMenuUI;
 using Assets._Project.Scripts.UtilScripts;
 using Eflatun.SceneReference;
+using Packages.com.theblueway.saveandload.Samples;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -42,31 +44,31 @@ public class LoadWorldSaveUI : MonoBehaviour
 
     protected virtual void Start()
     {
-        _createNewWorldButton.onClick.AddListener(OnCreateNewWorldButtonClick);
+        _createNewWorldButton.onClick.AddListener(MyGameManager.Singleton.StartNewWorld);
     }
 
 
-    protected virtual void OnCreateNewWorldButtonClick()
-    {
-        SceneManager.LoadSceneAsync(_tempScene.BuildIndex, LoadSceneMode.Additive).completed += (op) => UnloadMainMenu();
+    //protected virtual void OnCreateNewWorldButtonClick()
+    //{
+    //    SceneManager.LoadSceneAsync(_tempScene.BuildIndex, LoadSceneMode.Additive).completed += (op) => UnloadMainMenu();
 
 
-        void UnloadMainMenu()
-        {
-            SceneManager.UnloadSceneAsync(_mainMenuScene.BuildIndex).completed += (op) => _LoadWorld();
-        }
-    }
+    //    void UnloadMainMenu()
+    //    {
+    //        SceneManager.UnloadSceneAsync(_mainMenuScene.BuildIndex).completed += (op) => _LoadWorld();
+    //    }
+    //}
 
 
-    protected virtual void _LoadWorld()
-    {
-        SceneManager.LoadSceneAsync(_worldScene.BuildIndex, LoadSceneMode.Additive).completed += (op) => _UnLoadTempScene();
+    //protected virtual void _LoadWorld()
+    //{
+    //    SceneManager.LoadSceneAsync(_worldScene.BuildIndex, LoadSceneMode.Additive).completed += (op) => _UnLoadTempScene();
 
-        void _UnLoadTempScene()
-        {
-            SceneManager.UnloadSceneAsync(_tempScene.BuildIndex);
-        }
-    }
+    //    void _UnLoadTempScene()
+    //    {
+    //        SceneManager.UnloadSceneAsync(_tempScene.BuildIndex);
+    //    }
+    //}
 
 
 
@@ -107,7 +109,9 @@ public class LoadWorldSaveUI : MonoBehaviour
     {
         FileInfo fileInfo = __foundWorldSaves[i];
 
-
-        SaveAndLoadManager.Singleton.Load(fileInfo.FullName);
+        MyGameManager.Singleton.LoadSavedWorld(fileInfo.FullName);
+        //MySceneManager.Singleton.LoadWorld(fileInfo.FullName);
     }
+
+
 }

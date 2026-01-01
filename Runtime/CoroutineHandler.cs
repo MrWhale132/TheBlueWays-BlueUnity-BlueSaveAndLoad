@@ -22,6 +22,12 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
         public static Coroutine StartSavableCoroutine<T>(this MonoBehaviour mono, Func<T, IEnumerator> routine, T state) where T : class, new() 
         {
+            if(Infra.Singleton == null)
+            {
+                var started = mono.StartCoroutine(routine(state));
+                return started;
+            }
+
             var targetId = Infra.Singleton.GetObjectId(mono, Infra.Singleton.GlobalReferencing, setLoadingOrder:false);
             var stateId = Infra.Singleton.GetObjectId(state, targetId, setLoadingOrder:true);
             var delegateSaveInfo = Infra.Singleton.GetDelegateSaveInfo(routine);

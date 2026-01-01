@@ -69,7 +69,7 @@ namespace Packages.com.theblueway.saveandload.Editor.SaveAndLoad.HandledTypeName
             options.AddRange(instanceHandlers);
             options.AddRange(staticHandlers);
 
-
+            
             EditorGUI.BeginProperty(position, label, property);
 
             Rect fieldRect = EditorGUI.PrefixLabel(position, label);

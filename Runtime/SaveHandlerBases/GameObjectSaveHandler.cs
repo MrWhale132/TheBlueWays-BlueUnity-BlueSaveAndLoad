@@ -56,7 +56,7 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
 
             if (isPrefabAsset)
             {
-                __saveData.PrefabAssetId = AddressableDb.Singleton.GetAssetIdByAssetName(__instance);
+                __saveData.PrefabAssetId = GetAssetId2(__instance);
             }
             else if (!isPrefabAsset && ShouldRegisterComponents)
             {
@@ -65,9 +65,19 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
 
             //easier troubleshooting if this is set now so it can be used later
             __saveData.HierarchyPath = __instance.HierarchyPath();
+
+            //if (__saveData.HierarchyPath.StartsWith("Demo_Tank -"))
+            //{
+            //    //Debug.Log("Here");
+            //    MonoBehaviourLifeCycleHooks.Singleton.Hook(LifeCycleHookType.Update, Update);
+            //}
         }
 
-
+        //void Update()
+        //{
+        //    if (__instance != null)
+        //        __saveData.HierarchyPath = __instance.HierarchyPath();
+        //}
 
         public override void ReleaseObject()
         {
@@ -75,6 +85,7 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
 
             __instance = null;
             _goInfra = null;
+            //MonoBehaviourLifeCycleHooks.Singleton.Unhook(LifeCycleHookType.Update, Update);
         }
 
 
@@ -91,10 +102,15 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
             __saveData.sceneIndex = __instance.scene.buildIndex;
             __saveData.sceneHandle = __instance.scene.handle;
             __saveData.isRootInScene = __instance.transform.parent == null;
+            __saveData._initContext = _initContext;
+            __saveData._goInfra = GetObjectId(_goInfra, setLoadingOrder:true);
+
             if (!__saveData.IsPrefabAsset)
                 __saveData.sceneInstanceId = Infra.SceneManagement.SceneIdByHandle(__instance.scene.handle);
 
             _components.Clear();
+            __saveData.Components.Clear();
+
 
             __instance.GetComponents(typeof(Component), _components);
             //_components = _goInfra._cachedComponents;
@@ -114,8 +130,8 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
                     else
                         __saveData.Components.Add(RandomId.Default);
                 }
-                else if (ShouldRegisterComponents 
-                    || Infra.Singleton.IsRegistered(comp)) //todo: write a nice comment explaining this
+                else if (ShouldRegisterComponents
+                    || Infra.Singleton.IsRegistered(comp)) //todo: write a nice comment explaining this. Prefab and scene placed parts are may already registered
                 {
                     var compId = Infra.Singleton.GetObjectId(comp, HandledObjectId);
 
@@ -143,7 +159,7 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
             ComponentAddingTracker = new ComponentAddingTracker() { GameObject = __instance };
 
 
-            Infra.Singleton.RegisterReference(__instance, __saveData.GameObjectId);
+            Infra.Singleton.RegisterReference(__instance, __saveData.GameObjectId, rootObject: __saveData._isRootObject_);
 
 
             //for easier troubleshoot
@@ -157,7 +173,7 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
 
             if (__saveData.IsPrefabAsset)
             {
-                __instance = AddressableDb.Singleton.GetAssetByIdOrFallback<GameObject>(null, ref __saveData.PrefabAssetId);
+                __instance = GetAssetById2<GameObject>(__saveData.PrefabAssetId,null);
 
                 _components.Clear();
 
@@ -192,6 +208,10 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
             }
             else if (SaveAndLoadManager.ScenePlacedObjectRegistry.IsScenePlaced<GameObject>(HandledObjectId, out instance))
             {
+                if (instance == null)
+                {
+                    Debug.LogError("null");
+                }
                 __instance = instance;
             }
             else
@@ -219,6 +239,9 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
             __instance.layer = __saveData.layer;
             __instance.isStatic = __saveData.IsStatic;
             __instance.SetActive(__saveData.activeSelf);
+
+            _goInfra = GetObjectById<GOInfra>(__saveData._goInfra);
+            _initContext = __saveData. _initContext;
         }
     }
 
@@ -230,6 +253,8 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
         public bool IsPrefabAsset;
         public RandomId PrefabAssetId;
         public List<RandomId> Components = new();
+        public RandomId _goInfra;
+        public InitContext _initContext;
         public string tag;
         public int layer;
         public bool activeSelf;
@@ -265,10 +290,6 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
         {
             Type type = typeof(T);
 
-            if (typeof(T) == typeof(UnityEngine.ParticleSystem) || typeof(T) == typeof(UnityEngine.ParticleSystemRenderer))
-            {
-
-            }
             if (HasUnboundComponent<T>(out var comp))
             {
                 return comp;
