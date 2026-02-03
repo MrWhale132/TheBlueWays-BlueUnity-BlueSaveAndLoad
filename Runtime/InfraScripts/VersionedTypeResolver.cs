@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using UnityEngine;
 
 namespace Assets._Project.Scripts.Infrastructure
 {
@@ -27,6 +28,12 @@ namespace Assets._Project.Scripts.Infrastructure
 
         public static Type Resolve(string assemblyQualifiedName)
         {
+            if (string.IsNullOrEmpty(assemblyQualifiedName))
+            {
+                Debug.LogError("Cannot resolve type from null or empty assembly qualified name.");
+                return null;
+            }
+
             if (_resolvedTypeCacheByName.ContainsKey(assemblyQualifiedName))
                 return _resolvedTypeCacheByName[assemblyQualifiedName];
 

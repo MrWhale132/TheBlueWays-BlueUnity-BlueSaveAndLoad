@@ -16,41 +16,14 @@ namespace Packages.com.theblueway.saveandload.Editor.SaveAndLoad.HandledTypeName
 
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
-            //var att = (SearchableStringAttribute)attribute;
-
-            //EditorGUI.BeginProperty(position, label, property);
-
-            //Rect fieldRect = position;
-            //fieldRect.width -= 25;
-
-            //Rect buttonRect = position;
-            //buttonRect.x += fieldRect.width + 5;
-            //buttonRect.width = 20;
-
-            //EditorGUI.PropertyField(fieldRect, property, label);
-
-            //if (GUI.Button(buttonRect, "⋯"))
-            //{
-            //    SearchableStringPopup.Open(
-            //        att.Options,
-            //        property.stringValue,
-            //        newValue =>
-            //        {
-            //            property.stringValue = newValue;
-            //            property.serializedObject.ApplyModifiedProperties();
-            //        });
-            //}
-
-            //EditorGUI.EndProperty();
-
-            var lookup = SaveAndLoadManager.Service_.GetHandledTypeNameByHandlerIdLookup();
+            var lookup = SaveAndLoadManager.Service.GetHandledTypeNameByHandlerIdLookup();
 
             var options = new List<string>();
 
             var instanceHandlers = new List<string>();
             var staticHandlers = new List<string>();
-
-
+            
+            
             foreach((long handlerId,(string typeName,bool isStatic) val) in lookup)
             {
                 string option = val.typeName;

@@ -80,6 +80,12 @@ public class LoadWorldSaveUI : MonoBehaviour
 
         string folderPath = Paths.Singleton.WorldSavePath;
 
+        if(!Directory.Exists(folderPath))
+        {
+            return;
+        }
+
+
         __foundWorldSaves =
             Directory.GetFiles(folderPath, "*.json")
                      .Select(path => new FileInfo(path))

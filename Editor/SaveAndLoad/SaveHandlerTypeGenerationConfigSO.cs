@@ -5,7 +5,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using Theblueway.SaveAndLoad;
 using UnityEngine;
+using Assets._Project.Scripts.UtilScripts.CodeGen;
+using Assets._Project.Scripts.Infrastructure;
 
 namespace Packages.com.theblueway.saveandload.Editor.SaveAndLoad
 {
@@ -23,20 +26,47 @@ namespace Packages.com.theblueway.saveandload.Editor.SaveAndLoad
             if (config._triggerValidate)
             {
                 config._triggerValidate = false;
-                config.IsValid(true, this);
+                bool result = config.IsValid(true, this);
+
+                if (result)
+                {
+                    Debug.Log("Validation: success", this);
+                }
             }
         }
     }
 
+
+
     [Serializable]
     public class SaveHandlerTypeGenerationConfig
     {
-        public bool _triggerValidate;
+        public enum ConfiguredTypeState
+        {
+            None,
+            Unassigned,
+            Assigned,
+            LostTracking,
+        }
 
-        public int _loadOrder;
+
+        public bool _triggerValidate;
 
         [HandledTypeSaveHandlerId]
         public long handlerIdOfConfiguredType;
+
+        [ReadOnly]
+        public ConfiguredTypeState _configuredTypeState;
+
+        [ReadOnly]
+        public long _lastKnownHandlerIdOfConfiguredType;
+        [ReadOnly]
+        public string _lastKnownTypeNameOfConfiguredType;
+        [ReadOnly]
+        public bool _wasStatic;
+
+
+        public int _loadOrder;
         public List<MemberConfig> memberConfigs;
 
         [HideInInspector]
@@ -52,25 +82,126 @@ namespace Packages.com.theblueway.saveandload.Editor.SaveAndLoad
         public bool _cacheIsBuilt = false;
 
 
+
+        public void DetermineState(out bool isValid, bool logErrorMessages = false, UnityEngine.Object context = null)
+        {
+            Type configuredType = SaveAndLoadManager.Service.GetHandledTypeByHandlerId(handlerIdOfConfiguredType,log:false, out var isStatic);
+
+            bool typeWasFound = configuredType != null;
+
+            _wasStatic = isStatic;
+
+
+            if (_configuredTypeState is ConfiguredTypeState.None)
+            {
+                bool isAssigned = handlerIdOfConfiguredType != 0;
+                if (isAssigned)
+                {
+                    _configuredTypeState = ConfiguredTypeState.Assigned;
+                    _lastKnownHandlerIdOfConfiguredType = handlerIdOfConfiguredType;
+                }
+                else
+                {
+                    _configuredTypeState = ConfiguredTypeState.Unassigned;
+                }
+            }
+
+            //if we are still lost, try find the type buy its last known name
+            if (_configuredTypeState is ConfiguredTypeState.LostTracking)
+            {
+                var type = VersionedTypeResolver.Resolve(_lastKnownTypeNameOfConfiguredType);
+
+                if (type != null)
+                {
+                    var id = SaveAndLoadManager.Service.GetHandlerIdByHandledType(type, _wasStatic);
+
+                    if (id != 0)
+                    {
+                        _configuredTypeState = ConfiguredTypeState.Assigned;
+                        handlerIdOfConfiguredType = id;
+                        DetermineState(out isValid, logErrorMessages, context);
+                        return;
+                    }
+                    else
+                    {
+                        string isStatic2 = _wasStatic ? "(static)" : "";
+                        Debug.LogWarning($"SaveHandlerTypeGenerationConfig: Resolved type {isStatic2} '{type.CleanAssemblyQualifiedName()}' does not have a savehandler id associated.", context);
+                        isValid = false;
+                        return;
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning($"SaveHandlerTypeGenerationConfig: Attempting to resolve a type by its last known name was failed: '{_lastKnownTypeNameOfConfiguredType}'.", context);
+                    isValid = false;
+                    return;
+                }
+            }
+
+            if (_configuredTypeState is ConfiguredTypeState.Unassigned)
+            {
+                Debug.LogWarning($"SaveHandlerTypeGenerationConfig: Configured type is unassigned. Please select one", context);
+                isValid = false;
+                return;
+            }
+            else if (_configuredTypeState is ConfiguredTypeState.Assigned)
+            {
+                if (!typeWasFound)
+                {
+                    _configuredTypeState = ConfiguredTypeState.LostTracking;
+                    DetermineState(out isValid, logErrorMessages, context);
+                    return;
+                }
+                else
+                {
+                    _lastKnownHandlerIdOfConfiguredType = handlerIdOfConfiguredType;
+                    _lastKnownTypeNameOfConfiguredType = configuredType.CleanAssemblyQualifiedName();
+                    isValid = true;
+                    return;
+                }
+            }
+
+            //if (_configuredTypeState is ConfiguredTypeState.LostTracking)
+            //{
+            //    Debug.LogWarning($"SaveHandlerTypeGenerationConfig: Configured type with handler ID {handlerIdOfConfiguredType} could not be found. It may have been removed.", context);
+            //    isValid = false;
+            //    return;
+            //}
+
+
+            Debug.LogError("This point should have never reached.", context);
+            isValid = false;
+        }
+
+
         public bool IsValid(bool logErrorMessages = false, UnityEngine.Object context = null)
         {
             bool isValid = true;
 
-            Type configuredType = SaveAndLoadManager.Service_.GetHandledTypeByHandlerId(handlerIdOfConfiguredType, out var isStatic);
-            if (configuredType == null)
+            DetermineState(out isValid, logErrorMessages, context);
+
+            if (!isValid) return false;
+
+
+            Type configuredType = SaveAndLoadManager.Service.GetHandledTypeByHandlerId(handlerIdOfConfiguredType, out var isStatic);
+
+            bool typeWasFound = configuredType != null;
+
+
+            if (!typeWasFound)
             {
                 if (logErrorMessages)
                     Debug.LogError($"SaveHandlerTypeGenerationConfig: Configured type with handler ID {handlerIdOfConfiguredType} could not be found.", context);
                 return false;
             }
 
-            bool manuallyHandled = SaveAndLoadManager.Service_.IsTypeManuallyHandled_Editor(configuredType, isStatic);
+            bool manuallyHandled = SaveAndLoadManager.Service.IsTypeManuallyHandled_Editor(configuredType, isStatic);
 
             if (manuallyHandled)
             {
                 if (logErrorMessages)
                 {
-                    Debug.LogError($"SaveHandlerTypeGenerationConfig: Configured type {configuredType.AssemblyQualifiedName} {handlerIdOfConfiguredType} is marked as manually handled. Cannot generate save handler for manually handled types.", context);
+                    Debug.LogError($"SaveHandlerTypeGenerationConfig: Configured type {configuredType.CleanAssemblyQualifiedName()} {handlerIdOfConfiguredType} is marked as manually handled. Cannot generate save handler for manually handled types.", context);
                 }
                 return false;
             }
@@ -86,7 +217,7 @@ namespace Packages.com.theblueway.saveandload.Editor.SaveAndLoad
                 {
                     if (memberConfig.methodId != 0)
                     {
-                        if(memberConfig.inclusionMode is MemberInclusionMode.Exclude)
+                        if (memberConfig.inclusionMode is MemberInclusionMode.Exclude)
                         {
                             Debug.LogError($"Methods can not be excluded via UI by refering them by their methodid.");
                         }
@@ -97,7 +228,7 @@ namespace Packages.com.theblueway.saveandload.Editor.SaveAndLoad
                     if (checkedMemberNames.Contains(memberConfig.memberName))
                     {
                         if (logErrorMessages)
-                            Debug.LogError($"SaveHandlerTypeGenerationConfig: Duplicate member name '{memberConfig.memberName}' found in configuration for type {configuredType.AssemblyQualifiedName} {handlerIdOfConfiguredType}.", context);
+                            Debug.LogError($"SaveHandlerTypeGenerationConfig: Duplicate member name '{memberConfig.memberName}' found in configuration for type {configuredType.CleanAssemblyQualifiedName()} {handlerIdOfConfiguredType}.", context);
                         isValid = false;
                     }
 
@@ -106,31 +237,31 @@ namespace Packages.com.theblueway.saveandload.Editor.SaveAndLoad
 
                     bool memberExists;
 
-                    if (_fieldInfoCache.TryGetValue(memberConfig.memberName,out FieldInfo field))
+                    if (_fieldInfoCache.TryGetValue(memberConfig.memberName, out FieldInfo field))
                     {
                         memberExists = true;
                         memberConfig.MemberInfo = field;
                     }
-                    else if(_propertyInfoCache.TryGetValue(memberConfig.memberName, out var property))
+                    else if (_propertyInfoCache.TryGetValue(memberConfig.memberName, out var property))
                     {
                         memberExists = true;
                         memberConfig.MemberInfo = property;
                     }
-                    else if(_eventInfoCache.TryGetValue(memberConfig.memberName, out var evt))
+                    else if (_eventInfoCache.TryGetValue(memberConfig.memberName, out var evt))
                     {
                         memberExists = true;
                         memberConfig.MemberInfo = evt;
                     }
                     else
                     {
-                        memberExists= false;
+                        memberExists = false;
                     }
-                    
+
 
                     if (!memberExists)
                     {
                         if (logErrorMessages)
-                            Debug.LogError($"SaveHandlerTypeGenerationConfig: Member '{memberConfig.memberName}' does not exist in configured type {configuredType.AssemblyQualifiedName} {handlerIdOfConfiguredType}.", context);
+                            Debug.LogError($"SaveHandlerTypeGenerationConfig: Member '{memberConfig.memberName}' does not exist in configured type {configuredType.CleanAssemblyQualifiedName()} {handlerIdOfConfiguredType}.", context);
                         isValid = false;
                     }
                 }
@@ -149,7 +280,7 @@ namespace Packages.com.theblueway.saveandload.Editor.SaveAndLoad
         {
             if (_cacheIsBuilt) return;
 
-            Type configuredType = SaveAndLoadManager.Service_.GetHandledTypeByHandlerId(handlerIdOfConfiguredType);
+            Type configuredType = SaveAndLoadManager.Service.GetHandledTypeByHandlerId(handlerIdOfConfiguredType);
 
             FieldInfo[] fields = configuredType.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
             PropertyInfo[] properties = configuredType.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);

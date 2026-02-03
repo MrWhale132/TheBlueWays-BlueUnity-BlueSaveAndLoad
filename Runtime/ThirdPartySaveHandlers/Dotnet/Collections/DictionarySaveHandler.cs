@@ -36,8 +36,12 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.Dotnet.Coll
         {
             base.LoadReferences();
 
+            if(HandledObjectId.ToString() == "548778337680324991")
+            {
 
-            foreach(var pair in __saveData.pairs)
+            }
+
+            foreach (var pair in __saveData.pairs)
             {
                 __instance.Add(pair.key.Value, pair.value.Value);
             }

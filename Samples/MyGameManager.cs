@@ -33,7 +33,7 @@ namespace Packages.com.theblueway.saveandload.Samples
 
         public void StartNewWorld()
         {
-            EnterWorld();
+            BeforeEnterWorld();
 
             MySceneManager.Singleton.StartNewWorld();
         }
@@ -45,15 +45,17 @@ namespace Packages.com.theblueway.saveandload.Samples
 
         public IEnumerator LoadSavedWorldRoutine(string filePath)
         {
-            EnterWorld();
+            BeforeEnterWorld();
 
             yield return MySceneManager.Singleton.OnLoadSavedWorldRoutine();
 
-            SaveAndLoadManager.Singleton.Load(filePath);
+            yield return SaveAndLoadManager.Singleton.LoadRoutine(filePath);
+
+            yield return MySceneManager.Singleton.OnLoadSavedWorldCompletedRoutine();
         }
 
 
-        public void EnterWorld()
+        public void BeforeEnterWorld()
         {
             _objectIdsWhenEnteredWorld = Infra.Singleton.GetAllObjectIds();
         }
@@ -64,9 +66,13 @@ namespace Packages.com.theblueway.saveandload.Samples
             var allObjectIdsNow = Infra.Singleton.GetAllObjectIds();
 
             var addedObjects = new HashSet<RandomId>(allObjectIdsNow.Except(_objectIdsWhenEnteredWorld));
-
+            var scenemanager = Infra.Singleton.GetObjectId(Infra.SceneManagement,Infra.GlobalReferencing);
             foreach(var id in addedObjects)
             {
+                if(id == scenemanager)
+                {
+                    Debug.Log("here");
+                }
                 Infra.Singleton.Unregister(id); 
             }
 

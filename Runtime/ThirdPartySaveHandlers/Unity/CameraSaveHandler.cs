@@ -32,14 +32,6 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.Unity
             __saveData.Rect = __instance.rect;
         }
 
-        public override void CreateObject()
-        {
-            base.CreateObject();
-
-            //var go = Infra.Singleton.GetObjectById<GameObject>(__saveData.GameObjectId);
-
-            //var cam = go.GetComponent<Camera>();
-        }
 
         public override void LoadReferences()
         {

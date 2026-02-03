@@ -51,7 +51,7 @@ namespace Theblueway.SaveAndLoad.Packages.com.theblueway.saveandload.Runtime.Thi
         }
 
 
-        ////this logic to use this separate method to ensure target and state are exist can be replace by giving a higher ored to this savehandler so it comes later
+        ////this logic to use this separate method to ensure target and state are exist can be replaced by giving a higher ored to this savehandler so it comes later
         //// a realy high order because your target can be anything and how would you know what order they might have?
         //public override void RegisterDelegates()
         //{

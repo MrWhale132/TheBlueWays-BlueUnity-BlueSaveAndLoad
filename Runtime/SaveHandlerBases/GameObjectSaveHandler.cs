@@ -208,10 +208,6 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
             }
             else if (SaveAndLoadManager.ScenePlacedObjectRegistry.IsScenePlaced<GameObject>(HandledObjectId, out instance))
             {
-                if (instance == null)
-                {
-                    Debug.LogError("null");
-                }
                 __instance = instance;
             }
             else
@@ -232,6 +228,8 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
 
         public override void LoadValues()
         {
+            base.LoadValues();
+
             if (__saveData.IsPrefabAsset) return;
 
             __instance.name = __saveData.GameObjectName;

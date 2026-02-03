@@ -1,5 +1,4 @@
-//auto-generated
-using UnityEngine;
+﻿using UnityEngine;
 using Assets._Project.Scripts.UtilScripts;
 using Assets._Project.Scripts.Infrastructure;
 using Assets._Project.Scripts.SaveAndLoad;
@@ -230,72 +229,4 @@ namespace DevTest
         public System.Boolean enabled;
         public UnityEngine.HideFlags hideFlags;
     }
-
-
-    public class StaticAudioSourceSubtitute : StaticSubtitute
-    {
-        public override Type SubtitutedType => typeof(UnityEngine.AudioSource);
-    }
-
-    [SaveHandler(455102278940854590, "StaticAudioSourceSubtitute", typeof(StaticAudioSourceSubtitute), generationMode: SaveHandlerGenerationMode.FullAutomata, staticHandlerOf: typeof(UnityEngine.AudioSource))]
-    public class StaticAudioSourceSaveHandler : StaticSaveHandlerBase<StaticAudioSourceSubtitute, StaticAudioSourceSaveData>
-    {
-        public override void WriteSaveData()
-        {
-            base.WriteSaveData();
-
-        }
-
-        public override void LoadReferences()
-        {
-            base.LoadReferences();
-
-        }
-        static StaticAudioSourceSaveHandler()
-        {
-            Dictionary<string, long> methodToId = new()
-            {
-				/// methodToId map for static <see cref="AudioSource"/>
-				#if UNITY_EDITOR
-				{$"GamepadSpeakerSupportsOutputType(UnityEngine.AudioModule UnityEngine.GamepadSpeakerOutputType):mscorlib System.Boolean", 253884542659336515},
-				#endif
-				{$"PlayClipAtPoint(UnityEngine.AudioModule UnityEngine.AudioClip,UnityEngine.CoreModule UnityEngine.Vector3):mscorlib System.Void", 715029320125342684},
-                {$"PlayClipAtPoint(UnityEngine.AudioModule UnityEngine.AudioClip,UnityEngine.CoreModule UnityEngine.Vector3,mscorlib System.Single):mscorlib System.Void", 119373970220453137},
-            };
-            Infra.Singleton.AddMethodSignatureToMethodIdMap(_typeReference, methodToId);
-            Infra.Singleton.AddMethodIdToMethodMap(_typeReference, _idToMethod);
-            Infra.Singleton.AddMethodIdToMethodInfoMap(_typeReference, _idToMethodInfo);
-        }
-        static Type _typeReference = typeof(UnityEngine.AudioSource);
-        static Type _typeDefinition = typeof(UnityEngine.AudioSource);
-        static Type[] _args = _typeReference.IsGenericType ? _typeReference.GetGenericArguments() : null;
-        public static Func<object, Delegate> _idToMethod(long id)
-        {
-            Func<object, Delegate> method = id switch
-            {
-#if UNITY_EDITOR
-                253884542659336515 => new Func<object, Delegate>((instance) => new Func<UnityEngine.GamepadSpeakerOutputType, System.Boolean>(UnityEngine.AudioSource.GamepadSpeakerSupportsOutputType)),
-#endif
-                715029320125342684 => new Func<object, Delegate>((instance) => new Action<UnityEngine.AudioClip, UnityEngine.Vector3>(UnityEngine.AudioSource.PlayClipAtPoint)),
-                119373970220453137 => new Func<object, Delegate>((instance) => new Action<UnityEngine.AudioClip, UnityEngine.Vector3, System.Single>(UnityEngine.AudioSource.PlayClipAtPoint)),
-                _ => Infra.Singleton.GetIdToMethodMapForType(_typeReference.BaseType)(id),
-            };
-            return method;
-        }
-        public static MethodInfo _idToMethodInfo(long id)
-        {
-            MethodInfo methodDef = id switch
-            {
-                _ => Infra.Singleton.GetMethodInfoIdToMethodMapForType(_typeReference.BaseType)(id),
-            };
-            return methodDef;
-        }
-    }
-
-
-    public class StaticAudioSourceSaveData : StaticSaveDataBase
-    {
-
-    }
-
 }

@@ -31,7 +31,10 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.Dotnet.Coll
         public override void LoadReferences()
         {
             base.LoadReferences();
+            if(HandledObjectId.ToString() == "336527219762487036")
+            {
 
+            }
             foreach(var datum in __saveData.data)
             {
                 __instance.Add(datum.Value);

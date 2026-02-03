@@ -2,8 +2,6 @@
 using Assets._Project.Scripts.Infrastructure;
 using Assets._Project.Scripts.UtilScripts.CodeGen;
 using Assets._Project.Scripts.UtilScripts.Extensions;
-using System.Reflection;
-using UnityEngine;
 
 namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
 {
@@ -39,12 +37,6 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
                 _AssignInstance();
 
                 Infra.Singleton.RegisterReference(__instance, __saveData._ObjectId_, rootObject: __saveData._isRootObject_);
-            }
-
-
-            if (__instance.GetType().IsAssignableTo(typeof(IGameLoopIntegrator)))
-            {
-                SaveAndLoadManager.Singleton.RegisterIntegrator(__instance as IGameLoopIntegrator);
             }
         }
 

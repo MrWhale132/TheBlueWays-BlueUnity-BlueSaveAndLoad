@@ -1,11 +1,5 @@
-﻿
-using Assets._Project.Scripts.Infrastructure;
-using Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases;
-using Assets._Project.Scripts.UtilScripts;
-using Newtonsoft.Json.Linq;
-using Newtonsoft.Json;
+﻿using Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases;
 using System;
-using Unity.VisualScripting;
 
 namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.Dotnet.Collections
 {
@@ -64,200 +58,200 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.Dotnet.Coll
 
 
     //maybe we can use this if somewhy we would need to save Array type
-    public class ArraySaveHandler : UnmanagedSaveHandler<Array, ArraySaveData>
-    {
-        public ArraySaveHandler()
-        {
+    //public class ArraySaveHandler : UnmanagedSaveHandler<Array, ArraySaveData>
+    //{
+    //    public ArraySaveHandler()
+    //    {
 
-        }
+    //    }
 
-        public Array __arrayToSave;
+    //    public Array __arrayToSave;
 
-        public bool __elementTypeHasSaveHandler;
-
-
-        public override void Init(object instance)
-        {
-            base.Init(instance);
-            Type elementType = instance.GetType().GetElementType();
-
-            __elementTypeHasSaveHandler = SaveAndLoadManager.Singleton.HasSaveHandlerForType(elementType);
-
-            __saveData.ElementTypeHasSaveHandler = __elementTypeHasSaveHandler;
+    //    public bool __elementTypeHasSaveHandler;
 
 
-            if (__elementTypeHasSaveHandler)
-            {
-                __arrayToSave = CreateWithStructure(__instance, typeof(RandomId));
-            }
-            else
-            {
-                __arrayToSave = __instance;
-            }
-        }
+    //    public override void Init(object instance)
+    //    {
+    //        base.Init(instance);
+    //        Type elementType = instance.GetType().GetElementType();
+
+    //        __elementTypeHasSaveHandler = SaveAndLoadManager.Singleton.HasSaveHandlerForType(elementType);
+
+    //        __saveData.ElementTypeHasSaveHandler = __elementTypeHasSaveHandler;
 
 
-
-        public static Array CreateWithStructure(Array blueprint, Type elementType = null)
-        {
-            if (blueprint == null)
-                throw new ArgumentNullException(nameof(blueprint));
-
-
-            int[] lengths = GetArrayLengths(blueprint);
-
-            elementType = elementType ?? blueprint.GetType().GetElementType();
-
-            Array clone = Array.CreateInstance(elementType, lengths);
-
-            return clone;
-        }
+    //        if (__elementTypeHasSaveHandler)
+    //        {
+    //            __arrayToSave = CreateWithStructure(__instance, typeof(RandomId));
+    //        }
+    //        else
+    //        {
+    //            __arrayToSave = __instance;
+    //        }
+    //    }
 
 
 
-        public static Array CloneRectangularArray(Array source)
-        {
-            if (source == null)
-                throw new ArgumentNullException(nameof(source));
+    //    public static Array CreateWithStructure(Array blueprint, Type elementType = null)
+    //    {
+    //        if (blueprint == null)
+    //            throw new ArgumentNullException(nameof(blueprint));
 
-            int[] lengths = GetArrayLengths(source);
 
-            Array clone = Array.CreateInstance(source.GetType().GetElementType(), lengths);
+    //        int[] lengths = GetArrayLengths(blueprint);
 
-            int[] indices = new int[source.Rank];
-            CopyRecursive(source, clone, indices, 0);
+    //        elementType = elementType ?? blueprint.GetType().GetElementType();
 
-            return clone;
-        }
+    //        Array clone = Array.CreateInstance(elementType, lengths);
 
-        public static int[] GetArrayLengths(Array array)
-        {
-
-            int rank = array.Rank;
-            int[] lengths = new int[rank];
-            for (int i = 0; i < rank; i++)
-                lengths[i] = array.GetLength(i);
-
-            return lengths;
-        }
+    //        return clone;
+    //    }
 
 
 
-        private static void CopyRecursive(Array source, Array target, int[] indices, int dimension)
-        {
-            int length = source.GetLength(dimension);
-            for (int i = 0; i < length; i++)
-            {
-                indices[dimension] = i;
-                if (dimension < source.Rank - 1)
-                {
-                    CopyRecursive(source, target, indices, dimension + 1);
-                }
-                else
-                {
-                    object value = source.GetValue(indices);
-                    target.SetValue(value, indices);
-                }
-            }
-        }
+    //    public static Array CloneRectangularArray(Array source)
+    //    {
+    //        if (source == null)
+    //            throw new ArgumentNullException(nameof(source));
 
+    //        int[] lengths = GetArrayLengths(source);
 
-        public static void SetArrayValues(Array array, Action<Array, int[]> valueSetter)
-        {
-            SetRecursive(array, valueSetter, new int[array.Rank], 0);
-        }
+    //        Array clone = Array.CreateInstance(source.GetType().GetElementType(), lengths);
 
-        private static void SetRecursive(Array source, Action<Array, int[]> valueSetter, int[] indices, int dimension)
-        {
-            int length = source.GetLength(dimension);
-            for (int i = 0; i < length; i++)
-            {
-                indices[dimension] = i;
-                if (dimension < source.Rank - 1)
-                {
-                    SetRecursive(source, valueSetter, indices, dimension + 1);
-                }
-                else
-                {
-                    valueSetter(source, indices);
-                }
-            }
-        }
+    //        int[] indices = new int[source.Rank];
+    //        CopyRecursive(source, clone, indices, 0);
+
+    //        return clone;
+    //    }
+
+    //    public static int[] GetArrayLengths(Array array)
+    //    {
+
+    //        int rank = array.Rank;
+    //        int[] lengths = new int[rank];
+    //        for (int i = 0; i < rank; i++)
+    //            lengths[i] = array.GetLength(i);
+
+    //        return lengths;
+    //    }
 
 
 
-        public override void WriteSaveData()
-        {
-            base.WriteSaveData();
+    //    private static void CopyRecursive(Array source, Array target, int[] indices, int dimension)
+    //    {
+    //        int length = source.GetLength(dimension);
+    //        for (int i = 0; i < length; i++)
+    //        {
+    //            indices[dimension] = i;
+    //            if (dimension < source.Rank - 1)
+    //            {
+    //                CopyRecursive(source, target, indices, dimension + 1);
+    //            }
+    //            else
+    //            {
+    //                object value = source.GetValue(indices);
+    //                target.SetValue(value, indices);
+    //            }
+    //        }
+    //    }
 
 
-            if (__elementTypeHasSaveHandler)
-            {
-                Action<Array, int[]> setter = (array, indices) =>
-                {
-                    RandomId id = Infra.Singleton.GetObjectId(__instance.GetValue(indices), HandledObjectId);
+    //    public static void SetArrayValues(Array array, Action<Array, int[]> valueSetter)
+    //    {
+    //        SetRecursive(array, valueSetter, new int[array.Rank], 0);
+    //    }
+
+    //    private static void SetRecursive(Array source, Action<Array, int[]> valueSetter, int[] indices, int dimension)
+    //    {
+    //        int length = source.GetLength(dimension);
+    //        for (int i = 0; i < length; i++)
+    //        {
+    //            indices[dimension] = i;
+    //            if (dimension < source.Rank - 1)
+    //            {
+    //                SetRecursive(source, valueSetter, indices, dimension + 1);
+    //            }
+    //            else
+    //            {
+    //                valueSetter(source, indices);
+    //            }
+    //        }
+    //    }
 
 
-                    array.SetValue(id, indices);
-                };
 
-                SetArrayValues(__arrayToSave, setter);
-            }
-            else
-            {
-                ///<see cref="__arrayToSave"/> should be == to <see cref="__instance"/>
-            }
-
-            __saveData.Elements = new JRaw(JsonConvert.SerializeObject(__arrayToSave));
-        }
+    //    public override void WriteSaveData()
+    //    {
+    //        base.WriteSaveData();
 
 
-
-        public override void _AssignInstance()
-        {
-            __elementTypeHasSaveHandler = __saveData.ElementTypeHasSaveHandler;
-            Type arrayType = Type.GetType(__saveData._AssemblyQualifiedName_);
-
-
-            if (__elementTypeHasSaveHandler)
-            {
-                Type elementType = arrayType.GetElementType();
-
-                Type idArrayType = typeof(RandomId).MakeArrayType(arrayType.GetArrayRank());
-                __arrayToSave = (Array)JsonConvert.DeserializeObject(__saveData.Elements.ToString(), idArrayType);
-
-                __instance = CreateWithStructure(__arrayToSave, elementType);
-            }
-            else
-            {
-                __instance = (Array)JsonConvert.DeserializeObject(__saveData.Elements.ToString(), arrayType);
-            }
-        }
+    //        if (__elementTypeHasSaveHandler)
+    //        {
+    //            Action<Array, int[]> setter = (array, indices) =>
+    //            {
+    //                RandomId id = Infra.Singleton.GetObjectId(__instance.GetValue(indices), HandledObjectId);
 
 
-        public override void LoadReferences()
-        {
-            base.LoadReferences();
+    //                array.SetValue(id, indices);
+    //            };
+
+    //            SetArrayValues(__arrayToSave, setter);
+    //        }
+    //        else
+    //        {
+    //            ///<see cref="__arrayToSave"/> should be == to <see cref="__instance"/>
+    //        }
+
+    //        __saveData.Elements = new JRaw(JsonConvert.SerializeObject(__arrayToSave));
+    //    }
 
 
-            if (__elementTypeHasSaveHandler)
-            {
-                Action<Array, int[]> setter = (array, indices) =>
-                {
-                    RandomId id = (RandomId)__arrayToSave.GetValue(indices);
-                    object instance = Infra.Singleton.GetObjectById<object>(id);
-                    array.SetValue(instance, indices);
-                };
 
-                SetArrayValues(__instance, setter);
-            }
-        }
-    }
+    //    public override void _AssignInstance()
+    //    {
+    //        __elementTypeHasSaveHandler = __saveData.ElementTypeHasSaveHandler;
+    //        Type arrayType = Type.GetType(__saveData._AssemblyQualifiedName_);
 
 
-    public class ArraySaveData : SaveDataBase
-    {
-        public bool ElementTypeHasSaveHandler;
-        public JRaw Elements;
-    }
+    //        if (__elementTypeHasSaveHandler)
+    //        {
+    //            Type elementType = arrayType.GetElementType();
+
+    //            Type idArrayType = typeof(RandomId).MakeArrayType(arrayType.GetArrayRank());
+    //            __arrayToSave = (Array)JsonConvert.DeserializeObject(__saveData.Elements.ToString(), idArrayType);
+
+    //            __instance = CreateWithStructure(__arrayToSave, elementType);
+    //        }
+    //        else
+    //        {
+    //            __instance = (Array)JsonConvert.DeserializeObject(__saveData.Elements.ToString(), arrayType);
+    //        }
+    //    }
+
+
+    //    public override void LoadReferences()
+    //    {
+    //        base.LoadReferences();
+
+
+    //        if (__elementTypeHasSaveHandler)
+    //        {
+    //            Action<Array, int[]> setter = (array, indices) =>
+    //            {
+    //                RandomId id = (RandomId)__arrayToSave.GetValue(indices);
+    //                object instance = Infra.Singleton.GetObjectById<object>(id);
+    //                array.SetValue(instance, indices);
+    //            };
+
+    //            SetArrayValues(__instance, setter);
+    //        }
+    //    }
+    //}
+
+
+    //public class ArraySaveData : SaveDataBase
+    //{
+    //    public bool ElementTypeHasSaveHandler;
+    //    public JRaw Elements;
+    //}
 }

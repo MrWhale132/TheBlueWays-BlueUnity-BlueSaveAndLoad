@@ -13,6 +13,7 @@ using static SaveAndLoadCodeGenWindow;
 using Assets._Project.Scripts.UtilScripts.Extensions;
 using Unity.Collections;
 using UnityEngine.Events;
+using Theblueway.SaveAndLoad.Packages.com.theblueway.saveandload.Runtime;
 
 
 
@@ -21,7 +22,7 @@ using UnityEngine.Events;
 public class SaveHandlerAutoGenerator : ScriptableObject
 {
     [NonSerialized]
-    public SaveAndLoadManager.Service _saveAndLoadService = new();
+    public SaveAndLoadManager.EditorService _saveAndLoadService = new();
 
 
 
@@ -142,7 +143,10 @@ public class SaveHandlerAutoGenerator : ScriptableObject
         }
 
 
-        string attribute = $"[{nameof(CustomSaveDataAttribute)}(" +
+        RandomId id = RandomId.Get();
+
+        string attribute = $"[{nameof(CustomSaveDataAttribute)[..^"Attribute".Length]}(" +
+            $"{id}, " +
             $"{nameof(CustomSaveDataAttribute.HandledType)} = typeof({typeDef}), " +
             $"{nameof(CustomSaveDataAttribute.GenerationMode)} = {generationModeEnumText}" +
             $")]";
@@ -206,7 +210,6 @@ public class SaveHandlerAutoGenerator : ScriptableObject
 
 
         //attribute
-        string staticDataGroupId = subtituteClassName;
 
         string handledTypeText = subtituteClassName;
 
@@ -220,7 +223,6 @@ public class SaveHandlerAutoGenerator : ScriptableObject
             {
                 int genParamCount = staticType.GetGenericArguments().Length;
 
-                staticDataGroupId += $"`{genParamCount}";
                 handledTypeText += "<" + new string(',', genParamCount - 1) + ">";
             }
         }
@@ -242,7 +244,6 @@ public class SaveHandlerAutoGenerator : ScriptableObject
 
         string attribute = _SaveHandlerAttributeTemplate
             .Replace(SaveHandlerId, id)
-            .Replace(DataGroupId, staticDataGroupId)
             .Replace(HandledType, handledTypeText)
             .Replace(GenerationMode, generationMode)
             .Replace(AdditionalParamList, additionalParamList)
@@ -328,7 +329,7 @@ public class SaveHandlerAutoGenerator : ScriptableObject
             string generatedTypeName = FlattenTypeNameIfNested(typeToHandle);
             string genericConstraints = GetgenericConstraintsText(typeToHandle);
             //string baseTypeGenericParameterList = CodeGenUtils.GetGenericParameterListText(typeToHandle.BaseType);
-            string attribute = GetAttributeText(typeToHandle);
+            string attribute = GetAttributeTextWithoutId(typeToHandle);
 
             IEnumerable<string> typeArgNames = typeToHandle.BaseType.IsGenericType ?
                 typeToHandle.BaseType.GetGenericArguments().Select(arg => CodeGenUtils.ToTypeReferenceText(arg,withNameSpace:true))
@@ -409,10 +410,8 @@ public class SaveHandlerAutoGenerator : ScriptableObject
 
         //attribute
 
-        string GetAttributeText(Type typeToHandle)
+        string GetAttributeTextWithoutId(Type typeToHandle)
         {
-            string dataGroupId = typeToHandle.Name;
-
             var additionalParamList = new List<string>();
 
 
@@ -443,12 +442,8 @@ public class SaveHandlerAutoGenerator : ScriptableObject
                 additionalParamListTest = ", " + string.Join(", ", additionalParamList);
 
 
-            string id = GetOrCreateSaveHandlerId(typeToHandle, isStatic: false);
-
-
             var attribute = _SaveHandlerAttributeTemplate
-                .Replace(SaveHandlerId, id)
-                .Replace(DataGroupId, dataGroupId)
+                //.Replace(SaveHandlerId, id)
                 .Replace(HandledType, CodeGenUtils.ToTypeDefinitionText(typeToHandle, withNameSpace: true))
                 .Replace(GenerationMode, generationModeEnumText)
                 .Replace(AdditionalParamList, additionalParamListTest)
@@ -457,6 +452,9 @@ public class SaveHandlerAutoGenerator : ScriptableObject
             return attribute;
         }
 
+
+
+        string id = GetOrCreateSaveHandlerId(typeToHandle, isStatic: false);
 
 
         var templates = new List<string>()
@@ -484,9 +482,10 @@ public class SaveHandlerAutoGenerator : ScriptableObject
         foreach (var builder in generatedTypes)
         {
             builder.GeneratedTypeText = builder.GeneratedTypeText
-                .Replace(SaveHandlerAttribute, GetAttributeText(typeToHandle))
+                .Replace(SaveHandlerAttribute, GetAttributeTextWithoutId(typeToHandle))
                 .Replace(BaseClassName, baseClass)
                 .Replace(SaveDataBaseClassName, saveDataBaseClassName)
+                .Replace(SaveHandlerId, id)
                 ;
         }
 
@@ -553,16 +552,21 @@ public class SaveHandlerAutoGenerator : ScriptableObject
             }
             else if (type.IsStruct())
             {
-                if (_saveAndLoadService.HasCustomSaveData_Editor(type, out Type customSaveDataType))
+                if (_saveAndLoadService.HasCustomSaveData_Editor(type))
                 {
-                    saveDataField = $"public {CodeGenUtils.ToTypeReferenceText(customSaveDataType, withNameSpace: true)} {fieldName} = new();";
+                    //saveDataField = $"public {CodeGenUtils.ToTypeReferenceText(customSaveDataType, withNameSpace: true)} {fieldName} = new();";
+
+                    Type customSaveDataType = typeof(CustomSaveData);
+
+                    saveDataField = $"public {customSaveDataType.Namespace}.{nameof(CustomSaveData)}<{typeReference}> {fieldName} = " +
+                        $"{nameof(CustomSaveData)}.{nameof(CustomSaveData.CreateFor)}<{typeReference}>();";
 
                     string readModifier = isField ? "in " : "";
                     string writeModifier = isField ? "ref " : "";
 
                     writeData = $"{saveDataAccessor}{fieldName}.{nameof(CustomSaveData<int>.ReadFrom)}({readModifier}{instanceAccessor}{fieldName});";
 
-                    readData = $"{saveDataAccessor}{fieldName}.{nameof(CustomSaveData<int>.WriteTo)}({writeModifier}{instanceAccessor}{fieldName});";
+                    readData = $"{saveDataAccessor}{fieldName}.{nameof(CustomSaveData<int>.WriteInto)}({writeModifier}{instanceAccessor}{fieldName});";
 
                     //additionalNameSpaces.Add(customSaveDataType.Namespace);
                 }
@@ -1046,14 +1050,13 @@ public class SaveHandlerAutoGenerator : ScriptableObject
 
 
     public const string SaveHandlerId = "<SaveHandlerId>";
-    public const string DataGroupId = "<DataGroupId>";
     public const string HandledType = "<HandledType>";
     //public const string IsStatic = "<IsStatic>";
     public const string GenerationMode = "<GenerationMode>";
     public const string AdditionalParamList = "<AdditionalParamList>";
 
     [NonSerialized]
-    public string _SaveHandlerAttributeTemplate = $"[SaveHandler({SaveHandlerId}, \"{DataGroupId}\", typeof({HandledType}), generationMode: {GenerationMode}{AdditionalParamList})]";
+    public string _SaveHandlerAttributeTemplate = $"[SaveHandler({SaveHandlerId}, handledType: typeof({HandledType}), generationMode: {GenerationMode}{AdditionalParamList})]";
 
 
 
@@ -1066,6 +1069,7 @@ public class SaveHandlerAutoGenerator : ScriptableObject
 
     [NonSerialized]
     public string _SaveDataTemplate =
+        $"[{nameof(SaveDataAttribute)[..^"Attribute".Length]}({SaveHandlerId})]"+_NewLine+
         $"public class {GeneratedTypeName}SaveData{GenericParameterList} : {SaveDataBaseClassName} {GenericConstraints}" +
         _NewLine +
         "{" +

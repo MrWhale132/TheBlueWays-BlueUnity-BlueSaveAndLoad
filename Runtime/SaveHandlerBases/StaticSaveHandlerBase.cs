@@ -36,12 +36,6 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
             HandledObjectId = SaveAndLoadManager.Singleton.GetOrCreateSingletonObjectIdBySaveHandlerId(SaveHandlerId);
             Infra.Singleton.RegisterReference(__instance, HandledObjectId, rootObject: true);
             Infra.Singleton.RegisterStaticSubtitute(__instance, HandledObjectId);
-
-
-            if (HandledObjectId.IsDefault)
-            {
-                Debug.LogError(__instance.GetType().FullName);
-            }
         }
     }
 

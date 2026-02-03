@@ -2,6 +2,7 @@
 using Assets._Project.Scripts.Infrastructure;
 using Assets._Project.Scripts.UtilScripts.CodeGen;
 using System;
+using Theblueway.SaveAndLoad.Packages.com.theblueway.saveandload.Runtime;
 using UnityEngine;
 using UnityEngine.Scripting;
 
@@ -16,6 +17,8 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
 
         public override void CreateObject()
         {
+            if (IsSingleton) return;
+
             base.CreateObject();
 
 
@@ -28,24 +31,18 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
             SaveAndLoadManager.Singleton.ExpectingIsObjectLoadingRequest = false;
 
             Infra.Singleton.RegisterReference(__instance, HandledObjectId, rootObject: __saveData._isRootObject_);
-
-
-            if (__instance.GetType().IsAssignableTo(typeof(IGameLoopIntegrator)))
-            {
-                SaveAndLoadManager.Singleton.RegisterIntegrator(__instance as IGameLoopIntegrator);
-            }
         }
 
 
         public override void _AssignInstance()
         {
-            //todo: GetType can be cached somewhere
-            Type instanceType = Type.GetType(__saveData._AssemblyQualifiedName_);
+            VersionedType versionedType = SaveAndLoadManager.Singleton.GetVersionedType(__saveData._MetaData_.HandledType);
+            Type instanceType = versionedType.ResolveForCurrentHandledType();
 
             if (instanceType == null)
             {
                 //debug error
-                Debug.LogError($"Couldn't load the type that was in the save file. Type name in save file: {__saveData._AssemblyQualifiedName_}. " +
+                Debug.LogError($"Couldn't load the type that was in the save file for object: {__saveData._ObjectId_}. Type instance: {__saveData._MetaData_.HandledType}. " +
                     $"Cant do anything so let it go on.");
             }
 

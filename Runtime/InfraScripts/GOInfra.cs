@@ -155,7 +155,7 @@ namespace Assets._Project.Scripts.Infrastructure
             }
             else if (!isManaged)
             {
-                   ApplyAssetNameAliases();
+                ApplyAssetNameAliases();
             }
 
 
@@ -175,10 +175,10 @@ namespace Assets._Project.Scripts.Infrastructure
                 {
                     var childrenAndSelf = GetChildrenInfra(includeSelf: true);
 
-                    foreach (var child in childrenAndSelf)
-                    {
-                        child.ApplyAssetNameAliases();
-                    }
+                    //foreach (var child in childrenAndSelf)
+                    //{
+                    //    child.ApplyAssetNameAliases();
+                    //}
 
 
                     if (PrefabDescriptor == null)
@@ -207,7 +207,7 @@ namespace Assets._Project.Scripts.Infrastructure
 
                 if (!isManaged)
                 {
-                    ApplyAssetNameAliases();
+                    //ApplyAssetNameAliases();
 
 
                     Infra.Singleton.Register(gameObject, rootObject: true, createSaveHandler: true);
@@ -239,7 +239,7 @@ namespace Assets._Project.Scripts.Infrastructure
 
             if (Infra.Singleton == null) return;
 
-            ObjectId = Infra.Singleton.GetObjectId(this, Infra.Singleton.GlobalReferencing);
+            ObjectId = Infra.Singleton.GetObjectId(this, Infra.GlobalReferencing);
         }
 
 
@@ -401,7 +401,10 @@ namespace Assets._Project.Scripts.Infrastructure
             {
                 return;
             }
-            //return;
+            //if (gameObject.name.Contains("EnhancedSpeedIndicator"))
+            //{
+            //    Debug.Log("here");
+            //}
 
             foreach (var alias in _assetNameAliases)
             {
@@ -409,6 +412,12 @@ namespace Assets._Project.Scripts.Infrastructure
                 {
                     Apply(alias, meshFilter.mesh);
                     Apply(alias, meshFilter.sharedMesh);
+                }
+                //todo: add this to validation
+                else if (alias.assetHolder is ParticleSystem particleSystem)
+                {
+                    var renderer = particleSystem.GetComponent<ParticleSystemRenderer>();
+                    Apply(alias, renderer.mesh);
                 }
             }
 
@@ -449,8 +458,9 @@ namespace Assets._Project.Scripts.Infrastructure
                     }
                 }
 
-
+#pragma warning disable
                 void Validate(AssetNameAlias alias, Object asset)
+#pragma warning restore
                 {
                     string compTypeName = alias.assetHolder.GetType().Name;
                     string assetTypeName = asset.name;
@@ -525,13 +535,16 @@ namespace Assets._Project.Scripts.Infrastructure
 
         private void Reset()
         {
-            var sceneInfraGO = gameObject.scene.GetRootGameObjects().FirstOrDefault(go => go.GetComponent<SceneInfra>() != null);
-
-            if (sceneInfraGO != null)
+            if (gameObject.scene.IsValid())
             {
-                var sceneInfra = sceneInfraGO.GetComponent<SceneInfra>();
+                var sceneInfraGO = gameObject.scene.GetRootGameObjects().FirstOrDefault(go => go.GetComponent<SceneInfra>() != null);
 
-                sceneInfra.ScenePlacedGOInfras.Add(this);
+                if (sceneInfraGO != null)
+                {
+                    var sceneInfra = sceneInfraGO.GetComponent<SceneInfra>();
+
+                    sceneInfra.ScenePlacedGOInfras.Add(this);
+                }
             }
         }
 

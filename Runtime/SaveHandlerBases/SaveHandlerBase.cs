@@ -48,10 +48,10 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
             }
 
             var attribute = __attributeCache[type];
-            SaveHandlerId = attribute.Id.ToString();
-            DataGroupId = attribute.DataGroupName;
+            SaveHandlerId = attribute.Id;
             _handledType = attribute.HandledType;
             StaticHandlerOf = attribute.StaticHandlerOf;
+            IsSingleton = attribute.IsSingleton;
             //Order = attribute.Order;
 
             ///todo: tmp fix, the attribute might have null HandledType if it is a manually created attribute, <see cref="RuntimeTypeSaveHandler"/>
@@ -61,14 +61,14 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
 
 
         public virtual ObjectMetaData MetaData { get => throw new NotSupportedException("we shouldnt got here"); }
-        public string SaveHandlerId { get; set; }
-        public string DataGroupId { get; set; }
+        public long SaveHandlerId { get; set; }
         public Type _handledType;
         public Type HandledType { get => __isHandledTypeStatic ? StaticHandlerOf : _handledType; set => _handledType = value; }
         public RandomId HandledObjectId { get; protected set; }
         public virtual int Order { get; set; }
         public bool IsInitialized => !HandledObjectId.IsDefault;
         public Type StaticHandlerOf { get; set; }
+        public bool IsSingleton { get; set; }
         public virtual bool IsValid {
             get
             {
@@ -153,6 +153,11 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
 
 
         //from interface
+
+        public virtual void Accept(SaveDataBase data)
+        {
+            throw new System.NotImplementedException("This method should be overriden in every derived type and not be called.");
+        }
 
         public virtual void LoadValues()
         {

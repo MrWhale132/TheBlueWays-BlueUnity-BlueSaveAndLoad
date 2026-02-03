@@ -44,7 +44,7 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.Dotnet.Misc
 
             var attr = typeof(RuntimeTypeSaveHandler).GetCustomAttribute<SaveHandlerAttribute>();
 
-            var manual = new SaveHandlerAttribute(attr.Id, attr.DataGroupName, handledType)
+            var manual = new SaveHandlerAttribute(attr.Id, handledType: handledType)
             {
                 RequiresManualAttributeCreation = false
             };

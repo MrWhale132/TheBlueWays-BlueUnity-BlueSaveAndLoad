@@ -12,588 +12,537 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 54a2635c244f50349864ad4a011d6c9c, type: 3}
   m_Name: SaveAndLoadCodeGenWindowState
   m_EditorClassIdentifier: 
-  _scrollPos: {x: 0, y: 2940}
+  _scrollPos: {x: 0, y: 0}
   _eventqueue:
   - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\MaterialSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\MaterialSaveHandler.cs
-  _changedFiles:
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
   - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Tanks\Scripts\Tank\PowerUpDetector.cs
-    Name: _Tanks\Scripts\Tank\PowerUpDetector.cs
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Player.cs
+    Name: _Project\Scripts\A\Player.cs
   - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\PowerUpDetectorSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\PowerUpDetectorSaveHandler.cs
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
   - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Tanks\Scripts\Tank\TankMovement.cs
-    Name: _Tanks\Scripts\Tank\TankMovement.cs
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Player.cs
+    Name: _Project\Scripts\A\Player.cs
   - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\Z.cs
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\Core\AppVersions.cs
+    Name: _Project\Scripts\Core\AppVersions.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Player.cs
+    Name: _Project\Scripts\A\Player.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Player.cs
+    Name: _Project\Scripts\A\Player.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Player.cs
+    Name: _Project\Scripts\A\Player.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Player.cs
+    Name: _Project\Scripts\A\Player.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Player.cs
+    Name: _Project\Scripts\A\Player.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Player.cs
+    Name: _Project\Scripts\A\Player.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Player.cs
+    Name: _Project\Scripts\A\Player.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Player.cs
+    Name: _Project\Scripts\A\Player.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\Core\AppVersions.cs
+    Name: _Project\Scripts\Core\AppVersions.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\Core\AppVersions.cs
+    Name: _Project\Scripts\Core\AppVersions.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Player.cs
+    Name: _Project\Scripts\A\Player.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Player.cs
+    Name: _Project\Scripts\A\Player.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Player.cs
+    Name: _Project\Scripts\A\Player.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Player.cs
+    Name: _Project\Scripts\A\Player.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Player.cs
+    Name: _Project\Scripts\A\Player.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Player.cs
+    Name: _Project\Scripts\A\Player.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Player.cs
+    Name: _Project\Scripts\A\Player.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Player.cs
+    Name: _Project\Scripts\A\Player.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Player.cs
+    Name: _Project\Scripts\A\Player.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Player.cs
+    Name: _Project\Scripts\A\Player.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Player.cs
+    Name: _Project\Scripts\A\Player.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Player.cs
+    Name: _Project\Scripts\A\Player.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Player.cs
+    Name: _Project\Scripts\A\Player.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Player.cs
+    Name: _Project\Scripts\A\Player.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Player.cs
+    Name: _Project\Scripts\A\Player.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Player.cs
+    Name: _Project\Scripts\A\Player.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\Generated\TheBlueWay\SaveHandlers\UnityEngine.TextCoreFontEngineModule\DevTest\UnityEngine\TextCore\GlyphSaveHandler.cs
+    Name: _Project\Scripts\Generated\TheBlueWay\SaveHandlers\UnityEngine.TextCoreFontEngineModule\DevTest\UnityEngine\TextCore\GlyphSaveHandler.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\Z.cs
     Name: _Project\Scripts\Z.cs
   - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\Test.cs
-    Name: _Project\Scripts\Test.cs
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\Generated\TheBlueWay\SaveHandlers\UnityEngine.CoreModule\DevTest\UnityEngine\RendererSaveHandler.cs
+    Name: _Project\Scripts\Generated\TheBlueWay\SaveHandlers\UnityEngine.CoreModule\DevTest\UnityEngine\RendererSaveHandler.cs
   - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Tanks\Scripts\Managers\TankManager.cs
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\Generated\TheBlueWay\SaveHandlers\UnityEngine.CoreModule\DevTest\UnityEngine\LightSaveHandler.cs
+    Name: _Project\Scripts\Generated\TheBlueWay\SaveHandlers\UnityEngine.CoreModule\DevTest\UnityEngine\LightSaveHandler.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\Generated\TheBlueWay\SaveHandlers\Unity.TextMeshPro\DevTest\TMPro\TMP_FontAssetSaveHandler.cs
+    Name: _Project\Scripts\Generated\TheBlueWay\SaveHandlers\Unity.TextMeshPro\DevTest\TMPro\TMP_FontAssetSaveHandler.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\Generated\TheBlueWay\SaveHandlers\Unity.TextMeshPro\DevTest\TMPro\TMP_SpriteAssetSaveHandler.cs
+    Name: _Project\Scripts\Generated\TheBlueWay\SaveHandlers\Unity.TextMeshPro\DevTest\TMPro\TMP_SpriteAssetSaveHandler.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\Generated\TheBlueWay\SaveHandlers\Unity.TextMeshPro\DevTest\TMPro\TMP_SpriteAssetSaveHandler.cs
+    Name: _Project\Scripts\Generated\TheBlueWay\SaveHandlers\Unity.TextMeshPro\DevTest\TMPro\TMP_SpriteAssetSaveHandler.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\Generated\TheBlueWay\SaveHandlers\UnityEngine.ParticleSystemModule\DevTest\UnityEngine\ParticleSystemRendererSaveHandler.cs
+    Name: _Project\Scripts\Generated\TheBlueWay\SaveHandlers\UnityEngine.ParticleSystemModule\DevTest\UnityEngine\ParticleSystemRendererSaveHandler.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\Generated\TheBlueWay\SaveHandlers\Unity.TextMeshPro\DevTest\TMPro\TMP_AssetSaveHandler.cs
+    Name: _Project\Scripts\Generated\TheBlueWay\SaveHandlers\Unity.TextMeshPro\DevTest\TMPro\TMP_AssetSaveHandler.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\Generated\TheBlueWay\SaveHandlers\UnityEngine.TextCoreFontEngineModule\DevTestCustomDatas\UnityEngine\TextCore\GlyphMetricsCustomSaveData.cs
+    Name: _Project\Scripts\Generated\TheBlueWay\SaveHandlers\UnityEngine.TextCoreFontEngineModule\DevTestCustomDatas\UnityEngine\TextCore\GlyphMetricsCustomSaveData.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\Generated\TheBlueWay\SaveHandlers\UnityEngine.TextCoreFontEngineModule\DevTestCustomDatas\UnityEngine\TextCore\GlyphRectCustomSaveData.cs
+    Name: _Project\Scripts\Generated\TheBlueWay\SaveHandlers\UnityEngine.TextCoreFontEngineModule\DevTestCustomDatas\UnityEngine\TextCore\GlyphRectCustomSaveData.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\Generated\TheBlueWay\SaveHandlers\UnityEngine.TextCoreFontEngineModule\DevTestCustomDatas\UnityEngine\TextCore\FaceInfoCustomSaveData.cs
+    Name: _Project\Scripts\Generated\TheBlueWay\SaveHandlers\UnityEngine.TextCoreFontEngineModule\DevTestCustomDatas\UnityEngine\TextCore\FaceInfoCustomSaveData.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Tanks\Scripts\Managers\TankManager.cs
     Name: _Tanks\Scripts\Managers\TankManager.cs
   - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Tanks\Scripts\Tank\TankShooting.cs
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\ZComp.cs
+    Name: _Project\Scripts\ZComp.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\ZComp.cs
+    Name: _Project\Scripts\ZComp.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Tanks\Scripts\Tank\TankInputUser.cs
+    Name: _Tanks\Scripts\Tank\TankInputUser.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\Generated\TheBlueWay\SaveHandlers\UnityEngine.CoreModule\DevTestCustomDatas\UnityEngine\LightBakingOutputCustomSaveData.cs
+    Name: _Project\Scripts\Generated\TheBlueWay\SaveHandlers\UnityEngine.CoreModule\DevTestCustomDatas\UnityEngine\LightBakingOutputCustomSaveData.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\Generated\TheBlueWay\SaveHandlers\UnityEngine.CoreModule\DevTestCustomDatas\UnityEngine\LayerMaskCustomSaveData.cs
+    Name: _Project\Scripts\Generated\TheBlueWay\SaveHandlers\UnityEngine.CoreModule\DevTestCustomDatas\UnityEngine\LayerMaskCustomSaveData.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\Generated\TheBlueWay\SaveHandlers\UnityEngine.CoreModule\DevTestCustomDatas\UnityEngine\BoundsCustomSaveData.cs
+    Name: _Project\Scripts\Generated\TheBlueWay\SaveHandlers\UnityEngine.CoreModule\DevTestCustomDatas\UnityEngine\BoundsCustomSaveData.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\Generated\TheBlueWay\SaveHandlers\UnityEngine.CoreModule\DevTestCustomDatas\UnityEngine\SceneManagement\SceneCustomSaveData.cs
+    Name: _Project\Scripts\Generated\TheBlueWay\SaveHandlers\UnityEngine.CoreModule\DevTestCustomDatas\UnityEngine\SceneManagement\SceneCustomSaveData.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\Generated\TheBlueWay\SaveHandlers\UnityEngine.CoreModule\DevTestCustomDatas\UnityEngine\Color32CustomSaveData.cs
+    Name: _Project\Scripts\Generated\TheBlueWay\SaveHandlers\UnityEngine.CoreModule\DevTestCustomDatas\UnityEngine\Color32CustomSaveData.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\Generated\TheBlueWay\SaveHandlers\Unity.InputSystem\DevTestCustomDatas\UnityEngine\InputSystem\InputAction_CallbackContextCustomSaveData.cs
+    Name: _Project\Scripts\Generated\TheBlueWay\SaveHandlers\Unity.InputSystem\DevTestCustomDatas\UnityEngine\InputSystem\InputAction_CallbackContextCustomSaveData.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\Generated\TheBlueWay\SaveHandlers\Unity.TextMeshPro\DevTestCustomDatas\TMPro\FontAssetCreationSettingsCustomSaveData.cs
+    Name: _Project\Scripts\Generated\TheBlueWay\SaveHandlers\Unity.TextMeshPro\DevTestCustomDatas\TMPro\FontAssetCreationSettingsCustomSaveData.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Player.cs
+    Name: _Project\Scripts\A\Player.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Tanks\Scripts\Tank\TankShooting.cs
     Name: _Tanks\Scripts\Tank\TankShooting.cs
   - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\ZGlobal.cs
-    Name: _Project\Scripts\ZGlobal.cs
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
   - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Tanks\Scripts\Managers\GameManager.cs
-    Name: _Tanks\Scripts\Managers\GameManager.cs
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
+  _changedFiles:
   - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\GameManagerSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\GameManagerSaveHandler.cs
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\A.cs
+    Name: _Project\Scripts\A\A.cs
   - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\GameManager_PlayerDataSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\GameManager_PlayerDataSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\ObjectSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\ObjectSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\AudioResourceSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\AudioResourceSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\AudioMixerGroupSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\AudioMixerGroupSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\AudioBehaviourSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\AudioBehaviourSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\BehaviourSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\BehaviourSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\ComponentSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\ComponentSaveHandler.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\AudioSourceSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\AudioSourceSaveHandler.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\MaterialSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\MaterialSaveHandler.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\ShaderSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\ShaderSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\AudioSourceSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\AudioSourceSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\MaterialSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\MaterialSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\ShaderSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\ShaderSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\MonoBehaviourSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\MonoBehaviourSaveHandler.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\Light2DBaseSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\Light2DBaseSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\Light2DBaseSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\Light2DBaseSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\CanvasRendererSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\CanvasRendererSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\GraphicSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\GraphicSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\UIBehaviourSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\UIBehaviourSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\LightSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\LightSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\ValueTypeSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\ValueTypeSaveHandler.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\CubemapArraySaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\CubemapArraySaveHandler.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\CubemapSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\CubemapSaveHandler.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\CustomRenderTextureSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\CustomRenderTextureSaveHandler.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\RenderTextureSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\RenderTextureSaveHandler.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\FlareSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\FlareSaveHandler.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\SparseTextureSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\SparseTextureSaveHandler.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\Texture2DArraySaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\Texture2DArraySaveHandler.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\Texture2DSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\Texture2DSaveHandler.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\Texture3DSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\Texture3DSaveHandler.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\TextureSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\TextureSaveHandler.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTestCustomDatas\LightBakingOutputCustomSaveData.cs
-    Name: _Project\Scripts\SaveHandlers\DevTestCustomDatas\LightBakingOutputCustomSaveData.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\FlareSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\FlareSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTestCustomDatas\LightBakingOutputCustomSaveData.cs
-    Name: _Project\Scripts\SaveHandlers\DevTestCustomDatas\LightBakingOutputCustomSaveData.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\TextureSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\TextureSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\Texture2DSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\Texture2DSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\CubemapSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\CubemapSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\Texture3DSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\Texture3DSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\CubemapArraySaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\CubemapArraySaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\CustomRenderTextureSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\CustomRenderTextureSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\RenderTextureSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\RenderTextureSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\SparseTextureSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\SparseTextureSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\Texture2DArraySaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\Texture2DArraySaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\GameObjectSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\GameObjectSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Tanks\Scripts\Camera\CameraControl.cs
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Tanks\Scripts\Camera\CameraControl.cs
     Name: _Tanks\Scripts\Camera\CameraControl.cs
   - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Tanks\Scripts\PowerUp\PowerUpHUD.cs
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Tanks\Scripts\Managers\GameManager.cs
+    Name: _Tanks\Scripts\Managers\GameManager.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Tanks\Scripts\Managers\TankManager.cs
+    Name: _Tanks\Scripts\Managers\TankManager.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Tanks\Scripts\PowerUp\PowerUp.cs
+    Name: _Tanks\Scripts\PowerUp\PowerUp.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Tanks\Scripts\PowerUp\PowerUpFX.cs
+    Name: _Tanks\Scripts\PowerUp\PowerUpFX.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Tanks\Scripts\PowerUp\PowerUpHUD.cs
     Name: _Tanks\Scripts\PowerUp\PowerUpHUD.cs
   - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Tanks\Scripts\Tank\TankHealth.cs
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Tanks\Scripts\PowerUp\PowerUpSpawner.cs
+    Name: _Tanks\Scripts\PowerUp\PowerUpSpawner.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Tanks\Scripts\Shell\ShellExplosion.cs
+    Name: _Tanks\Scripts\Shell\ShellExplosion.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Tanks\Scripts\Tank\PowerUpDetector.cs
+    Name: _Tanks\Scripts\Tank\PowerUpDetector.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Tanks\Scripts\Tank\TankAI.cs
+    Name: _Tanks\Scripts\Tank\TankAI.cs
+  - ChangeType: 4
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Tanks\Scripts\Tank\TankHealth.cs
     Name: _Tanks\Scripts\Tank\TankHealth.cs
   - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\YieldInstructionSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\YieldInstructionSaveHandler.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\CameraSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\CameraSaveHandler.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\CoroutineSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\CoroutineSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\TransformSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\TransformSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Tanks\Scripts\Tank\TankAI.cs
-    Name: _Tanks\Scripts\Tank\TankAI.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\ITextPreprocessorSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\ITextPreprocessorSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\MaskableGraphic_CullStateChangedEventSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\MaskableGraphic_CullStateChangedEventSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\CoroutineSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\CoroutineSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\CameraSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\CameraSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\ITextPreprocessorSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\ITextPreprocessorSaveHandler.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\TextMeshProUGUISaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\TextMeshProUGUISaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\TextMeshProUGUISaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\TextMeshProUGUISaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\AudioClipSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\AudioClipSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\ImageSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\ImageSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\InputActionSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\InputActionSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\MaskableGraphicSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\MaskableGraphicSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\RectTransformSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\RectTransformSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\SliderSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\SliderSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Tanks\Scripts\Tank\TankInputUser.cs
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Tanks\Scripts\Tank\TankInputUser.cs
     Name: _Tanks\Scripts\Tank\TankInputUser.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\MaskableGraphic_CullStateChangedEvent.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\MaskableGraphic_CullStateChangedEvent.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\NavMeshPathSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\NavMeshPathSaveHandler.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\RigidbodySaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\RigidbodySaveHandler.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\TMP_TextInfoSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\TMP_TextInfoSaveHandler.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\TMP_TextSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\TMP_TextSaveHandler.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\UnityEvent.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\UnityEvent.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTestCustomDatas\SceneCustomSaveData.cs
-    Name: _Project\Scripts\SaveHandlers\DevTestCustomDatas\SceneCustomSaveData.cs
   - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\TankHealthSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\TankHealthSaveHandler.cs
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Tanks\Scripts\Tank\TankMovement.cs
+    Name: _Tanks\Scripts\Tank\TankMovement.cs
   - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\PowerUpHUDSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\PowerUpHUDSaveHandler.cs
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Tanks\Scripts\Tank\TankShooting.cs
+    Name: _Tanks\Scripts\Tank\TankShooting.cs
   - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\CameraControlSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\CameraControlSaveHandler.cs
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Tanks\Scripts\UI\MobileControl\VirtualInputs\UIVirtualJoystick.cs
+    Name: _Tanks\Scripts\UI\MobileControl\VirtualInputs\UIVirtualJoystick.cs
   - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\TankAISaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\TankAISaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\TankShootingSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\TankShootingSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\TankMovementSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\TankMovementSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\TankInputUserSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\TankInputUserSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\MaskableGraphic_CullStateChangedEvent.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\MaskableGraphic_CullStateChangedEvent.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\TMP_TextSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\TMP_TextSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\RigidbodySaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\RigidbodySaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTestCustomDatas\SceneCustomSaveData.cs
-    Name: _Project\Scripts\SaveHandlers\DevTestCustomDatas\SceneCustomSaveData.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\NavMeshPathSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\NavMeshPathSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\UnityEvent.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\UnityEvent.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\TMP_TextInfoSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\TMP_TextInfoSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTestCustomDatas\InputEventPtrCustomSaveData.cs
-    Name: _Project\Scripts\SaveHandlers\DevTestCustomDatas\InputEventPtrCustomSaveData.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTestCustomDatas\InputAction_CallbackContextCustomSaveData.cs
-    Name: _Project\Scripts\SaveHandlers\DevTestCustomDatas\InputAction_CallbackContextCustomSaveData.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTestCustomDatas\IMECompositionStringCustomSaveData.cs
-    Name: _Project\Scripts\SaveHandlers\DevTestCustomDatas\IMECompositionStringCustomSaveData.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTestCustomDatas\LayerMaskCustomSaveData.cs
-    Name: _Project\Scripts\SaveHandlers\DevTestCustomDatas\LayerMaskCustomSaveData.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\SelectableSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\SelectableSaveHandler.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\Slider_SliderEvent.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\Slider_SliderEvent.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\Slider_SliderEvent.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\Slider_SliderEvent.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\ScriptableObjectSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\ScriptableObjectSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\InputControlSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\InputControlSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\InputDeviceSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\InputDeviceSaveHandler.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\GlyphSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\GlyphSaveHandler.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\TMP_AssetSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\TMP_AssetSaveHandler.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\MeshSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\MeshSaveHandler.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\TMP_CharacterSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\TMP_CharacterSaveHandler.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\TMP_FontAssetSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\TMP_FontAssetSaveHandler.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\TMP_SpriteAssetSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\TMP_SpriteAssetSaveHandler.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\TMP_SpriteCharacterSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\TMP_SpriteCharacterSaveHandler.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\TMP_TextElementSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\TMP_TextElementSaveHandler.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\UnityEventBase.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\UnityEventBase.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTestCustomDatas\BoundsCustomSaveData.cs
-    Name: _Project\Scripts\SaveHandlers\DevTestCustomDatas\BoundsCustomSaveData.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTestCustomDatas\Color32CustomSaveData.cs
-    Name: _Project\Scripts\SaveHandlers\DevTestCustomDatas\Color32CustomSaveData.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTestCustomDatas\ExtentsCustomSaveData.cs
-    Name: _Project\Scripts\SaveHandlers\DevTestCustomDatas\ExtentsCustomSaveData.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTestCustomDatas\FaceInfoCustomSaveData.cs
-    Name: _Project\Scripts\SaveHandlers\DevTestCustomDatas\FaceInfoCustomSaveData.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTestCustomDatas\FontAssetCreationSettingsCustomSaveData.cs
-    Name: _Project\Scripts\SaveHandlers\DevTestCustomDatas\FontAssetCreationSettingsCustomSaveData.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTestCustomDatas\GlyphMetricsCustomSaveData.cs
-    Name: _Project\Scripts\SaveHandlers\DevTestCustomDatas\GlyphMetricsCustomSaveData.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTestCustomDatas\GlyphRectCustomSaveData.cs
-    Name: _Project\Scripts\SaveHandlers\DevTestCustomDatas\GlyphRectCustomSaveData.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTestCustomDatas\HighlightStateCustomSaveData.cs
-    Name: _Project\Scripts\SaveHandlers\DevTestCustomDatas\HighlightStateCustomSaveData.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTestCustomDatas\TMP_CharacterInfoCustomSaveData.cs
-    Name: _Project\Scripts\SaveHandlers\DevTestCustomDatas\TMP_CharacterInfoCustomSaveData.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTestCustomDatas\TMP_LineInfoCustomSaveData.cs
-    Name: _Project\Scripts\SaveHandlers\DevTestCustomDatas\TMP_LineInfoCustomSaveData.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTestCustomDatas\TMP_LinkInfoCustomSaveData.cs
-    Name: _Project\Scripts\SaveHandlers\DevTestCustomDatas\TMP_LinkInfoCustomSaveData.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTestCustomDatas\TMP_MeshInfoCustomSaveData.cs
-    Name: _Project\Scripts\SaveHandlers\DevTestCustomDatas\TMP_MeshInfoCustomSaveData.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTestCustomDatas\TMP_OffsetCustomSaveData.cs
-    Name: _Project\Scripts\SaveHandlers\DevTestCustomDatas\TMP_OffsetCustomSaveData.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTestCustomDatas\TMP_PageInfoCustomSaveData.cs
-    Name: _Project\Scripts\SaveHandlers\DevTestCustomDatas\TMP_PageInfoCustomSaveData.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTestCustomDatas\TMP_VertexCustomSaveData.cs
-    Name: _Project\Scripts\SaveHandlers\DevTestCustomDatas\TMP_VertexCustomSaveData.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTestCustomDatas\TMP_WordInfoCustomSaveData.cs
-    Name: _Project\Scripts\SaveHandlers\DevTestCustomDatas\TMP_WordInfoCustomSaveData.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTestCustomDatas\InputUserCustomSaveData.cs
-    Name: _Project\Scripts\SaveHandlers\DevTestCustomDatas\InputUserCustomSaveData.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTestCustomDatas\InputUserCustomSaveData.cs
-    Name: _Project\Scripts\SaveHandlers\DevTestCustomDatas\InputUserCustomSaveData.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\UnityEventBase.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\UnityEventBase.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\InputActionAssetSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\InputActionAssetSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\InputActionAssetSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\InputActionAssetSaveHandler.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\WaitForSecondsSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\WaitForSecondsSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\WaitForSecondsSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\WaitForSecondsSaveHandler.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\ZComp.cs
-    Name: _Project\Scripts\ZComp.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\ZComp.cs
-    Name: _Project\Scripts\ZComp.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTestCustomDatas\BoundsCustomSaveData.cs
-    Name: _Project\Scripts\SaveHandlers\DevTestCustomDatas\BoundsCustomSaveData.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\StaticZStaticSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\StaticZStaticSaveHandler.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\ZCompSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\ZCompSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\ZCompSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\ZCompSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\StaticZStaticSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\StaticZStaticSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\CanvasSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\CanvasSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Tanks\Scripts\UI\StartMenuSlot.cs
-    Name: _Tanks\Scripts\UI\StartMenuSlot.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTestCustomDatas\TMP_CharacterInfoCustomSaveData.cs
-    Name: _Project\Scripts\SaveHandlers\DevTestCustomDatas\TMP_CharacterInfoCustomSaveData.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTestCustomDatas\TMP_MeshInfoCustomSaveData.cs
-    Name: _Project\Scripts\SaveHandlers\DevTestCustomDatas\TMP_MeshInfoCustomSaveData.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Tanks\Scripts\UI\PauseMenu.cs
-    Name: _Tanks\Scripts\UI\PauseMenu.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\PauseMenuSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\PauseMenuSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\GameUIHandlerSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\GameUIHandlerSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Tanks\Scripts\UI\GameUIHandler.cs
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Tanks\Scripts\UI\GameUIHandler.cs
     Name: _Tanks\Scripts\UI\GameUIHandler.cs
   - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\Button_ButtonClickedEventSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\Button_ButtonClickedEventSaveHandler.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\Plugins\IngameDebugConsole\Android\DebugLogLogcatListener.cs
-    Name: Plugins\IngameDebugConsole\Android\DebugLogLogcatListener.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\Plugins\IngameDebugConsole\Scripts\Attributes\ConsoleAttribute.cs
-    Name: Plugins\IngameDebugConsole\Scripts\Attributes\ConsoleAttribute.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\Plugins\IngameDebugConsole\Scripts\Attributes\ConsoleCustomTypeParserAttribute.cs
-    Name: Plugins\IngameDebugConsole\Scripts\Attributes\ConsoleCustomTypeParserAttribute.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\Plugins\IngameDebugConsole\Scripts\Attributes\ConsoleMethodAttribute.cs
-    Name: Plugins\IngameDebugConsole\Scripts\Attributes\ConsoleMethodAttribute.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\Plugins\IngameDebugConsole\Scripts\CircularBuffer.cs
-    Name: Plugins\IngameDebugConsole\Scripts\CircularBuffer.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\Plugins\IngameDebugConsole\Scripts\CopyLogsOnResizeButtonClick.cs
-    Name: Plugins\IngameDebugConsole\Scripts\CopyLogsOnResizeButtonClick.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\Plugins\IngameDebugConsole\Scripts\DebugLogConsole.cs
-    Name: Plugins\IngameDebugConsole\Scripts\DebugLogConsole.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\Plugins\IngameDebugConsole\Scripts\DebugLogEntry.cs
-    Name: Plugins\IngameDebugConsole\Scripts\DebugLogEntry.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\Plugins\IngameDebugConsole\Scripts\DebugLogItem.cs
-    Name: Plugins\IngameDebugConsole\Scripts\DebugLogItem.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\Plugins\IngameDebugConsole\Scripts\DebugLogItemCopyWebGL.cs
-    Name: Plugins\IngameDebugConsole\Scripts\DebugLogItemCopyWebGL.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\Plugins\IngameDebugConsole\Scripts\DebugLogManager.cs
-    Name: Plugins\IngameDebugConsole\Scripts\DebugLogManager.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\Plugins\IngameDebugConsole\Scripts\DebugLogPopup.cs
-    Name: Plugins\IngameDebugConsole\Scripts\DebugLogPopup.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\Plugins\IngameDebugConsole\Scripts\DebugLogResizeListener.cs
-    Name: Plugins\IngameDebugConsole\Scripts\DebugLogResizeListener.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\Plugins\IngameDebugConsole\Scripts\DebugLogRecycledListView.cs
-    Name: Plugins\IngameDebugConsole\Scripts\DebugLogRecycledListView.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\Plugins\IngameDebugConsole\Scripts\DebugsOnScrollListener.cs
-    Name: Plugins\IngameDebugConsole\Scripts\DebugsOnScrollListener.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\Plugins\IngameDebugConsole\Scripts\EventSystemHandler.cs
-    Name: Plugins\IngameDebugConsole\Scripts\EventSystemHandler.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\System\ObjectSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\System\ObjectSaveHandler.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\Generated\TheBlueWay\SaveHandlers\Assembly-CSharp\DevTest\Assets\_Project\Scripts\ZCompSaveHandler.cs
-    Name: _Project\Scripts\Generated\TheBlueWay\SaveHandlers\Assembly-CSharp\DevTest\Assets\_Project\Scripts\ZCompSaveHandler.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\Generated\TheBlueWay\SaveHandlers\Assembly-CSharp\DevTest\Assets\_Project\Scripts\StaticZStaticSaveHandler.cs
-    Name: _Project\Scripts\Generated\TheBlueWay\SaveHandlers\Assembly-CSharp\DevTest\Assets\_Project\Scripts\StaticZStaticSaveHandler.cs
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Tanks\Scripts\UI\MessageTextReference.cs
+    Name: _Tanks\Scripts\UI\MessageTextReference.cs
   - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\SaveHandlers\DevTest\System\ObjectSaveHandler.cs
-    Name: _Project\Scripts\SaveHandlers\DevTest\System\ObjectSaveHandler.cs
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Tanks\Scripts\UI\PauseMenu.cs
+    Name: _Tanks\Scripts\UI\PauseMenu.cs
   - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\Generated\TheBlueWay\SaveHandlers\Assembly-CSharp\DevTest\Assets\_Project\Scripts\StaticZStaticSaveHandler.cs
-    Name: _Project\Scripts\Generated\TheBlueWay\SaveHandlers\Assembly-CSharp\DevTest\Assets\_Project\Scripts\StaticZStaticSaveHandler.cs
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Tanks\Scripts\UI\StartMenuSlot.cs
+    Name: _Tanks\Scripts\UI\StartMenuSlot.cs
   - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\Generated\TheBlueWay\SaveHandlers\Assembly-CSharp\DevTest\Assets\_Project\Scripts\ZCompSaveHandler.cs
-    Name: _Project\Scripts\Generated\TheBlueWay\SaveHandlers\Assembly-CSharp\DevTest\Assets\_Project\Scripts\ZCompSaveHandler.cs
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Player.cs
+    Name: _Project\Scripts\A\Player.cs
   - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\Generated\TheBlueWay\SaveHandlers\Unity.InputSystem\DevTestCustomDatas\UnityEngine\InputSystem\Users\InputUserCustomSaveData.cs
-    Name: _Project\Scripts\Generated\TheBlueWay\SaveHandlers\Unity.InputSystem\DevTestCustomDatas\UnityEngine\InputSystem\Users\InputUserCustomSaveData.cs
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\Core\AppVersions.cs
+    Name: _Project\Scripts\Core\AppVersions.cs
   - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\Generated\TheBlueWay\SaveHandlers\UnityEngine.CoreModule\DevTest\UnityEngine\TextureSaveHandler.cs
-    Name: _Project\Scripts\Generated\TheBlueWay\SaveHandlers\UnityEngine.CoreModule\DevTest\UnityEngine\TextureSaveHandler.cs
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\HealthComp.cs
+    Name: _Project\Scripts\A\HealthComp.cs
   - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\Generated\TheBlueWay\SaveHandlers\Unity.InputSystem\DevTestCustomDatas\UnityEngine\InputSystem\Users\InputUserCustomSaveData.cs
-    Name: _Project\Scripts\Generated\TheBlueWay\SaveHandlers\Unity.InputSystem\DevTestCustomDatas\UnityEngine\InputSystem\Users\InputUserCustomSaveData.cs
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\HealthComp.cs
+    Name: _Project\Scripts\A\HealthComp.cs
   - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\Generated\TheBlueWay\SaveHandlers\UnityEngine.CoreModule\DevTest\UnityEngine\TextureSaveHandler.cs
-    Name: _Project\Scripts\Generated\TheBlueWay\SaveHandlers\UnityEngine.CoreModule\DevTest\UnityEngine\TextureSaveHandler.cs
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\Core\AppVersions.cs
+    Name: _Project\Scripts\Core\AppVersions.cs
   - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\A\A.cs
-    Name: _Project\Scripts\A\A.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\B\B.cs
-    Name: _Project\Scripts\B\B.cs
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
   - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\B\B.cs
-    Name: _Project\Scripts\B\B.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\Generated\TheBlueWay\SaveHandlers\A\DevTest\ASaveHandler.cs
-    Name: _Project\Scripts\Generated\TheBlueWay\SaveHandlers\A\DevTest\ASaveHandler.cs
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\A\Entity.cs
+    Name: _Project\Scripts\A\Entity.cs
   - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\Generated\TheBlueWay\SaveHandlers\A\DevTest\ASaveHandler.cs
-    Name: _Project\Scripts\Generated\TheBlueWay\SaveHandlers\A\DevTest\ASaveHandler.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\Generated\TheBlueWay\SaveHandlers\B\DevTest\BSaveHandler.cs
-    Name: _Project\Scripts\Generated\TheBlueWay\SaveHandlers\B\DevTest\BSaveHandler.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\Generated\TheBlueWay\SaveHandlers\B\DevTest\BSaveHandler.cs
-    Name: _Project\Scripts\Generated\TheBlueWay\SaveHandlers\B\DevTest\BSaveHandler.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\Generated\TheBlueWay\SaveHandlers\UnityEngine.UI\DevTest\UnityEngine\UI\MaskableGraphic_CullStateChangedEvent.cs
-    Name: _Project\Scripts\Generated\TheBlueWay\SaveHandlers\UnityEngine.UI\DevTest\UnityEngine\UI\MaskableGraphic_CullStateChangedEvent.cs
-  - ChangeType: 1
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\Generated\TheBlueWay\SaveHandlers\UnityEngine.UI\DevTest\UnityEngine\UI\Slider_SliderEvent.cs
-    Name: _Project\Scripts\Generated\TheBlueWay\SaveHandlers\UnityEngine.UI\DevTest\UnityEngine\UI\Slider_SliderEvent.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\Generated\TheBlueWay\SaveHandlers\UnityEngine.UI\DevTest\UnityEngine\UI\Slider_SliderEvent.cs
-    Name: _Project\Scripts\Generated\TheBlueWay\SaveHandlers\UnityEngine.UI\DevTest\UnityEngine\UI\Slider_SliderEvent.cs
-  - ChangeType: 4
-    FullPath: D:\Unity Projects\Unity Tanks!\Assets\_Project\Scripts\Generated\TheBlueWay\SaveHandlers\UnityEngine.UI\DevTest\UnityEngine\UI\MaskableGraphic_CullStateChangedEvent.cs
-    Name: _Project\Scripts\Generated\TheBlueWay\SaveHandlers\UnityEngine.UI\DevTest\UnityEngine\UI\MaskableGraphic_CullStateChangedEvent.cs
-  _selectedIndices: 8c000000
+    FullPath: D:\Unity Projects\Unity Tanks! 2\Assets\_Project\Scripts\ZComp.cs
+    Name: _Project\Scripts\ZComp.cs
+  _selectedIndices: 00000000
   _userSettings: {fileID: 11400000, guid: 8b67b65e7aed92246b93ac4b59be0137, type: 2}
-  _selectedFolderToScan: 
+  _selectedFolderToScan: _Tanks

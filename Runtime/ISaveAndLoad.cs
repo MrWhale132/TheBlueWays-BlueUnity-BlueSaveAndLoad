@@ -9,13 +9,13 @@ namespace Assets._Project.Scripts.SaveAndLoad
     public interface ISaveAndLoad
     {
         public ObjectMetaData MetaData { get; }
-        public string SaveHandlerId { get; }
+        public long SaveHandlerId { get; }
         public RandomId HandledObjectId { get; }
         public bool IsInitialized { get; }
-        public string DataGroupId { get; }
         public Type HandledType { get; }
         public int Order { get; set; }
         public bool IsValid { get; }
+        public void Accept(SaveDataBase data);
         public void ReleaseObject();
         //save
         public void WriteSaveData();

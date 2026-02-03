@@ -30,7 +30,11 @@ namespace Assets._Project.Scripts.Infrastructure
         public static Infra Singleton { get; private set; }
         public static SceneManagement SceneManagement { get; set; } = new();
 
-        public RandomId GlobalReferencing => __staticSubtituteIdsByType[typeof(Infra)];
+        //had been serialized once
+        [HideInInspector]
+        public RandomId _globalReferencing;
+        //public RandomId GlobalReferencing => _globalReferencing;
+        public static RandomId GlobalReferencing => Singleton._globalReferencing;
 
 
         public HashSet<RandomId> __rootObjectIds;
@@ -70,7 +74,20 @@ namespace Assets._Project.Scripts.Infrastructure
 
         private void Start()
         {
-            Register(SceneManagement, rootObject: true, createSaveHandler: true);
+            RegisterSingleton(SceneManagement);
+        }
+
+
+
+        public void RegisterSingleton(object singleton)
+        {
+            var handler = SaveAndLoadManager.Singleton.GetSaveHandlerFor(singleton);
+            if (!handler.IsSingleton)
+            {
+                Debug.LogError("The save handler for the singleton object is not marked as singleton. Type: "+singleton.GetType().CleanAssemblyQualifiedName());
+            }
+            handler.Init(singleton);
+            SaveAndLoadManager.Singleton.AddSaveHandler(handler);
         }
 
 
@@ -100,14 +117,6 @@ namespace Assets._Project.Scripts.Infrastructure
 
             HashSet<RandomId> allRegisteredObjects = GetAllObjectIds();
 
-            //todo: cleanup
-            //HashSet<RandomId> allRegisteredObjects = new();
-
-            //foreach ((var referencing, var references) in __objectReferences)
-            //{
-            //    allRegisteredObjects.Add(referencing);
-            //    allRegisteredObjects.AddRange(references);
-            //}
 
             var unreferenced = new HashSet<RandomId>(allRegisteredObjects.Except(referenced));
 
@@ -239,6 +248,7 @@ namespace Assets._Project.Scripts.Infrastructure
                 return;
             }
 
+
             __objectIds.Add(reference, key);
             __globalReferenceCache.Add(key, reference);
 
@@ -304,6 +314,7 @@ namespace Assets._Project.Scripts.Infrastructure
 
             if (setLoadingOrder)
             {
+                //hidden dependency jkanfiuhl5435huieurig
                 _SetLoadingOrder(objectId, referencedBy);
             }
 
@@ -387,7 +398,7 @@ namespace Assets._Project.Scripts.Infrastructure
 
             //if (obj is GameObject go2 && go2.name == "BackgroundMusic")
             //{
-            //    Debug.Log("here "+objId, go2);
+            //    Debug.Log("here " + objId, go2);
             //}
 
 
@@ -398,14 +409,14 @@ namespace Assets._Project.Scripts.Infrastructure
             {
                 __rootObjectIds.Add(objId);
             }
-            else if (obj is GameObject go)
-            {
-                Debug.LogWarning($"non-root GameObject registered: {go.HierarchyPath()} (id: {objId})");
-            }
-            else if (obj is Component component)
-            {
-                Debug.LogWarning($"non-root Component registered: {component.name}, {component.gameObject.HierarchyPath()} (id: {objId})");
-            }
+            //else if (obj is GameObject go)
+            //{
+            //    Debug.LogWarning($"non-root GameObject registered: {go.HierarchyPath()} (id: {objId})");
+            //}
+            //else if (obj is Component component)
+            //{
+            //    Debug.LogWarning($"non-root Component registered: {component.name}, {component.gameObject.HierarchyPath()} (id: {objId})");
+            //}
 
 
             if (createSaveHandler)
@@ -473,11 +484,11 @@ namespace Assets._Project.Scripts.Infrastructure
                 __delegateMapPerInstance.Remove(id);
             }
 
-            if(__routinesByTargetMono.ContainsKey(id))
+            if (__routinesByTargetMono.ContainsKey(id))
             {
                 var routines = __routinesByTargetMono[id];
 
-                foreach(var routine in routines)
+                foreach (var routine in routines)
                 {
                     var routineHandler = __coroutineSaveDataLookUp[routine];
 
@@ -882,20 +893,6 @@ namespace Assets._Project.Scripts.Infrastructure
                 return null;
             }
 
-            if (Method != null && Method.IsDefined(typeof(CompilerGeneratedAttribute)))
-            {
-
-            }
-
-            if (Method != null && Method.Name.Contains("vas_preWillRenderCanvase"))
-            {
-                Debug.Log("prewill");
-                if (Method.IsDefined(typeof(CompilerGeneratedAttribute)))
-                {
-                    Debug.Log("hey");
-                }
-            }
-
 
             bool isStatic = Target == null;
 
@@ -1142,7 +1139,10 @@ namespace Assets._Project.Scripts.Infrastructure
             {
                 Formatting = Formatting.Indented,
                 Converters = converters,
-                TypeNameHandling = TypeNameHandling.Auto,
+                ///note: this settings is important for both <see cref="CustomSaveData{TStruct}"/> and <see cref="Data{T}"/>
+                ///as the instances of the derived types of these types are assigned with field initializers
+                ObjectCreationHandling = ObjectCreationHandling.Auto,
+                //TypeNameHandling = TypeNameHandling.Auto,
                 //WARNING: DO NOT FUCKING SET THIS. From 0.03 to 1.8s on first call, then worse and worse on subsequent calls.
                 //if newtonsoft tries to read a field or property via reflection in a unityobject, unity might trigger events to them, for example gpu readbacks
                 //ContractResolver = new DefaultContractResolver
@@ -1292,7 +1292,7 @@ namespace Assets._Project.Scripts.Infrastructure
                 sceneHandle = scene.handle,
                 InstanceId = id,
             };
-            
+
             _loadedSceneInfos.Add(info);
             _byHandle.Add(scene.handle, info);
             _byInstanceId.Add(id, info);
@@ -1303,7 +1303,7 @@ namespace Assets._Project.Scripts.Infrastructure
         private void OnSceneUnloaded(Scene scene)
         {
             if (_firstUnload) { _firstUnload = false; return; }
-            
+
             var info = _byHandle[scene.handle];
             _loadedSceneInfos.Remove(info);
             _byHandle.Remove(scene.handle);
@@ -1370,7 +1370,7 @@ namespace Assets._Project.Scripts.Infrastructure
         }
 
 
-        [SaveHandler(id: 102204973066903000, nameof(SceneManagement), typeof(SceneManagement), order: -90)]
+        [SaveHandler(id: 102204973066903000, nameof(SceneManagement), typeof(SceneManagement), order: -90, singleton: true)]
         public class SceneManagementSaveHandler : UnmanagedSaveHandler<SceneManagement, SceneManagementSaveData>
         {
             public override void WriteSaveData()
@@ -1383,33 +1383,43 @@ namespace Assets._Project.Scripts.Infrastructure
 
 
             //todo: this wont work with streaming data
-            public override void CreateObject()
+            //public override void CreateObject()
+            //{
+            //    if (Infra.SceneManagement != null)
+            //    {
+            //        Infra.Singleton.Unregister(Infra.SceneManagement);
+            //        //Infra.SceneManagement = null;
+            //    }
+
+            //    base.CreateObject();
+
+            //    //Infra.SceneManagement = __instance;
+            //}
+
+            //public override void _AssignInstance()
+            //{
+            //    __instance = Infra.SceneManagement;
+            //}
+
+            public override void ReleaseObject()
             {
-                if (Infra.SceneManagement != null)
-                {
-                    Infra.Singleton.Unregister(Infra.SceneManagement);
-                    //Infra.SceneManagement = null;
-                }
-
-                base.CreateObject();
-
-                //Infra.SceneManagement = __instance;
+                Debug.Log("released");
+                base.ReleaseObject();
             }
-
-            public override void _AssignInstance()
-            {
-                __instance = Infra.SceneManagement;
-            }
-
-
 
             public override void LoadReferences()
             {
                 base.LoadReferences();
-                ///note: you see <see cref="__saveData._loadedSceneInfos"/> removed as unreferenced beacuse of this line. It's not assigned back to its field.
+                ///note: you see <see cref="SceneManagementSaveData._loadedSceneInfos"/> removed as unreferenced beacuse of this line. It's not assigned back to its field.
                 __instance._savedSceneInfos = GetObjectById<List<SceneInfo>>(__saveData._loadedSceneInfos);
                 __instance._activeSceneInstanceIdFromSaveFile = __saveData.ActiveSceneInstanceIdFromSaveFile;
             }
+
+            //public override void _SetObjectId()
+            //{
+            //    HandledObjectId = SaveAndLoadManager.Singleton.GetOrCreateSingletonObjectIdBySaveHandlerId(SaveHandlerId);
+            //    Infra.Singleton.RegisterReference(__instance, HandledObjectId, rootObject: true);
+            //}
         }
 
         public class SceneManagementSaveData : SaveDataBase
@@ -1447,7 +1457,7 @@ namespace Assets._Project.Scripts.Infrastructure
 
     public class StaticInfraSubtitute : StaticSubtitute<Infra> { }
 
-    [SaveHandler(83297439587234832, nameof(StaticInfraSubtitute), typeof(StaticInfraSubtitute), isStatic: true, staticHandlerOf: typeof(Infra))]
+    [SaveHandler(832974395872348320, nameof(StaticInfraSubtitute), typeof(StaticInfraSubtitute), staticHandlerOf: typeof(Infra))]
     public class StaticInfraSaveHandler : StaticSaveHandlerBase<StaticInfraSubtitute, StaticInfraSaveData>
     {
 

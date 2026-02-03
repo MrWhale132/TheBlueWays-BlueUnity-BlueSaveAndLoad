@@ -9,10 +9,9 @@ using System.Collections.Generic;
 using System;
 using System.Reflection;
 
-namespace DevTest
+namespace UnityEngine_
 {
-	//todo
-	[SaveHandler(521664889686445854, "ParticleSystem", typeof(UnityEngine.ParticleSystem), generationMode: SaveHandlerGenerationMode.FullAutomata)]
+	[SaveHandler(521664889686445854, "ParticleSystem", typeof(UnityEngine.ParticleSystem), generationMode: SaveHandlerGenerationMode.Manual)]
 	public class ParticleSystemSaveHandler : MonoSaveHandler<UnityEngine.ParticleSystem, ParticleSystemSaveData> 
 	{
 		public override void WriteSaveData()
@@ -27,13 +26,13 @@ namespace DevTest
 		public override void LoadReferences()
 		{
 			base.LoadReferences();
-			__instance.Stop();
-			__instance.time = __saveData.time;
+            __instance.Stop();
+            __instance.time = __saveData.time;
 			__instance.randomSeed = __saveData.randomSeed;
 			__instance.useAutoRandomSeed = __saveData.useAutoRandomSeed;
 			__instance.hideFlags = __saveData.hideFlags;
-			__instance.Play();
-		}
+            __instance.Play();
+        }
 
 		static ParticleSystemSaveHandler()
 		{

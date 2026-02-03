@@ -18,7 +18,16 @@ using Theblueway.SaveAndLoad.Packages.com.theblueway.saveandload.Runtime.InfraSc
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
+using Theblueway.SaveAndLoad.Packages.com.theblueway.saveandload.Runtime;
+using ObjectFactory = Theblueway.SaveAndLoad.Packages.com.theblueway.saveandload.Runtime.ObjectFactory;
 
+
+
+
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 
 namespace Assets._Project.Scripts.SaveAndLoad
@@ -28,6 +37,7 @@ namespace Assets._Project.Scripts.SaveAndLoad
     public class SaveAndLoadManager : MonoBehaviour
     {
         public static SaveAndLoadManager Singleton { get; private set; }
+        public static SaveAndLoadManager S => Singleton;
         public static PrefabDescriptionRegistry PrefabDescriptionRegistry { get; set; } = new PrefabDescriptionRegistry();
         public static ScenePlacedObjectRegistry ScenePlacedObjectRegistry { get; set; } = new ScenePlacedObjectRegistry();
 
@@ -42,18 +52,43 @@ namespace Assets._Project.Scripts.SaveAndLoad
             Terminate,
         }
 
+
+        public int _appVersion = 1;
+
+#if UNITY_EDITOR
+        public bool _incrementAppVersion;
+#endif
+
+
+        [HideInInspector]
         public SaveState __currentSaveState = SaveState.Main;
 
 
-        public List<ISaveAndLoad> __mainSaveHandlers;
-        public List<ISaveAndLoad> __tempA_saveHandlers;
-        public List<ISaveAndLoad> __tempB_saveHandlers;
+        public List<ISaveAndLoad> __mainSaveHandlers = new();
+        public List<ISaveAndLoad> __tempA_saveHandlers = new();
+        public List<ISaveAndLoad> __tempB_saveHandlers = new();
         //state machine vars
         public List<ISaveAndLoad> __currentSaveHandlers;
         public List<ISaveAndLoad> __iteratedSaveHandlers;
 
         public Dictionary<RandomId, ISaveAndLoad> __saveHandlerByHandledObjectIdLookUp = new();
-        public Dictionary<Type, Type> __saveHandlerTypeByHandledObjectTypeLookUp = new();
+
+        public Dictionary<long, MigrationiPipeline> __migrationPipelinesByHandlerId => _coreService.__migrationPipelinesByHandlerId;
+
+
+        public Dictionary<Type, Type> __saveHandlerTypeByHandledObjectTypeLookUp => _coreService.__saveHandlerTypeByHandledObjectTypeLookUp;
+        public IEnumerable<SaveHandlerAttribute> _nonGenericHandlerInfos {
+            get
+            {
+                foreach (var attr in _coreService.__saveHandlerAttributesByHandledType.Values)
+                {
+                    if (!attr.IsGeneric && attr.HandledType != typeof(Array))
+                    {
+                        yield return attr;
+                    }
+                }
+            }
+        }
 
 
         public bool IsIteratingSaveHandlers { get; private set; }
@@ -76,61 +111,215 @@ namespace Assets._Project.Scripts.SaveAndLoad
             }
 
 
-            __mainSaveHandlers = new();
-            __tempA_saveHandlers = new();
-            __tempB_saveHandlers = new();
-
             __currentSaveHandlers = __mainSaveHandlers;
 
 
-
-
-            __isTypesHandledByCustomSaveDataLookup = new();
-
-
             InitSaveHandlerWork();
-
-            try
-            {
-                CollectSaveHandlers();
-            }
-            catch (Exception e)
-            {
-                Debug.LogError(e.ToString());
-                throw;
-            }
-
-            BuildCustomSaveDataLookUp();
-            BuildCustomSaveDataFactories(__isTypesHandledByCustomSaveDataLookup.Keys, __isTypesHandledByCustomSaveDataLookup.Values);
         }
 
 
         private void Start()
         {
-            Infra.Singleton.Register(PrefabDescriptionRegistry, rootObject: true, createSaveHandler: true);
-            Infra.Singleton.Register(ScenePlacedObjectRegistry, rootObject: true, createSaveHandler: true);
+            Infra.Singleton.RegisterSingleton(this);
+            Infra.Singleton.RegisterSingleton(PrefabDescriptionRegistry);
+            Infra.Singleton.RegisterSingleton(ScenePlacedObjectRegistry);
         }
 
 
         public void InitSaveHandlerWork()
         {
-            __saveHandlerCreatorsByType = new();
-            __saveHandlerCreatorsById = new();
-            __genericSaveHandlerCreatorsByTypePerId = new();
-            __genericSaveHandlerCreatorsByTypePerTypeDef = new();
-            __arraySaveHandlerCreatorsByTypePerDimension = new();
+            LoadSingletonObjectIds();
+
+            _coreService.BuildSaveDataAttributeLookup();
+
+            CollectSaveHandlers(out var handlerInfos);
+
+            _coreService.BuildSaveHandlerLookups(handlerInfos);
+
+            CreateSaveHandlerFactories();
+
+            CollectCustomSaveDatas();
+
+            _coreService.BuildMigrationLookups();
+
+            RegisterStaticSaveHandlers();
+
+            EnsureSingletons();
+
+#if UNITY_EDITOR
+            UpdateSingletonObjectIds();
+#endif
         }
 
 
 
-        public Dictionary<string, RandomId> __singletonObjectIdsBySaveHandlerIds = new();
+
+        private void OnValidate()
+        {
+#if UNITY_EDITOR
+            if (_incrementAppVersion)
+            {
+                _incrementAppVersion = false;
+                IncrementAppVersion();
+            }
+#endif
+        }
 
 
-        public RandomId GetOrCreateSingletonObjectIdBySaveHandlerId(string handlerId)
+
+
+        public void EnsureSingletons()
+        {
+            foreach (var info in _coreService.__saveHandlerAttributesById.Values)
+            {
+                if (info.IsSingleton)
+                {
+                    GetOrCreateSingletonObjectIdBySaveHandlerId(info.Id);
+                }
+            }
+        }
+
+
+
+        public const string InheritanceChainFolderPath = "TheBlueWay/InheritanceChains";
+
+        public string GetInheritanceChainFilePath(int appVersion)
+        {
+            string fileName = $"inheritance_chain_v{appVersion}.json";
+
+            string path = Path.Combine(InheritanceChainFolderPath, fileName);
+
+            return path;
+        }
+
+
+#if UNITY_EDITOR
+        public void IncrementAppVersion()
+        {
+            int newVersion = _appVersion + 1;
+
+            Dictionary<long, IEnumerable<long>> inheritanceChainById = new();
+
+            foreach ((var id, var attr) in Service.__saveHandlerAttributesById)
+            {
+                List<long> inheritanceChanin = new();
+
+                if (!attr.IsStatic)
+                {
+                    var baseType = attr.HandledType.BaseType;
+
+                    while (baseType != null)
+                    {
+                        if (Service.__saveHandlerAttributesByHandledType.TryGetValue(baseType, out var baseAttr))
+                        {
+                            inheritanceChanin.Add(baseAttr.Id);
+                        }
+                        baseType = baseType.BaseType;
+                    }
+                }
+
+                inheritanceChainById.Add(id, inheritanceChanin);
+            }
+
+            var filePath = Path.Combine(Application.streamingAssetsPath, GetInheritanceChainFilePath(newVersion));
+
+            if (File.Exists(filePath))
+            {
+                Debug.LogError($"Can not increment appVersion from {_appVersion} to {newVersion} because a necessary file can not be created. " +
+                    $"Reason: inheritance_chain file already exists with current appVersion. " +
+                    $"Path: {filePath}");
+                return;
+            }
+
+            var json = JsonConvert.SerializeObject(inheritanceChainById);
+
+            string dir = Path.GetDirectoryName(filePath);
+            if (!Directory.Exists(dir))
+                Directory.CreateDirectory(dir);
+
+            File.WriteAllText(filePath, json);
+
+            int oldVersion = _appVersion;
+
+            _appVersion = newVersion;
+
+            Debug.Log($"Successfuly incremented appVersion from {oldVersion} to {newVersion}");
+        }
+#endif
+
+
+
+        public Dictionary<long, IEnumerable<long>> GetInheritanceChainForAppVersion(int appversion)
+        {
+            var filePath = Path.Combine(Application.streamingAssetsPath, GetInheritanceChainFilePath(appversion));
+
+            if (!File.Exists(filePath))
+            {
+                string msg = $"Did not find inheritance chain file for appversion: {appversion}";
+                Debug.LogError(msg);
+                throw new Exception(msg);
+            }
+
+            string json = File.ReadAllText(filePath);
+
+            var inheritanceChain = JsonConvert.DeserializeObject<Dictionary<long, IEnumerable<long>>>(json);
+
+            return inheritanceChain;
+        }
+
+
+
+
+
+
+
+
+        public void LoadSingletonObjectIds()
+        {
+            var path = Path.Combine(Application.streamingAssetsPath, "SingletonObjectIds.json");
+
+            if (!File.Exists(path))
+            {
+                __singletonObjectIdsBySaveHandlerIds = new();
+            }
+            else
+            {
+                using var fileStream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+
+                using var reader = new StreamReader(fileStream);
+
+                var json = reader.ReadToEnd();
+
+                ///this lookup is filled by <see cref="GetOrCreateSingletonObjectIdBySaveHandlerId(string)"/>
+                ///which is called from savehandlers' Init which happens right below these lines
+                ///so dont get confused that u dont see a reference to it right here
+                __singletonObjectIdsBySaveHandlerIds = JsonConvert.DeserializeObject<Dictionary<long, RandomId>>(json) ?? new();
+            }
+        }
+
+
+#if UNITY_EDITOR
+        public void UpdateSingletonObjectIds()
+        {
+            var path = Path.Combine(Application.streamingAssetsPath, "SingletonObjectIds.json");
+
+            var json = JsonConvert.SerializeObject(__singletonObjectIdsBySaveHandlerIds);
+
+            File.WriteAllText(path, json);
+        }
+#endif
+
+
+
+        public Dictionary<long, RandomId> __singletonObjectIdsBySaveHandlerIds = new();
+
+
+        public RandomId GetOrCreateSingletonObjectIdBySaveHandlerId(long handlerId)
         {
             if (!__singletonObjectIdsBySaveHandlerIds.ContainsKey(handlerId))
             {
                 var objectId = RandomId.Get();
+                //Debug.Log($"{handlerId} {objectId}");
                 __singletonObjectIdsBySaveHandlerIds.Add(handlerId, objectId);
             }
 
@@ -139,165 +328,42 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
 
 
-        public void CollectSaveHandlers()
+        public void CollectSaveHandlers(out IEnumerable<SaveHandlerAttribute> handlerInfos)
         {
-
-            using var fileStream = File.Open("SingletonObjectIds.json", FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.ReadWrite);
-
-            using var reader = new StreamReader(fileStream);
-
-            var json = reader.ReadToEnd();
-
-            __singletonObjectIdsBySaveHandlerIds = JsonConvert.DeserializeObject<Dictionary<string, RandomId>>(json) ?? new();
-
-
-
-            //todo: find all relevant assemblies. Only user handled ones.
-            var types = AppDomain.CurrentDomain.GetUserAssemblies().SelectMany(asm => asm.GetTypes());
-
-            foreach (Type type in types)
-            {
-                if (type.IsInterface || type.IsAbstract)
-                    continue;
-
-
-
-
-                var attr = type.GetCustomAttribute<SaveHandlerAttribute>();
-                if (attr == null)
-                {
-                    continue;
-                }
-
-                if (attr.RequiresManualAttributeCreation)
-                {
-                    var method = type.GetMethod("ManualSaveHandlerAttributeCreation", BindingFlags.Public | BindingFlags.Static);
-                    if (method == null)
-                    {
-                        Debug.LogError($"SaveHandler {type.FullName} requires manual attribute creation but does not have a public static method named ManualSaveHandlerAttributeCreation. " +
-                            $"Skipping this SaveHandler.");
-                        continue;
-                    }
-
-                    var result = method.Invoke(null, null);
-
-                    if (result is not SaveHandlerAttribute manualAttr)
-                    {
-                        Debug.LogError($"SaveHandler {type.FullName} ManualSaveHandlerAttributeCreation method did not return a SaveHandlerAttribute. " +
-                            $"Skipping this SaveHandler.");
-                        continue;
-                    }
-
-                    attr = manualAttr;
-                }
-
-
-                void LogDuplicateIdError()
-                {
-                    Debug.LogError($"SaveHandler with id {attr.Id} is already registered. " +
-                        $"This means that there are multiple SaveHandlers with the same id. " +
-                        $"Please ensure that each SaveHandler has a unique id." +
-                        $"Going to skip the new one.");
-                }
-
-                void LogDuplicateHandledTypeError()
-                {
-                    Debug.LogError($"More then one savehandler found for the same handled type {attr.HandledType.FullName}. " +
-                        $"Only one savehandler is allowed per type");
-                }
-
-
-                //Debug.Log($"TRACE: Registering SaveHandler for type {attr.HandledType.FullName} with id {attr.Id}.");
-
-                if (attr.HandledType.IsGenericTypeDefinition)
-                {
-                    var genericHandlerTypeDef = type.GetGenericTypeDefinition();
-
-                    if (__genericSaveHandlerCreatorsByTypePerId.ContainsKey(attr.Id.ToString()))
-                    {
-                        LogDuplicateIdError();
-                        continue;
-                    }
-
-                    if (__genericSaveHandlerCreatorsByTypePerTypeDef.ContainsKey(attr.HandledType))
-                    {
-                        LogDuplicateHandledTypeError();
-                        continue;
-                    }
-
-
-                    //factory methods for generic handlers are lazy loaded, they are created when they first requested
-                    __genericSaveHandlerCreatorsByTypePerId.Add(attr.Id.ToString(), new());
-                    __genericSaveHandlerCreatorsByTypePerTypeDef.Add(attr.HandledType, new(genericHandlerTypeDef, new()));
-                }
-                else if (attr.HandledType == typeof(Array) && attr.ArrayDimension != 0)
-                {
-                    var genericHandlerTypeDef = type.GetGenericTypeDefinition();
-
-                    if (__genericSaveHandlerCreatorsByTypePerId.ContainsKey(attr.Id.ToString()))
-                    {
-                        LogDuplicateIdError();
-                        continue;
-                    }
-
-                    if (__arraySaveHandlerCreatorsByTypePerDimension.ContainsKey(attr.ArrayDimension))
-                    {
-                        LogDuplicateHandledTypeError();
-                        continue;
-                    }
-
-
-                    //same as for generics, except the groupping is by array dimension, not by handled type def
-                    //array savehandlers are generics too on element type, no need to track them in a seperate list
-                    __genericSaveHandlerCreatorsByTypePerId.Add(attr.Id.ToString(), new());
-                    __arraySaveHandlerCreatorsByTypePerDimension.Add(attr.ArrayDimension, new(genericHandlerTypeDef, new()));
-                }
-                else
-                {
-
-                    if (__saveHandlerCreatorsById.ContainsKey(attr.Id.ToString()))
-                    {
-                        LogDuplicateIdError();
-                        continue;
-                    }
-
-                    if (__saveHandlerCreatorsByType.ContainsKey(attr.HandledType))
-                    {
-                        LogDuplicateHandledTypeError();
-                        continue;
-                    }
-
-
-                    Func<SaveHandlerBase> ctor = CreateTypedCtor<SaveHandlerBase>(type);
-
-                    __saveHandlerCreatorsById[attr.Id.ToString()] = ctor;
-                    __saveHandlerCreatorsByType[attr.HandledType] = ctor;
-
-                    __saveHandlerTypeByHandledObjectTypeLookUp.Add(attr.HandledType, type);
-
-
-                    if (attr.IsStatic)
-                    {
-                        ///dont forget about generic static classes. <see cref="GenericWithStaticExampleClass{T}"/>
-                        ///a handler of an object is added when an other object asks for its object id with a reference
-                        ///since static types are not referenced via an object instance, naturally, nobody will ask for their id
-                        ///thus they wont get a handler automatically as others would.
-                        var handler = ctor();
-                        handler.Init(null);
-                        AddSaveHandler(handler);
-                    }
-                }
-            }
-
-
-            fileStream.Position = 0;
-
-            json = JsonConvert.SerializeObject(__singletonObjectIdsBySaveHandlerIds);
-
-            using var writer = new StreamWriter(fileStream);
-            writer.Write(json);
+            _coreService.CollectSaveHandlers(out handlerInfos);
         }
 
+
+
+        public void CreateSaveHandlerFactories()
+        {
+            foreach (var info in _nonGenericHandlerInfos)
+            {
+                Func<SaveHandlerBase> ctor = CreateTypedCtor<SaveHandlerBase>(info.HandlerType);
+
+                __saveHandlerCreatorsById[info.Id] = ctor;
+                __saveHandlerCreatorsByType[info.HandledType] = ctor;
+            }
+        }
+
+
+        public void RegisterStaticSaveHandlers()
+        {
+            foreach (var info in _nonGenericHandlerInfos)
+            {
+                if (info.IsStatic)
+                {
+                    _coreService.__staticSaveHandlerAttributesByHandledType[info.StaticHandlerOf] = info;
+
+                    var ctor = _coreService.__saveHandlerCreatorsByType[info.HandledType];
+
+                    ///todo: dont forget about generic static classes. <see cref="GenericWithStaticExampleClass{T}"/>
+                    var handler = ctor();
+                    handler.Init(null);
+                    AddSaveHandler(handler);
+                }
+            }
+        }
 
 
 
@@ -327,10 +393,11 @@ namespace Assets._Project.Scripts.SaveAndLoad
                 typeof(CtorFactory<>).MakeGenericType(derivedType).GetMethod("Create"));
 
 
+            return del;
 
-            return Expression.Lambda<Func<TBase>>(castExpr).Compile();
+            //return Expression.Lambda<Func<TBase>>(castExpr).Compile();
             //todo: test this out
-            return Expression.Lambda<Func<TBase>>(castExpr).Compile(preferInterpretation: true);
+            //return Expression.Lambda<Func<TBase>>(castExpr).Compile(preferInterpretation: true);
         }
 
         public static class CtorFactory<T> where T : new()
@@ -352,25 +419,675 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
 
 
+        public CoreService _coreService = new();
 
-
-        public static Service Service_ { get; } = new Service();
-
-        public class Service
+        public class CoreService
         {
+
             public Dictionary<Type, Func<SaveHandlerBase>> __saveHandlerCreatorsByType = new();
-            public Dictionary<string, Func<SaveHandlerBase>> __saveHandlerCreatorsById = new();
+            public Dictionary<long, Func<SaveHandlerBase>> __saveHandlerCreatorsById = new();
 
             //the first Type is the HandledType's typedef, the second Type is the generic savehandler's typedef
             //the third one is the HandledType's concrete types
             public Dictionary<Type, (Type typeDef, Dictionary<Type, Func<SaveHandlerBase>> concreteTypes)> __genericSaveHandlerCreatorsByTypePerTypeDef = new();
             public Dictionary<int, (Type saveHandlerTypeDef, Dictionary<Type, Func<SaveHandlerBase>> concreteTypes)> __arraySaveHandlerCreatorsByTypePerDimension = new();
 
-            public Dictionary<string, Dictionary<Type, Func<SaveHandlerBase>>> __genericSaveHandlerCreatorsByTypePerId = new();
+
+            public Dictionary<long, Dictionary<Type, Func<SaveHandlerBase>>> __genericSaveHandlerCreatorsByTypePerId = new();
+
+
+            public Dictionary<Type, Type> __saveHandlerTypeByHandledObjectTypeLookUp = new();
+
+
+            public Dictionary<Type, SaveHandlerAttribute> __staticSaveHandlerAttributesByHandledType = new();
+
+            public Dictionary<Type, SaveHandlerAttribute> __saveHandlerAttributesByHandledType = new();
+            public Dictionary<long, SaveHandlerAttribute> __saveHandlerAttributesById = new();
+
+
+            //for current version only
+            public Dictionary<Type, CustomSaveDataAttribute> __customSaveDataAttributesByHandledType = new();
+            public Dictionary<long, CustomSaveDataAttribute> __customSaveDataAttributesById = new();
+            //for past versions only
+            public Dictionary<Type, CustomSaveDataAttribute> __versionedCustomSaveDataAttributesByHandledType = new();
+            public Dictionary<long, Dictionary<int, CustomSaveDataAttribute>> __versionedCustomSaveDataAttributesByVersionById = new();
+            //both
+            public Dictionary<long, Dictionary<int, Type>> __customSaveDataHandledTypesByVersionById = new();
+
+
+            //current savedata type only
+            public Dictionary<long, Type> __saveDataTypesBySaveHandlerId = new();
+
+
+            public bool HadBuiltVersionLookup { get; set; }
+
+            public Dictionary<long, int> __currentVersionOfHandledTypeById = new();
+
+            public Dictionary<long, MigrationiPipeline> __migrationPipelinesByHandlerId = new();
+
+            //note: includes versioned types of the current type of SaveData
+            public Dictionary<Type, long> __saveHandlerIdBySaveDataType = new();
+            public Dictionary<long, Dictionary<int, Type>> __savedataTypesByVersionByHandlerId = new();
+
+
+
+
+
+
+
+            public int GetCustomSaveDataAppVersionByHandledType(Type handledType)
+            {
+                if (__customSaveDataAttributesByHandledType.ContainsKey(handledType))
+                {
+                    return SaveAndLoadManager.Singleton._appVersion;
+                }
+                else if (__versionedCustomSaveDataAttributesByHandledType.TryGetValue(handledType, out var info))
+                {
+                    return info.AppVersion;
+                }
+                else
+                {
+                    Debug.LogError($"No CustomSaveDataAttribute found for handled type {handledType.CleanAssemblyQualifiedName()}");
+                    return 1;
+                }
+            }
+
+
+            public Type GetCustomSaveDataHandlerTypeByHandledType(Type handledType)
+            {
+                if (__customSaveDataAttributesByHandledType.TryGetValue(handledType, out var info))
+                {
+                    return info.SaveHandlerType;
+                }
+                else if (__versionedCustomSaveDataAttributesByHandledType.TryGetValue(handledType, out info))
+                {
+                    return info.SaveHandlerType;
+                }
+
+                return null;
+            }
+
+
+
+            public Type GetHandledTypeByHandlerId(long id)
+            {
+                if (__saveHandlerAttributesById.TryGetValue(id, out var handlerAttr))
+                {
+                    return handlerAttr.HandledType;
+                }
+                else if (__customSaveDataAttributesById.TryGetValue(id, out var saveDataAttribute))
+                {
+                    return saveDataAttribute.HandledType;
+                }
+                //todo: log error if id is array savehandler
+                else return null;
+            }
+
+
+
+
+            public bool HasSaveHandlerForType(Type type, bool isStatic, out SaveHandlerAttribute attribute)
+            {
+                if (isStatic)
+                {
+                    if (__staticSaveHandlerAttributesByHandledType.TryGetValue(type, out attribute))
+                    {
+                        return true;
+                    }
+                    else
+                    {
+                        attribute = null;
+                        return false;
+                    }
+                }
+
+                if (__saveHandlerAttributesByHandledType.TryGetValue(type, out attribute))
+                {
+                    return true;
+                }
+                else
+                {
+                    attribute = null;
+                    return false;
+                }
+            }
+
+
+            public bool HasCustomSaveData(Type type, out CustomSaveDataAttribute attribute)
+            {
+                if (__customSaveDataAttributesByHandledType.TryGetValue(type, out attribute))
+                {
+                    return true;
+                }
+                else
+                {
+                    attribute = null;
+                    return false;
+                }
+            }
+
+
+
+
+
+
+
+
+            public void BuildMigrationLookups()
+            {
+                if (HadBuiltVersionLookup) return;
+
+                if (__saveHandlerAttributesById is null or { Count: 0 })
+                {
+                    Debug.LogError("Cannot build save data version lookup before building save handler lookups.");
+                    return;
+                }
+
+                if (__savedataTypesByVersionByHandlerId.Count > 0)
+                {
+                    var content = JsonConvert.SerializeObject(__savedataTypesByVersionByHandlerId);
+                    Debug.LogError("It is not expected that this lookup already has any entry, since it is supposed to be built now, and not earlier." +
+                        "Going to Clear() it. It's content was:\n" + content);
+                    __savedataTypesByVersionByHandlerId.Clear();
+                }
+
+
+
+
+                var types = AppDomain.CurrentDomain.GetUserAssemblies().SelectMany(asm => asm.GetTypes());
+
+                foreach (var type in types)
+                {
+                    MigrationsAttribute migrationsAttr = type.GetCustomAttribute<MigrationsAttribute>();
+
+
+                    if (migrationsAttr == null)
+                    {
+                        continue;
+                    }
+
+                    if (__currentVersionOfHandledTypeById.ContainsKey(migrationsAttr.SaveHandlerId))
+                    {
+                        Debug.LogError($"Multiple MigrationsAttribute found for the same SaveHandlerId {migrationsAttr.SaveHandlerId}. " +
+                            $"Only one MigrationsAttribute is allowed per SaveHandlerId. " +
+                            $"Skipping the new one.");
+                        continue;
+                    }
+
+
+                    IEnumerable<MigrationAttribute> migrationAttrs = type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Static)
+                        .Where(m => m.IsDefined(typeof(MigrationAttribute), inherit: false))
+                        .Select(m => m.GetCustomAttribute<MigrationAttribute>());
+
+                    if (migrationAttrs.Count() == 0)
+                    {
+                        continue;
+                    }
+
+
+                    int currentVersion = migrationAttrs.Max(attr => attr.DataVersion) + 1;
+
+                    __currentVersionOfHandledTypeById.Add(migrationsAttr.SaveHandlerId, currentVersion);
+
+
+                    var pipeline = MigrationiPipeline.From(type);
+                    __migrationPipelinesByHandlerId.Add(migrationsAttr.SaveHandlerId, pipeline);
+
+
+
+                    Dictionary<int, Type> dataTypesByDataVersion = new();
+                    __savedataTypesByVersionByHandlerId.Add(migrationsAttr.SaveHandlerId, dataTypesByDataVersion);
+
+                    foreach (var attr in migrationAttrs)
+                    {
+                        dataTypesByDataVersion.Add(attr.DataVersion, attr.DataType);
+
+                        //multiple migrations can operate on the same savedata type
+                        if (!__saveHandlerIdBySaveDataType.ContainsKey(attr.DataType))
+                        {
+                            __saveHandlerIdBySaveDataType.Add(attr.DataType, migrationsAttr.SaveHandlerId);
+                        }
+                    }
+                }
+
+
+                //note: set a version of 1 for types that do not define migrations for themselves
+                foreach (var handlerId in __saveHandlerAttributesById.Keys)
+                {
+                    if (!__currentVersionOfHandledTypeById.ContainsKey(handlerId))
+                    {
+                        __currentVersionOfHandledTypeById.Add(handlerId, 1);
+                    }
+
+                    int currentVersion = __currentVersionOfHandledTypeById[handlerId];
+
+                    Type currentSaveDataType = __saveDataTypesBySaveHandlerId[handlerId];
+
+                    if (!__saveHandlerIdBySaveDataType.ContainsKey(currentSaveDataType))
+                    {
+                        __saveHandlerIdBySaveDataType.Add(currentSaveDataType, handlerId);
+                    }
+
+
+                    if (!__savedataTypesByVersionByHandlerId.ContainsKey(handlerId))
+                    {
+                        __savedataTypesByVersionByHandlerId.Add(handlerId, new());
+                    }
+
+                    __savedataTypesByVersionByHandlerId[handlerId].Add(currentVersion, currentSaveDataType);
+                }
+
+                HadBuiltVersionLookup = true;
+            }
+
+
+            public int GetCurrentVersionOfTypeById(long id)
+            {
+                if (HadBuiltVersionLookup == false)
+                {
+                    Debug.Log("but why?");
+                    BuildMigrationLookups();
+                }
+
+                if (__currentVersionOfHandledTypeById.TryGetValue(id, out var version))
+                {
+                    return version;
+                }
+                else
+                {
+                    Debug.LogError($"No version information found for SaveHandlerId {id}. " +
+                        $"This should not have happened at this point. " +
+                        $"When the lookup is built, even the handlers that do not define a version for themselves " +
+                        $"should have their current version set. " +
+                        $"Returning version 1 as default.");
+                    return 1;
+                }
+            }
+
+
+
+
+
+            public void BuildSaveDataAttributeLookup()
+            {
+                var types = AppDomain.CurrentDomain.GetUserAssemblies().SelectMany(asm => asm.GetTypes());
+
+                foreach (var type in types)
+                {
+                    //todo: because of backward compatibility, remove this code once all savedata has an attribute
+                    SaveHandlerAttribute attribute = type.GetCustomAttribute<SaveHandlerAttribute>();
+
+                    if (attribute != null)
+                    {
+                        if (__saveDataTypesBySaveHandlerId.ContainsKey(attribute.Id))
+                            continue;
+
+                        Type baseType = type.BaseType;
+
+                        while (!baseType.IsGenericType || baseType.GetGenericTypeDefinition() != typeof(SaveHandlerGenericBase<,>))
+                        {
+                            baseType = baseType.BaseType;
+                        }
+
+                        Type savedataType = baseType.GetGenericArguments()[1];
+
+                        if (savedataType.IsGenericType)
+                            savedataType = savedataType.GetGenericTypeDefinition();
+
+                        __saveDataTypesBySaveHandlerId.Add(attribute.Id, savedataType);
+                        continue;
+                    }
+
+
+                    SaveDataAttribute attr = type.GetCustomAttribute<SaveDataAttribute>();
+
+                    if (attr == null) continue;
+
+                    Type saveDataType = type;
+
+                    if (type.IsGenericType)
+                        saveDataType = type.GetGenericTypeDefinition();
+
+                    //todo:backward comp, remove later this if
+                    if (!__saveDataTypesBySaveHandlerId.ContainsKey(attr.SaveHandlerId))
+                        __saveDataTypesBySaveHandlerId.Add(attr.SaveHandlerId, saveDataType);
+                }
+            }
+
+
+            public void CollectSaveHandlers(out IEnumerable<SaveHandlerAttribute> handlerInfos)
+            {
+                var infos = new List<SaveHandlerAttribute>();
+
+                var types = AppDomain.CurrentDomain.GetUserAssemblies().SelectMany(asm => asm.GetTypes());
+
+                foreach (Type type in types)
+                {
+                    if (type.IsInterface || type.IsAbstract)
+                        continue;
+
+                    var attr = type.GetCustomAttribute<SaveHandlerAttribute>();
+                    if (attr == null)
+                    {
+                        continue;
+                    }
+
+                    Type saveHandlerType = type;
+
+
+                    if (attr.RequiresManualAttributeCreation)
+                    {
+                        var method = saveHandlerType.GetMethod("ManualSaveHandlerAttributeCreation", BindingFlags.Public | BindingFlags.Static);
+                        if (method == null)
+                        {
+                            Debug.LogError($"SaveHandler {saveHandlerType.FullName} requires manual attribute creation but does not have a public static method named ManualSaveHandlerAttributeCreation. " +
+                                $"Skipping this SaveHandler.");
+                            continue;
+                        }
+
+                        var result = method.Invoke(null, null);
+
+                        if (result is not SaveHandlerAttribute manualAttr)
+                        {
+                            Debug.LogError($"SaveHandler {saveHandlerType.FullName} ManualSaveHandlerAttributeCreation method did not return a SaveHandlerAttribute. " +
+                                $"Skipping this SaveHandler.");
+                            continue;
+                        }
+
+                        attr = manualAttr;
+                    }
+
+
+                    attr.HandlerType = saveHandlerType;
+
+                    infos.Add(attr);
+                }
+
+                handlerInfos = infos;
+            }
+
+
+            public void BuildSaveHandlerLookups(IEnumerable<SaveHandlerAttribute> handlerInfos)
+            {
+                //Debug.Log("build");
+                foreach (var info in handlerInfos)
+                {
+                    Type saveHandlerType = info.HandlerType;
+
+
+                    void LogDuplicateIdError()
+                    {
+                        Debug.LogError($"SaveHandler with id {info.Id} is already registered. " +
+                            $"This means that there are multiple SaveHandlers with the same id. " +
+                            $"Please ensure that each SaveHandler has a unique id." +
+                            $"Going to skip the new one.");
+                    }
+
+                    void LogDuplicateHandledTypeError()
+                    {
+                        Debug.LogError($"More then one savehandler found for the same handled type {info.HandledType.FullName}. " +
+                            $"Only one savehandler is allowed per type");
+                    }
+
+
+
+                    bool CommonValidation(SaveHandlerAttribute info)
+                    {
+                        if (__saveHandlerAttributesById.ContainsKey(info.Id))
+                        {
+                            LogDuplicateIdError();
+                            return false;
+                        }
+
+                        if (__saveHandlerAttributesByHandledType.ContainsKey(info.HandledType))
+                        {
+                            LogDuplicateHandledTypeError();
+                            return false;
+                        }
+
+                        return true;
+                    }
+
+
+
+                    if (info.IsStatic)
+                    {
+                        __staticSaveHandlerAttributesByHandledType[info.StaticHandlerOf] = info;
+                    }
+
+
+                    if (info.HandledType.IsGenericTypeDefinition)
+                    {
+                        var genericHandlerTypeDef = saveHandlerType.GetGenericTypeDefinition();
+
+                        if (__genericSaveHandlerCreatorsByTypePerId.ContainsKey(info.Id))
+                        {
+                            LogDuplicateIdError();
+                            continue;
+                        }
+
+                        if (__genericSaveHandlerCreatorsByTypePerTypeDef.ContainsKey(info.HandledType))
+                        {
+                            LogDuplicateHandledTypeError();
+                            continue;
+                        }
+
+
+                        bool isValid = CommonValidation(info);
+                        if (!isValid) continue;
+
+
+                        __saveHandlerAttributesById.Add(info.Id, info);
+                        __saveHandlerAttributesByHandledType.Add(info.HandledType, info);
+
+
+                        //factory methods for generic handlers are lazy loaded, they are created when they first requested
+                        __genericSaveHandlerCreatorsByTypePerId.Add(info.Id, new());
+                        __genericSaveHandlerCreatorsByTypePerTypeDef.Add(info.HandledType, new(genericHandlerTypeDef, new()));
+                    }
+                    else if (info.HandledType == typeof(Array) && info.ArrayDimension != 0)
+                    {
+                        var genericHandlerTypeDef = saveHandlerType.GetGenericTypeDefinition();
+
+                        if (__genericSaveHandlerCreatorsByTypePerId.ContainsKey(info.Id))
+                        {
+                            LogDuplicateIdError();
+                            continue;
+                        }
+
+                        if (__arraySaveHandlerCreatorsByTypePerDimension.ContainsKey(info.ArrayDimension))
+                        {
+                            LogDuplicateHandledTypeError();
+                            continue;
+                        }
+
+
+
+                        bool isValid = CommonValidation(info);
+                        if (!isValid) continue;
+
+
+                        __saveHandlerAttributesById.Add(info.Id, info);
+                        __saveHandlerAttributesByHandledType.Add(info.HandledType, info);
+
+
+                        //same as for generics, except the groupping is by array dimension, not by handled type def
+                        //array savehandlers are generics too on the element type, no need to track them in a seperate list
+                        __genericSaveHandlerCreatorsByTypePerId.Add(info.Id, new());
+                        __arraySaveHandlerCreatorsByTypePerDimension.Add(info.ArrayDimension, new(genericHandlerTypeDef, new()));
+                    }
+                    else
+                    {
+                        bool isValid = CommonValidation(info);
+                        if (!isValid) continue;
+
+
+                        __saveHandlerAttributesById.Add(info.Id, info);
+                        __saveHandlerAttributesByHandledType.Add(info.HandledType, info);
+                        __saveHandlerTypeByHandledObjectTypeLookUp.Add(info.HandledType, saveHandlerType);
+                    }
+                }
+            }
+
+
+            public void CollectCustomSaveDatas()
+            {
+                Dictionary<long, Dictionary<Type, int>> customSaveDataVersionsByHandledTypesById = new();
+
+
+                var types = AppDomain.CurrentDomain.GetUserAssemblies().SelectMany(asm => asm.GetTypes());
+
+                foreach (var type in types)
+                {
+                    var attr = type.GetCustomAttribute<CustomSaveDataAttribute>();
+
+                    if (attr == null)
+                    {
+                        continue;
+                    }
+
+                    {
+                        //if (type.BaseType.IsGenericType && type.BaseType.GetGenericTypeDefinition() != typeof(CustomSaveData<>))
+                        //{
+                        //    Debug.LogError($"Found a CustomSaveData type that does not" +
+                        //        $"inherit from CustomSaveData<T> where T is the type it saves. " +
+                        //        $"Skipping this type.");
+                        //    continue;
+                        //}
+
+
+                        if (attr.HandledType == null)
+                        {
+                            Debug.LogError("CustomSaveDataAttribute.HandledType is null. " +
+                                "It should be set to the type that this CustomSaveData handles. ");
+                            continue;
+                        }
+
+
+                        var handledType = attr.HandledType;
+
+                        attr.SetHandlerType(type);
+
+
+
+                        if (handledType.IsGenericType)
+                        {
+                            Debug.LogError("Generic custom save data types are not supported for now. " +
+                                "Found type: " + handledType.CleanAssemblyQualifiedName());
+                            continue;
+                            //todo
+                            //handledType = handledType.GetGenericTypeDefinition();
+                        }
+
+
+                        if (attr.IsPastVersion)
+                        {
+                            if (!__versionedCustomSaveDataAttributesByVersionById.ContainsKey(attr.Id))
+                            {
+                                __versionedCustomSaveDataAttributesByVersionById.Add(attr.Id, new());
+                                customSaveDataVersionsByHandledTypesById.Add(attr.Id, new());
+                            }
+                            if (__versionedCustomSaveDataAttributesByVersionById[attr.Id].ContainsKey(attr.Version))
+                            {
+                                Debug.LogError($"Another custom save data type has already been added with this id and version. Id: {attr.Id}, version: {attr.Version}. " +
+                                    $"Please ensure each type has a unique handler id and version combination. Ignoring this handler.");
+                                continue;
+                            }
+
+                            if (customSaveDataVersionsByHandledTypesById[attr.Id].TryGetValue(attr.HandledType, out var version))
+                            {
+                                Debug.LogError($"Another custom save data type has already been added with this handledType: {attr.HandledType.CleanAssemblyQualifiedName()}\n" +
+                                    $"for id: {attr.Id}, at version: {version}. " +
+                                    $"Please ensure each handled type is handled only by one custom save data.  Ignoring this handler.");
+                                continue;
+                            }
+
+                            __versionedCustomSaveDataAttributesByHandledType.Add(handledType, attr);
+                            __versionedCustomSaveDataAttributesByVersionById[attr.Id].Add(attr.Version, attr);
+                        }
+                        else
+                        {
+                            //if (!handledType.IsStruct())
+                            //{
+                            //    Debug.LogError("A custom save data type found that operates on a non-struct type. " +
+                            //        "Custom save datas should only be used with structs. " +
+                            //        "Found type: " + handledType.CleanAssemblyQualifiedName());
+                            //    continue;
+                            //}
+
+
+                            if (__customSaveDataAttributesById.ContainsKey(attr.Id))
+                            {
+                                Debug.LogError($"An other type has already been added with this id: {attr.Id}. " +
+                                    $"Please ensure each type has a unique handler id. Ignoring this handler.");
+                                continue;
+                            }
+
+                            if (__customSaveDataAttributesByHandledType.ContainsKey(handledType))
+                            {
+                                Debug.LogError($"An other handler has already been added with this handled type: {handledType.CleanAssemblyQualifiedName()}. " +
+                                    $"Only one handler allowed per type. Ignoring this handler.");
+                                continue;
+                            }
+
+
+                            __customSaveDataAttributesByHandledType.Add(handledType, attr);
+                            __customSaveDataAttributesById.Add(attr.Id, attr);
+                            //__customSaveDataHandledTypesByVersionById.Add(attr.Id, new());
+                        }
+                    }
+                }
+
+
+
+
+                foreach (var attr in __customSaveDataAttributesById.Values)
+                {
+                    __customSaveDataHandledTypesByVersionById.Add(attr.Id, new());
+
+                    int currentVersion = 1;
+
+                    if (__versionedCustomSaveDataAttributesByVersionById.TryGetValue(attr.Id, out var versionedAttrs))
+                    {
+                        currentVersion = versionedAttrs.Keys.Max() + 1;
+
+                        foreach ((int version, var versionAttr) in versionedAttrs)
+                        {
+                            __customSaveDataHandledTypesByVersionById[attr.Id].Add(version, versionAttr.HandledType);
+                        }
+                    }
+
+                    __currentVersionOfHandledTypeById.Add(attr.Id, currentVersion);
+                    __customSaveDataHandledTypesByVersionById[attr.Id].Add(currentVersion, attr.HandledType);
+                }
+            }
+        }
+
+
+
+#if UNITY_EDITOR
+
+        public static EditorService _editorServiceInstance = new();
+        public static EditorService Service {
+            get
+            {
+                _editorServiceInstance.InitServiceIfNeeded();
+                return _editorServiceInstance;
+            }
+        }
+
+        public class EditorService
+        {
+            //the first Type is the HandledType's typedef, the second Type is the generic savehandler's typedef
+            //the third one is the HandledType's concrete types
+            public Dictionary<Type, (Type typeDef, Dictionary<Type, Func<SaveHandlerBase>> concreteTypes)> __genericSaveHandlerCreatorsByTypePerTypeDef => coreService.__genericSaveHandlerCreatorsByTypePerTypeDef;
+            public Dictionary<int, (Type saveHandlerTypeDef, Dictionary<Type, Func<SaveHandlerBase>> concreteTypes)> __arraySaveHandlerCreatorsByTypePerDimension => coreService.__arraySaveHandlerCreatorsByTypePerDimension;
+
+            public Dictionary<long, Dictionary<Type, Func<SaveHandlerBase>>> __genericSaveHandlerCreatorsByTypePerId => coreService.__genericSaveHandlerCreatorsByTypePerId;
 
 
             public HashSet<Type> __serializeableTypes;
-            public Dictionary<Type, Type> __saveHandlerTypeByHandledObjectTypeLookUp = new();
+            public Dictionary<Type, Type> __saveHandlerTypeByHandledObjectTypeLookUp => coreService.__saveHandlerTypeByHandledObjectTypeLookUp;
 
 
 
@@ -395,7 +1112,7 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
                     if (!baseType.IsGenericType || baseType.GetGenericTypeDefinition() != typeof(JsonConverter<>))
                     {
-                        if (converter.GetType().Assembly.GetName() == typeof(JsonConverter).Assembly.GetName())
+                        if (converter.GetType().Assembly.GetName().Name == typeof(JsonConverter).Assembly.GetName().Name)
                         {
                             continue;
                         }
@@ -420,22 +1137,21 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
 
 
+            public bool __hadInit;
 
             public void InitServiceIfNeeded()
             {
-#if UNITY_EDITOR
                 if (!__hadInit)
                 {
                     __hadInit = true;
-                    CollectSaveHandlers(fromEditor: true);
+                    coreService.CollectSaveHandlers(out var handlerInfos);
+                    coreService.BuildSaveHandlerLookups(handlerInfos);
+                    coreService.CollectCustomSaveDatas();
                 }
-#endif
             }
 
 
 
-#if UNITY_EDITOR
-            public bool __hadInit;
 
 
 
@@ -588,6 +1304,35 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
 
 
+
+            public bool HasSaveHandlerForType(Type type, bool isStatic, out SaveHandlerAttribute attribute)
+            {
+                if (HasSaveHandlerForType_Editor(type, isStatic))
+                {
+                    var attr = GetSaveHandlerAttributeForType_Editor(type, isStatic);
+                    attribute = attr;
+                    return true;
+                }
+                attribute = null;
+                return false;
+            }
+
+
+
+            public bool HasCustomSaveData(Type type, out CustomSaveDataAttribute attribute)
+            {
+                if (HasCustomSaveData_Editor(type))
+                {
+                    var attr = GetCustomSaveDataAttribute_Editor(type);
+                    attribute = attr;
+                    return true;
+                }
+                attribute = null;
+                return false;
+            }
+
+
+
             public SaveHandlerAttribute GetSaveHandlerAttributeForType_Editor(Type type, bool isStatic)
             {
                 InitServiceIfNeeded();
@@ -644,7 +1389,7 @@ namespace Assets._Project.Scripts.SaveAndLoad
                 else if (type.IsArray)
                     return __arraySaveHandlerCreatorsByTypePerDimension.ContainsKey(type.GetArrayRank());
 
-                return __saveHandlerCreatorsByType.ContainsKey(type);
+                return coreService.__saveHandlerAttributesByHandledType.ContainsKey(type);
             }
 
 
@@ -693,41 +1438,6 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
 
 
-            public SaveHandlerBase.TypeMetaData GetSaveHandlerMetaData_Editor(Type handledType, bool isStaticHandler)
-            {
-                InitServiceIfNeeded();
-
-                if (!HasSaveHandlerForType_Editor(handledType, isStaticHandler)) { return null; }
-
-                var handlerType = GetSaveHandlerTypeFrom(handledType);
-
-                var methodName = nameof(SaveHandlerBase._methodToId);
-
-                var methodInfo = handlerType.GetMethod(methodName, BindingFlags.Public | BindingFlags.Static);
-                var methods = handlerType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
-                if (methodInfo == null)
-                {
-                    Debug.LogError($"SaveHandler {handlerType.FullName} does not have a public static method named {methodName}. " +
-                        $"Cannot get method id mapping for this SaveHandler.");
-                    return null;
-                }
-
-                var methodMapping = (Dictionary<string, long>)methodInfo.Invoke(null, null);
-
-                if (methodMapping == null)
-                {
-                    Debug.LogError($"SaveHandler {handlerType.FullName} {methodName} method returned null. " +
-                        $"Cannot get method id mapping for this SaveHandler.");
-                    return null;
-                }
-
-                return new SaveHandlerBase.TypeMetaData()
-                {
-                    MethodSignatureToMethodId = methodMapping,
-                };
-            }
-
-#endif
 
 
 
@@ -785,259 +1495,23 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
 
 
-            public Dictionary<long, RandomId> __singletonObjectIdsBySaveHandlerIds = new();
 
 
-            public RandomId GetOrCreateSingletonObjectIdBySaveHandlerId(long handlerId)
-            {
-                if (!__singletonObjectIdsBySaveHandlerIds.ContainsKey(handlerId))
+
+
+            public Dictionary<Type, SaveHandlerAttribute> __staticSaveHandlerAttributesByHandledType => coreService.__staticSaveHandlerAttributesByHandledType;
+
+            public Dictionary<Type, SaveHandlerAttribute> __saveHandlerAttributesByHandledType => coreService.__saveHandlerAttributesByHandledType;
+
+
+
+            public CoreService _coreServiceInstance = new();
+            public CoreService coreService {
+                get
                 {
-                    var objectId = RandomId.Get();
-                    __singletonObjectIdsBySaveHandlerIds.Add(handlerId, objectId);
+                    InitServiceIfNeeded();
+                    return _coreServiceInstance;
                 }
-
-                return __singletonObjectIdsBySaveHandlerIds[handlerId];
-            }
-
-
-
-
-
-            public Dictionary<Type, SaveHandlerAttribute> __staticSaveHandlerAttributesByHandledType = new();
-
-            public Dictionary<Type, SaveHandlerAttribute> __saveHandlerAttributesByHandledType = new();
-
-            //todo:remove if no problems
-            //            public Dictionary<Type, SaveHandlerAttribute> SaveHandlerAttributesByHandledType {
-            //                get
-            //                {
-            //#if UNITY_EDITOR
-            //                    InitServiceIfNeeded();
-            //#endif
-            //                    return __saveHandlerAttributesByHandledType;
-            //                }
-            //            }
-
-
-
-
-
-            public void CollectSaveHandlers(bool fromEditor = false)
-            {
-                //using var fileStream = File.Open("SingeltonObjectIds.json", FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.ReadWrite);
-
-                //using var reader = new StreamReader(fileStream);
-
-                //var json = reader.ReadToEnd();
-
-                //__singletonObjectIdsBySaveHandlerIds = JsonConvert.DeserializeObject<Dictionary<long, RandomId>>(json);
-
-
-                //todo: find all relevant assemblies
-                var types = AppDomain.CurrentDomain.GetUserAssemblies().SelectMany(asm => asm.GetTypes());
-
-                foreach (Type type in types)
-                {
-                    if (type.IsInterface || type.IsAbstract)
-                        continue;
-
-                    var attr = type.GetCustomAttribute<SaveHandlerAttribute>();
-                    if (attr == null)
-                    {
-                        continue;
-                    }
-
-                    Type saveHandlerType = type;
-
-
-                    if (attr.RequiresManualAttributeCreation)
-                    {
-                        var method = saveHandlerType.GetMethod("ManualSaveHandlerAttributeCreation", BindingFlags.Public | BindingFlags.Static);
-                        if (method == null)
-                        {
-                            Debug.LogError($"SaveHandler {saveHandlerType.FullName} requires manual attribute creation but does not have a public static method named ManualSaveHandlerAttributeCreation. " +
-                                $"Skipping this SaveHandler.");
-                            continue;
-                        }
-
-                        var result = method.Invoke(null, null);
-
-                        if (result is not SaveHandlerAttribute manualAttr)
-                        {
-                            Debug.LogError($"SaveHandler {saveHandlerType.FullName} ManualSaveHandlerAttributeCreation method did not return a SaveHandlerAttribute. " +
-                                $"Skipping this SaveHandler.");
-                            continue;
-                        }
-
-                        attr = manualAttr;
-                    }
-
-
-                    attr.HandlerType = saveHandlerType;
-
-
-
-                    void LogDuplicateIdError()
-                    {
-                        Debug.LogError($"SaveHandler with id {attr.Id} is already registered. " +
-                            $"This means that there are multiple SaveHandlers with the same id. " +
-                            $"Please ensure that each SaveHandler has a unique id." +
-                            $"Going to skip the new one.");
-                    }
-
-                    void LogDuplicateHandledTypeError()
-                    {
-                        Debug.LogError($"More then one savehandler found for the same handled type {attr.HandledType.FullName}. " +
-                            $"Only one savehandler is allowed per type");
-                    }
-
-
-                    //Debug.Log($"TRACE: Registering SaveHandler for type {attr.HandledType.FullName} with id {attr.Id}.");
-
-                    if (attr.HandledType.IsGenericTypeDefinition)
-                    {
-                        var genericHandlerTypeDef = saveHandlerType.GetGenericTypeDefinition();
-
-                        if (__genericSaveHandlerCreatorsByTypePerId.ContainsKey(attr.Id.ToString()))
-                        {
-                            LogDuplicateIdError();
-                            continue;
-                        }
-
-                        if (__genericSaveHandlerCreatorsByTypePerTypeDef.ContainsKey(attr.HandledType))
-                        {
-                            LogDuplicateHandledTypeError();
-                            continue;
-                        }
-
-
-                        if (attr.IsStatic)
-                        {
-                            if (attr.StaticHandlerOf is not null)//todo: tmp fix
-                                __staticSaveHandlerAttributesByHandledType[attr.StaticHandlerOf] = attr;
-                        }
-
-
-                        __saveHandlerAttributesByHandledType.Add(attr.HandledType, attr);
-
-
-                        //factory methods for generic handlers are lazy loaded, they are created when they first requested
-                        __genericSaveHandlerCreatorsByTypePerId.Add(attr.Id.ToString(), new());
-                        __genericSaveHandlerCreatorsByTypePerTypeDef.Add(attr.HandledType, new(genericHandlerTypeDef, new()));
-                    }
-                    else if (attr.HandledType == typeof(Array) && attr.ArrayDimension != 0)
-                    {
-                        var genericHandlerTypeDef = saveHandlerType.GetGenericTypeDefinition();
-
-                        if (__genericSaveHandlerCreatorsByTypePerId.ContainsKey(attr.Id.ToString()))
-                        {
-                            LogDuplicateIdError();
-                            continue;
-                        }
-
-                        if (__arraySaveHandlerCreatorsByTypePerDimension.ContainsKey(attr.ArrayDimension))
-                        {
-                            LogDuplicateHandledTypeError();
-                            continue;
-                        }
-
-
-                        //same as for generics, except the groupping is by array dimension, not by handled type def
-                        //array savehandlers are generics too on the element type, no need to track them in a seperate list
-                        __genericSaveHandlerCreatorsByTypePerId.Add(attr.Id.ToString(), new());
-                        __arraySaveHandlerCreatorsByTypePerDimension.Add(attr.ArrayDimension, new(genericHandlerTypeDef, new()));
-                    }
-                    else
-                    {
-
-                        if (__saveHandlerCreatorsById.ContainsKey(attr.Id.ToString()))
-                        {
-                            LogDuplicateIdError();
-                            continue;
-                        }
-
-                        if (__saveHandlerCreatorsByType.ContainsKey(attr.HandledType))
-                        {
-                            LogDuplicateHandledTypeError();
-                            continue;
-                        }
-
-
-                        __saveHandlerAttributesByHandledType.Add(attr.HandledType, attr);
-
-
-                        Func<SaveHandlerBase> ctor = CreateTypedCtor<SaveHandlerBase>(saveHandlerType);
-
-                        __saveHandlerCreatorsById[attr.Id.ToString()] = ctor;
-                        __saveHandlerCreatorsByType[attr.HandledType] = ctor;
-
-                        __saveHandlerTypeByHandledObjectTypeLookUp.Add(attr.HandledType, saveHandlerType);
-
-
-
-                        if (attr.IsStatic)
-                        {
-                            if (attr.StaticHandlerOf is not null)//todo: tmp fix
-                                __staticSaveHandlerAttributesByHandledType[attr.StaticHandlerOf] = attr;
-                            else
-                            {
-                                Debug.LogError($"Savehandler {attr.Id} isStatic but still does not use the {nameof(SaveHandlerAttribute.StaticHandlerOf)} property.");
-                            }
-
-                            if (!fromEditor)
-                            {
-                                ///todo: dont forget about generic static classes. <see cref="GenericWithStaticExampleClass{T}"/>
-                                var handler = ctor();
-                                handler.Init(null);
-                                AddSaveHandler(handler);
-                            }
-                        }
-                    }
-                }
-
-                //json = JsonConvert.SerializeObject(__singletonObjectIdsBySaveHandlerIds);
-
-                //using var writer = new StreamWriter(fileStream);
-
-                //writer.Write(json);
-            }
-
-
-
-            public Func<TBase> CreateTypedCtor<TBase>(Type derivedType)
-            {
-                if (!typeof(TBase).IsAssignableFrom(derivedType))
-                    throw new ArgumentException($"{derivedType} is not assignable to {typeof(TBase)}");
-
-                ConstructorInfo ctor = derivedType.GetConstructor(Type.EmptyTypes);
-
-                if (ctor == null)
-                    throw new ArgumentException("Parameterless constructor not found.");
-
-                NewExpression newExpr = Expression.New(ctor);
-
-                // Cast to TBase (if needed — usually implicit, but good for clarity)
-                UnaryExpression castExpr = Expression.Convert(newExpr, typeof(TBase));
-
-                return Expression.Lambda<Func<TBase>>(castExpr).Compile();
-            }
-
-
-
-            public List<ISaveAndLoad> __currentSaveHandlers = new();
-
-            public void AddSaveHandler(ISaveAndLoad saveHandler)
-            {
-                var dataGroupId = saveHandler.DataGroupId;
-
-                if (dataGroupId == null || string.IsNullOrEmpty(dataGroupId))
-                {
-                    Debug.LogError("Invalid DataGroupId provided.");
-                    return;
-                }
-
-
-                __currentSaveHandlers.Add(saveHandler);
             }
 
 
@@ -1045,9 +1519,10 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
 
 
-            public Dictionary<long, SaveHandlerAttribute> __saveHandlerAttributesById;
+
+            public Dictionary<long, SaveHandlerAttribute> __saveHandlerAttributesById => coreService.__saveHandlerAttributesById;
             public Dictionary<long, SaveHandlerAttribute> __staticSaveHandlerAttributesById;
-            public bool HadBuiltSaveHandlerIdByTypeLookups => __saveHandlerAttributesById != null && __staticSaveHandlerAttributesById != null;
+            public bool HadBuiltSaveHandlerIdByTypeLookups => __staticSaveHandlerAttributesById != null;
 
             public Type GetHandledTypeByHandlerId(long id)
             {
@@ -1056,21 +1531,24 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
             public Type GetHandledTypeByHandlerId(long id, out bool isStatic)
             {
+                return GetHandledTypeByHandlerId(id, log: true, out isStatic);
+            }
+
+            public Type GetHandledTypeByHandlerId(long id, bool log, out bool isStatic)
+            {
                 InitServiceIfNeeded();
 
                 if (!HadBuiltSaveHandlerIdByTypeLookups)
                 {
-                    var handlers = __saveHandlerAttributesByHandledType.Values;
+                    //var handlers = __saveHandlerAttributesByHandledType.Values;
 
-                    __saveHandlerAttributesById = new();
-
-                    foreach (var handler in handlers)
-                    {
-                        __saveHandlerAttributesById[handler.Id] = handler;
-                    }
+                    //foreach (var handler in handlers)
+                    //{
+                    //    __saveHandlerAttributesById[handler.Id] = handler;
+                    //}
 
 
-                    handlers = __staticSaveHandlerAttributesByHandledType.Values;
+                    var handlers = __staticSaveHandlerAttributesByHandledType.Values;
 
                     __staticSaveHandlerAttributesById = new();
 
@@ -1091,7 +1569,8 @@ namespace Assets._Project.Scripts.SaveAndLoad
                     return attr.HandledType;
                 }
 
-                Debug.LogError($"No savehandler found with id {id}.");
+                if (log)
+                    Debug.LogError($"No savehandler found with id {id}.");
                 //Debug.LogError($"No handled type found for id {id}");
                 isStatic = false;
                 return null;
@@ -1159,12 +1638,10 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
 
 
-            //there is purposefuly no = new() here because null means "not built yet"
-            public Dictionary<Type, Type> __isTypesHandledByCustomSaveDataLookup;
-            public Dictionary<Type, CustomSaveDataAttribute> __customSaveDataAttributesByType = new();
+
+            public Dictionary<Type, CustomSaveDataAttribute> __customSaveDataAttributesByType => coreService.__customSaveDataAttributesByHandledType;
 
 
-#if UNITY_EDITOR
 
             public bool HasCustomSaveData_Editor(Type type)
             {
@@ -1173,9 +1650,11 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
             public bool HasCustomSaveData_Editor(Type type, out Type customSaveDataType)
             {
-                if (__isTypesHandledByCustomSaveDataLookup == null) BuildCustomSaveDataLookUp();
-                if (__isTypesHandledByCustomSaveDataLookup.TryGetValue(type, out customSaveDataType))
+                InitServiceIfNeeded();
+
+                if (__customSaveDataAttributesByType.TryGetValue(type, out var attribute))
                 {
+                    customSaveDataType = attribute.SaveHandlerType;
                     return true;
                 }
                 else
@@ -1188,6 +1667,8 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
             public CustomSaveDataAttribute GetCustomSaveDataAttribute_Editor(Type type)
             {
+                InitServiceIfNeeded();
+
                 if (__customSaveDataAttributesByType.TryGetValue(type, out var attr))
                 {
                     return attr;
@@ -1197,65 +1678,11 @@ namespace Assets._Project.Scripts.SaveAndLoad
                     return null;
                 }
             }
+        }
+
 #endif
 
 
-            public void BuildCustomSaveDataLookUp()
-            {
-                __isTypesHandledByCustomSaveDataLookup = new();
-
-                var types = AppDomain.CurrentDomain.GetUserAssemblies().SelectMany(asm => asm.GetTypes());
-
-                foreach (var type in types)
-                {
-                    if (typeof(CustomSaveData).IsAssignableFrom(type)
-                        && type != typeof(CustomSaveData) && type != typeof(CustomSaveData<>))
-                    {
-                        if (type.BaseType.IsGenericType && type.BaseType.GetGenericTypeDefinition() != typeof(CustomSaveData<>))
-                        {
-                            Debug.LogError($"Found a CustomSaveData type that does not" +
-                                $"inherit from CustomSaveData<T> where T is the type it saves. " +
-                                $"Skipping this type.");
-                            continue;
-                        }
-
-                        Type handledType = type.BaseType.GetGenericArguments()[0];
-
-                        if (handledType.IsGenericType)
-                        {
-                            Debug.LogError("Generic custom save data types are not supported for now. " +
-                                "Found type: " + handledType.CleanAssemblyQualifiedName());
-                            continue;
-                            //todo
-                            //handledType = handledType.GetGenericTypeDefinition();
-                        }
-                        else if (!handledType.IsStruct())
-                        {
-                            Debug.LogError("A custom save data type found that operates on a non-struct type. " +
-                                "Custom save datas should only be used with structs. " +
-                                "Found type: " + handledType.CleanAssemblyQualifiedName());
-                            continue;
-                        }
-
-
-                        var attr = type.GetCustomAttribute<CustomSaveDataAttribute>();
-
-                        //todo: swtich to this when the times come
-                        //handledType = attr.HandledType;
-
-
-                        if (attr != null)
-                        {
-                            attr.SaveHandlerType = type;
-                            __customSaveDataAttributesByType[handledType] = attr;
-                        }
-
-
-                        __isTypesHandledByCustomSaveDataLookup[handledType] = type;
-                    }
-                }
-            }
-        }
 
 
 
@@ -1264,18 +1691,85 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
 
 
-
-
-
-        public Dictionary<Type, Func<SaveHandlerBase>> __saveHandlerCreatorsByType;
-        public Dictionary<string, Func<SaveHandlerBase>> __saveHandlerCreatorsById;
+        public Dictionary<Type, Func<SaveHandlerBase>> __saveHandlerCreatorsByType => _coreService.__saveHandlerCreatorsByType;
+        public Dictionary<long, Func<SaveHandlerBase>> __saveHandlerCreatorsById => _coreService.__saveHandlerCreatorsById;
 
         //the first Type is the HandledType's typedef, the second Type is the generic savehandler's typedef
         //the third one is the HandledType's concrete types
-        public Dictionary<Type, (Type typeDef, Dictionary<Type, Func<SaveHandlerBase>> concreteTypes)> __genericSaveHandlerCreatorsByTypePerTypeDef;
-        public Dictionary<int, (Type saveHandlerTypeDef, Dictionary<Type, Func<SaveHandlerBase>> concreteTypes)> __arraySaveHandlerCreatorsByTypePerDimension = new();
+        public Dictionary<Type, (Type typeDef, Dictionary<Type, Func<SaveHandlerBase>> concreteTypes)> __genericSaveHandlerCreatorsByTypePerTypeDef => _coreService.__genericSaveHandlerCreatorsByTypePerTypeDef;
+        public Dictionary<int, (Type saveHandlerTypeDef, Dictionary<Type, Func<SaveHandlerBase>> concreteTypes)> __arraySaveHandlerCreatorsByTypePerDimension => _coreService.__arraySaveHandlerCreatorsByTypePerDimension;
 
-        public Dictionary<string, Dictionary<Type, Func<SaveHandlerBase>>> __genericSaveHandlerCreatorsByTypePerId;
+        public Dictionary<long, Dictionary<Type, Func<SaveHandlerBase>>> __genericSaveHandlerCreatorsByTypePerId => _coreService.__genericSaveHandlerCreatorsByTypePerId;
+
+
+
+
+
+
+
+        public int GetCustomSaveDataAppVersionByHandledType(Type handledType)
+        {
+            return _coreService.GetCustomSaveDataAppVersionByHandledType(handledType);
+        }
+
+        public Type GetCustomSaveDataHandlerTypeByHandledType(Type handledType)
+        {
+            return _coreService.GetCustomSaveDataHandlerTypeByHandledType(handledType);
+        }
+
+        public Type GetHandledTypeByHandlerId(long id)
+        {
+            return _coreService.GetHandledTypeByHandlerId(id);
+        }
+
+
+        public bool HasSavedataTypeForVersionedId(long id, int version, out Type type)
+        {
+            if (_coreService.__savedataTypesByVersionByHandlerId.TryGetValue(id, out var versions))
+                if (versions.TryGetValue(version, out type))
+                {
+                    return true;
+                }
+
+            if (_coreService.__customSaveDataHandledTypesByVersionById.TryGetValue(id, out versions))
+                if (versions.TryGetValue(version, out type))
+                {
+                    return true;
+                }
+
+            type = null;
+            return false;
+        }
+
+
+        public bool HasTypeId(Type type, bool isStatic, out long typeId)
+        {
+            if (_coreService.HasSaveHandlerForType(type, isStatic, out var shAttribute))
+            {
+                typeId = shAttribute.Id;
+                return true;
+            }
+
+            if (_coreService.HasCustomSaveData(type, out var attribute))
+            {
+                typeId = attribute.Id;
+                return true;
+            }
+
+            typeId = 0;
+            return false;
+        }
+
+
+        public int GetCurrentVersionOfTypeById(long id)
+        {
+            return _coreService.GetCurrentVersionOfTypeById(id);
+        }
+
+        public int GetCurrentVersionOfTypeById(string id)
+        {
+            return GetCurrentVersionOfTypeById(long.Parse(id));
+        }
 
 
 
@@ -1291,19 +1785,6 @@ namespace Assets._Project.Scripts.SaveAndLoad
         }
 
 
-
-#if UNITY_EDITOR
-        public bool HasSaveHandlerForType_Editor(Type type)
-        {
-            if (__saveHandlerCreatorsById == null)
-            {
-                InitSaveHandlerWork();
-                CollectSaveHandlers();
-            }
-
-            return HasSaveHandlerForType(type);
-        }
-#endif
 
 
 
@@ -1334,25 +1815,52 @@ namespace Assets._Project.Scripts.SaveAndLoad
         }
 
 
-        public ISaveAndLoad GetSaveHandlerById(ObjectMetaData metaData)
+        public ISaveAndLoad GetSaveHandlerById(ObjectMetaData metaData, VersionedType versionedType)
         {
-            if (__saveHandlerByHandledObjectIdLookUp.TryGetValue(metaData.ObjectId, out var saveHandlerId))
-                return saveHandlerId;
+            if (__saveHandlerByHandledObjectIdLookUp.TryGetValue(metaData.ObjectId, out var saveHandler))
+                return saveHandler;
 
 
-            if (metaData.IsGeneric)
-                return GetSaveHandlerById(metaData.SaveHandlerId, metaData.SaveHandlerType);
+            if (versionedType.IsGeneric || versionedType.IsArray)
+                return GetSaveHandlerById(metaData.SaveHandlerId, versionedType);
 
             return GetSaveHandlerById(metaData.SaveHandlerId);
         }
 
 
-        public SaveHandlerBase GetSaveHandlerById(string id, string type)
+        public SaveHandlerBase GetSaveHandlerById(long id, VersionedType versionedType)
         {
             if (__genericSaveHandlerCreatorsByTypePerId.TryGetValue(id, out var dict))
             {
-                Type handlerType = Type.GetType(type);
-                //Type typeDef = handlerType.GetGenericTypeDefinition();
+                Type handlerTypedef = _coreService.__saveHandlerAttributesById[id].HandlerType;
+
+                Type handledType = versionedType.ResolveForCurrentHandledType();
+
+                Type[] args;
+
+                if (versionedType.IsArray)
+                {
+                    args = new Type[] { handledType.GetElementType() };
+                }
+                else
+                {
+                    args = handledType.GetGenericArguments();
+                }
+
+
+                Type handlerType;
+
+                try
+                {
+                    handlerType = handlerTypedef.MakeGenericType(args);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"Failed to construct generic SaveHandler type for id {id} and handled type {handledType.CleanAssemblyQualifiedName()}. " +
+                        $"This usually happens when the number of generic arguments do not match or the generic constraints do not satisfied. " +
+                        $"Exception: {e}");
+                    throw;
+                }
 
 
                 if (!dict.ContainsKey(handlerType))
@@ -1377,7 +1885,7 @@ namespace Assets._Project.Scripts.SaveAndLoad
         }
 
 
-        public SaveHandlerBase GetSaveHandlerById(string id)
+        public SaveHandlerBase GetSaveHandlerById(long id)
         {
             if (__saveHandlerCreatorsById.TryGetValue(id, out var factory))
             {
@@ -1470,6 +1978,10 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
         public Type GetSaveHandlerTypeFrom(Type objectType)
         {
+            //I actually dont know what workflow causes this method to be called
+            //if every type and every method is registered that needs to be saved then I geuss this method will never be called
+            Debug.Log("here");
+
             if (__saveHandlerTypeByHandledObjectTypeLookUp.TryGetValue(objectType, out var handlerType))
             {
                 return handlerType;
@@ -1550,115 +2062,107 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
 
 
-        //there is purposefuly no = new() here because null means "not built yet"
-        public Dictionary<Type, Type> __isTypesHandledByCustomSaveDataLookup;
-        public Dictionary<Type, Func<CustomSaveData>> __customSaveDataFactories;
-        public Dictionary<Type, CustomSaveDataAttribute> __customSaveDataAttributesByType = new();
+        public Dictionary<Type, Func<CustomSaveData>> __customSaveDataFactories = new();
+        public Dictionary<Type, Func<CustomSaveData>> __pastVersionCustomSaveDataFactories = new();
 
 
-#if UNITY_EDITOR
 
-        public bool HasCustomSaveData_Editor(Type type)
+
+        public void CollectCustomSaveDatas()
         {
-            return HasCustomSaveData_Editor(type, out _);
+            _coreService.CollectCustomSaveDatas();
+
+            BuildCustomSaveDataLookUps();
         }
 
-        public bool HasCustomSaveData_Editor(Type type, out Type customSaveDataType)
+        public void BuildCustomSaveDataLookUps()
         {
-            if (__isTypesHandledByCustomSaveDataLookup == null) BuildCustomSaveDataLookUp();
-
-            if (__isTypesHandledByCustomSaveDataLookup.TryGetValue(type, out customSaveDataType))
+            foreach (var attr in _coreService.__customSaveDataAttributesByHandledType.Values)
             {
-                return true;
+                var ctor = CreateTypedCtor<CustomSaveData>(attr.SaveHandlerType);
+                __customSaveDataFactories.Add(attr.HandledType, ctor);
+            }
+        }
+
+
+        public CustomSaveData<T> CreateCustomSaveDataInstanceFor<T>()
+        {
+            return CreateCustomSaveDataInstanceFor<T>(typeof(T));
+        }
+
+        public CustomSaveData<T> CreateCustomSaveDataInstanceFor<T>(Type type)
+        {
+            var csd = CreateCustomSaveDataInstanceFor(type);
+
+            if (csd is CustomSaveData<T> typedCsd)
+            {
+                return typedCsd;
             }
             else
             {
-                customSaveDataType = null;
-                return false;
+                Debug.LogError($"The registered customsavedata for type {type.CleanAssemblyQualifiedName()} is not assigable to CustomSaveData<{typeof(T).CleanAssemblyQualifiedName()}>. " +
+                    $"This means that the registered CustomSaveData type does not match the requested generic type.\n" +
+                    $"Going to return null.");
+                return null;
             }
         }
-#endif
 
-
-        public void BuildCustomSaveDataLookUp()
+        public CustomSaveData CreateCustomSaveDataInstanceFor(Type type)
         {
-            __isTypesHandledByCustomSaveDataLookup = new();
+            var typeToHandle = type;
 
-            var types = AppDomain.CurrentDomain.GetUserAssemblies().SelectMany(asm => asm.GetTypes());
-
-            foreach (var type in types)
+            if (typeToHandle.IsClass)
             {
-                if (typeof(CustomSaveData).IsAssignableFrom(type)
-                    && type != typeof(CustomSaveData) && type != typeof(CustomSaveData<>))
+                if (!__pastVersionCustomSaveDataFactories.ContainsKey(typeToHandle))
                 {
-                    if (type.BaseType.IsGenericType && type.BaseType.GetGenericTypeDefinition() != typeof(CustomSaveData<>))
+                    if (_coreService.__versionedCustomSaveDataAttributesByHandledType.TryGetValue(typeToHandle, out var info))
                     {
-                        Debug.LogError($"Found a CustomSaveData type that does not" +
-                            $"inherit from CustomSaveData<T> where T is the type it saves. " +
-                            $"Skipping this type.");
-                        continue;
+                        var handlerType = info.SaveHandlerType;
+                        var ctor = CreateTypedCtor<CustomSaveData>(handlerType);
+                        __pastVersionCustomSaveDataFactories.Add(typeToHandle, ctor);
                     }
-
-                    Type handledType = type.BaseType.GetGenericArguments()[0];
-
-                    if (handledType.IsGenericType)
-                    {
-                        Debug.LogError("Generic custom save data types are not supported for now. " +
-                            "Found type: " + handledType.CleanAssemblyQualifiedName());
-                        continue;
-                        //todo
-                        //handledType = handledType.GetGenericTypeDefinition();
-                    }
-                    else if (!handledType.IsStruct())
-                    {
-                        Debug.LogError("A custom save data type found that operates on a non-struct type. " +
-                            "Custom save datas should only be used with structs. " +
-                            "Found type: " + handledType.CleanAssemblyQualifiedName());
-                        continue;
-                    }
-
-
-
-                    var attr = type.GetCustomAttribute<CustomSaveDataAttribute>();
-
-                    if (attr != null)
-                    {
-                        __customSaveDataAttributesByType[type] = attr;
-                    }
-
-
-                    __isTypesHandledByCustomSaveDataLookup[handledType] = type;
                 }
+
+                var factory2 = __pastVersionCustomSaveDataFactories[typeToHandle];
+                return factory2();
             }
-        }
 
 
-        public void BuildCustomSaveDataFactories(IEnumerable<Type> handledTypes, IEnumerable<Type> saveDataTypes)
-        {
-            __customSaveDataFactories = new();
 
-            for (int i = 0; i < handledTypes.Count(); i++)
+            if (__customSaveDataFactories.TryGetValue(typeToHandle, out var factory))
             {
-                var handledType = handledTypes.ElementAt(i);
-                var saveDataType = saveDataTypes.ElementAt(i);
-                var ctor = CreateTypedCtor<CustomSaveData>(saveDataType);
-                __customSaveDataFactories.Add(handledType, ctor);
-            }
-        }
-
-        public bool HasCustomSaveData<T>(Type type, out CustomSaveData<T> saveData)
-        {
-            if (__customSaveDataFactories.TryGetValue(type, out var factory))
-            {
-                saveData = (CustomSaveData<T>)factory();
-                return true;
+                return factory();
             }
             else
             {
-                saveData = null;
-                return false;
+                Debug.LogError($"No CustomSaveData found for type {typeToHandle.CleanAssemblyQualifiedName()}. " +
+                    $"This means that this type does not have a CustomSaveData registered for it.");
+                return null;
             }
         }
+
+
+        public bool HasCustomSaveData(Type type)
+        {
+            var typeToHandle = type;
+
+
+            if (_coreService.__customSaveDataAttributesByHandledType.ContainsKey(typeToHandle))
+            {
+                return true;
+            }
+            else if (_coreService.__versionedCustomSaveDataAttributesByHandledType.ContainsKey(typeToHandle))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+
+
+
+
 
 
 
@@ -2040,6 +2544,23 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
             var snapshot = new List<ISaveAndLoad>(__mainSaveHandlers);
 
+
+            RandomId id = Infra.Singleton.GetObjectId(this, Infra.GlobalReferencing);
+
+            for (int i = 0; i < snapshot.Count; i++)
+            {
+                var handler = snapshot[i];
+
+                if (handler.HandledObjectId == id)
+                {
+                    var first = snapshot[0];
+                    snapshot[0] = handler;
+                    snapshot[i] = first;
+                    break;
+                }
+            }
+
+
             //perf test
             //for (int i = 0; i < 100; i++)
             //{
@@ -2100,7 +2621,7 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
         public IEnumerable<string> SerializeSnapshot(IEnumerable<ISaveAndLoad> handlers)
         {
-            var saveData = new Dictionary<string, List<string>>();
+            var saveData = new Dictionary<long, List<string>>();
 
 
             foreach (var handler in handlers)
@@ -2116,13 +2637,13 @@ namespace Assets._Project.Scripts.SaveAndLoad
                     var data = handler.Serialize();
 
 
-                    if (!saveData.ContainsKey(handler.DataGroupId))
+                    if (!saveData.ContainsKey(handler.SaveHandlerId))
                     {
                         var list = new List<string>();
-                        saveData[handler.DataGroupId] = list;
+                        saveData[handler.SaveHandlerId] = list;
                     }
 
-                    saveData[handler.DataGroupId].Add(data);
+                    saveData[handler.SaveHandlerId].Add(data);
                 }
             }
 
@@ -2167,15 +2688,7 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
         public void Load(string saveFileAbsPath)
         {
-            try
-            {
-                __loadCoroutine = StartCoroutine(LoadRoutine(saveFileAbsPath));
-            }
-            catch (Exception e)
-            {
-
-                throw;
-            }
+            __loadCoroutine = StartCoroutine(LoadRoutine(saveFileAbsPath));
         }
 
 
@@ -2194,36 +2707,245 @@ namespace Assets._Project.Scripts.SaveAndLoad
             }
 
 
-            //yield return StartCoroutine(LoadEmptyScene());
-
-            //yield return StartCoroutine(UnLoadMainMenuScene());
-
 
 
             Debug.Log($"Loading save file from {saveFileAbsPath}.");
 
 
+            RandomId thisId = Infra.Singleton.GetObjectId(this, Infra.GlobalReferencing);
 
-            List<string> objects = JsonUtil.ReadObjects(saveFileAbsPath, relative: false);
+            ISaveAndLoad thisHandler = GetSaveHandlerById<SaveHandlerBase>(thisId);
 
-            List<ISaveAndLoad> saveHandlers = new List<ISaveAndLoad>();
 
-            int i = 0;
+            List<string> serializedDataList = JsonUtil.ReadObjects(saveFileAbsPath, relative: false);
 
+
+            var first = JsonConvert.DeserializeObject<SaveDataBase>(serializedDataList[0]);
+
+            if (first._MetaData_.SaveHandlerId != thisHandler.SaveHandlerId)
+            {
+                Debug.LogError("The first saved data is not the SaveAndLoadManager's own data, " +
+                    "which contains necessary information of how to load this file. Cancel loading.");
+                yield break;
+            }
+
+            SaveAndLoadManagerSaveData saveAndLoadManagerData = JsonConvert.DeserializeObject<SaveAndLoadManagerSaveData>(serializedDataList[0]);
+
+            serializedDataList.RemoveAt(0);
+
+
+            int pastAppVersion = saveAndLoadManagerData._appVersion;
+            int currentAppVersion = _appVersion;
+
+            Dictionary<RandomId, VersionedType> versionedTypesByTypeInstanceId = new();
+
+            foreach (var versionedType in saveAndLoadManagerData.versionedTypeCache.RegisteredTypes)
+            {
+                versionedTypesByTypeInstanceId.Add(versionedType.instanceId, versionedType);
+            }
+
+
+
+
+
+            LoadContext loadContext = new LoadContext(versionedTypesByTypeInstanceId);
+
+
+
+            if (pastAppVersion != currentAppVersion)
+            {
+                ///<see cref="LoadContext.IsMigrating"/> relies on this to be set and not to be null
+                var migrationContext = new MigrationContext();
+                loadContext.MigrationContext = migrationContext;
+            }
+
+
+            List<ObjectMetaData> metadataList = new();
+            List<SaveDataBase> savedataList = new();
+            Dictionary<RandomId, string> serDataById = new();
+
+            RandomId d_id = default;
 
             try
             {
-                foreach (var obj in objects)
-                {
-                    var saveInfo = JsonConvert.DeserializeObject<SavedObject>(obj);
 
-                    if (saveInfo == null || saveInfo._MetaData_ == null)
+                for (int i = 0; i < serializedDataList.Count; i++)
+                {
+                    var serData = serializedDataList[i];
+                    var saveInfo = JsonConvert.DeserializeObject<SavedObject>(serData);
+
+                    if (saveInfo is null or { _MetaData_: null })
                     {
-                        Debug.LogError($"SaveObject or its MetaData is null at {i} th object. Skipping this object.");
+                        Debug.LogError($"SaveObject or its MetaData is null at {i}th object. Skipping this object.\nSerData: {serData}");
                         continue;
                     }
 
-                    var handler = GetSaveHandlerById(saveInfo._MetaData_);
+                    d_id = saveInfo._MetaData_.ObjectId;
+
+
+
+                    Type savedataType;
+                    VersionedType d_versionedType = null;
+
+                    try
+                    {
+                        d_versionedType = versionedTypesByTypeInstanceId[saveInfo._MetaData_.HandledType];
+                        savedataType = d_versionedType.ResolveForVersionedHandledType();
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogError($"Can not load save file because an error occured during resolving the past versions of types. " +
+                            $"\nError occured at resolving type: {d_versionedType.instanceId}.\nError: {e}");
+                        throw;
+                    }
+
+
+
+                    if (savedataType.HasElementType)
+                    {
+                        var elementType = savedataType.GetElementType();
+
+                        //todo: if pointer type, if byref? is it possible?
+                        if (savedataType.IsSZArray || savedataType.IsArray)
+                        {
+                            //todo:refine this
+                            Type arraySavedata = savedataType.GetArrayRank() switch
+                            {
+                                1 => _coreService.__saveDataTypesBySaveHandlerId[897213743298234],
+                                _ => throw new Exception($"unsupported array dimension: {savedataType.GetArrayRank()}"),
+                            };
+
+                            Type genericArrayHandler = arraySavedata.MakeGenericType(elementType);
+
+                            savedataType = genericArrayHandler;
+                        }
+                    }
+
+                    //Debug.Log(("Deser type: ", savedataType.CleanAssemblyQualifiedName()));
+
+                    var savedata = JsonConvert.DeserializeObject(serData, savedataType) as SaveDataBase;
+
+                    if (savedata is null)
+                    {
+                        Debug.LogError($"Error during deser of savedata. Couldn't deser data {d_id} into type: {savedataType.CleanAssemblyQualifiedName()}");
+                        continue;
+                    }
+
+                    savedataList.Add(savedata);
+
+                    metadataList.Add(saveInfo._MetaData_);
+                    serDataById.Add(saveInfo._MetaData_.ObjectId, serData);
+                }
+
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Error during deser of savedata: {d_id}.\n Exception: {e}");
+                throw;
+            }
+
+
+
+
+            HashSet<RandomId> objectIdsForContext = new();
+
+            foreach (var data in savedataList)
+            {
+                _loadContextByObjectId.Add(data._MetaData_.ObjectId, loadContext);
+                objectIdsForContext.Add(data._MetaData_.ObjectId);
+            }
+
+            _objectIdsByLoadContext.Add(loadContext, objectIdsForContext);
+
+
+
+
+            if (pastAppVersion != currentAppVersion)
+            {
+                var migrationContext = loadContext.MigrationContext;
+
+                migrationContext.Init(pastAppVersion, savedataList);
+
+                loadContext.MigrationContext = migrationContext;
+
+                int migratedVersion = pastAppVersion;
+
+                while (migratedVersion != currentAppVersion)
+                {
+                    migrationContext.Migrate(migratedVersion);
+
+                    migratedVersion++;
+                }
+
+                savedataList = migrationContext._saveDatasByObjectId.Values.ToList();
+
+
+                //todo: optimize this
+                serializedDataList.Clear();
+
+                foreach (var data in savedataList)
+                {
+                    var json = JsonConvert.SerializeObject(data);
+                    serializedDataList.Add(json);
+                }
+
+
+                string d_text = string.Join("\n", serializedDataList);
+                File.WriteAllText("c:/temp/migrated_list.json", d_text);
+
+
+                //todo: enable it via config
+                string debugJson = JsonConvert.SerializeObject(migrationContext);
+                File.WriteAllText("MigrationContext.json", debugJson);
+
+                loadContext.MigrationContext = null;
+
+                //void DisposeMigrationScope()
+                //{
+                //    foreach (var id in migrationContext._saveDatasByObjectId.Keys)
+                //    {
+                //        if (_objectIdsByMigrationContext.ContainsKey(id))
+                //            _objectIdsByMigrationContext.Remove(id);
+                //        else
+                //        {
+                //            Debug.LogError($"Error during disposing migration scope after migration has finisihed. " +
+                //                $"A migration context knows about an objectId from which the migration context's containing loading context does not.\n" +
+                //                $"A loading context must know that a given objectId which migration context it belongs to. (If there is any migration)\n" +
+                //                $"This most likely means an object has been added or removed to this migration context but it does not added or removed " +
+                //                $"to its corresponding loading context");
+                //        }
+                //    }
+                //}
+
+                //DisposeMigrationScope();
+            }
+
+
+
+            List<ISaveAndLoad> saveHandlers = new List<ISaveAndLoad>();
+
+
+            int j = 0;
+
+            //SaveDataBase d_savedata = null;
+            SavedObject d_savedata = null;
+
+            try
+            {
+
+                foreach (string savedata in serializedDataList)
+                {
+                    var saveInfo = JsonConvert.DeserializeObject<SavedObject>(savedata);
+                    d_savedata = saveInfo;
+
+                    if (saveInfo == null || saveInfo._MetaData_ == null)
+                    {
+                        Debug.LogError($"SaveObject or its MetaData is null at {j}th object. Skipping this object.\nSerData: {savedata}");
+                        continue;
+                    }
+
+                    var versionedType = versionedTypesByTypeInstanceId[saveInfo._MetaData_.HandledType];
+                    var handler = GetSaveHandlerById(saveInfo._MetaData_, versionedType);
 
                     if (handler == null)
                     {
@@ -2231,17 +2953,18 @@ namespace Assets._Project.Scripts.SaveAndLoad
                         continue;
                     }
 
-                    handler.Deserialize(obj);
+                    //handler.Deserialize(savedata);
+                    handler.Deserialize(savedata);
                     saveHandlers.Add(handler);
 
                     SetObjectLoading(saveInfo._MetaData_.ObjectId, true);
 
-                    i++;
+                    j++;
                 }
             }
             catch (Exception e)
             {
-                Debug.LogError($"Error during loading from save file at object index {i}: {e.Message}. The object that caused the error:\n{objects[i]}");
+                Debug.LogError($"Error during loading from save file at object {d_savedata._MetaData_.ObjectId}: {e.Message}.");
                 throw;
             }
 
@@ -2263,6 +2986,8 @@ namespace Assets._Project.Scripts.SaveAndLoad
                     foreach (var handler in group)
                     {
                         d_laodingContext.handler = handler;
+                        //Debug.Log(handler.MetaData.ObjectId);
+
                         handler.CreateObject();
 
                         //if (d_suspendLoading && !d_found)
@@ -2305,9 +3030,9 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
 
 
-                    foreach (var hanler in group)
+                    foreach (var handler in group)
                     {
-                        if (hanler.HandledType == typeof(SceneManagement))
+                        if (handler.HandledType == typeof(SceneManagement))
                         {
                             yield return LoadAllSavedScenes();
                         }
@@ -2328,6 +3053,7 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
                 d_laodingContext.CurrentStage = LoadingStage.Completed;
             }
+            //you cant have catch if you use yield in try
             finally
             {
                 if (d_laodingContext.CurrentStage != LoadingStage.Completed)
@@ -2373,7 +3099,39 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
             __isObjectLoading.Clear();
             __integrators.Clear();
+
+            //todo
+            Infra.SceneManagement._savedSceneInfos.Clear();
+            Infra.SceneManagement._activeSceneInstanceIdFromSaveFile = RandomId.Default;
+
             ///todo: clear <see cref="PrefabDescriptionRegistry"/> and <see cref="ScenePlacedObjectRegistry"/>
+
+
+            void DisposeScope(LoadContext context)
+            {
+                if (_objectIdsByLoadContext.TryGetValue(context, out var objectsOfThisScope))
+                {
+                    foreach (var objId in objectsOfThisScope)
+                    {
+                        _loadContextByObjectId.Remove(objId);
+                    }
+                    _objectIdsByLoadContext.Remove(context);
+                }
+
+
+                if (_versionedTypesByLoadContext.TryGetValue(context, out var versionedTypesOfThisScope))
+                {
+                    foreach (var typeId in versionedTypesOfThisScope)
+                    {
+                        _versionedTypesByInstanceId.Remove(typeId);
+                        _loadContextByVersionedTypeIds.Remove(typeId);
+                    }
+                    _versionedTypesByLoadContext.Remove(context);
+                }
+            }
+
+            DisposeScope(loadContext);
+
 
             Debug.Log("loading completed");
         }
@@ -2383,47 +3141,7 @@ namespace Assets._Project.Scripts.SaveAndLoad
         public bool d_suspendLoading;
         public int d_loadedOrder;
 
-        public IEnumerator LoadEmptyScene()
-        {
-            AsyncOperation loadOperation = SceneManager.LoadSceneAsync(_emptySceneForLoadingFromSaveFile.BuildIndex, LoadSceneMode.Additive);
 
-            while (!loadOperation.isDone)
-            {
-                yield return null; // Wait for the load operation to complete
-            }
-        }
-
-
-        public IEnumerator UnloadEmptyScene()
-        {
-            AsyncOperation loadOperation = SceneManager.UnloadSceneAsync(_emptySceneForLoadingFromSaveFile.BuildIndex);
-
-            while (!loadOperation.isDone)
-            {
-                yield return null; // Wait for the load operation to complete
-            }
-        }
-
-
-        public IEnumerator UnLoadMainMenuScene()
-        {
-            AsyncOperation unloadOperation = SceneManager.UnloadSceneAsync(_mainMenuSceneRef.BuildIndex);
-
-
-            while (!unloadOperation.isDone)
-            {
-                yield return null; // Wait for the unload operation to complete
-            }
-
-            if (unloadOperation.isDone)
-            {
-                Debug.Log("Main menu scene unloaded successfully.");
-            }
-            else
-            {
-                Debug.LogError("Failed to unload main menu scene.");
-            }
-        }
 
 
 
@@ -2473,14 +3191,6 @@ namespace Assets._Project.Scripts.SaveAndLoad
                 return;
 
 
-            var dataGroupId = saveHandler.DataGroupId;
-
-            if (dataGroupId == null || string.IsNullOrEmpty(dataGroupId))
-            {
-                Debug.LogError("Invalid DataGroupId provided.");
-                return;
-            }
-
 
             __currentSaveHandlers.Add(saveHandler);
             __saveHandlerByHandledObjectIdLookUp.Add(saveHandler.HandledObjectId, saveHandler);
@@ -2519,14 +3229,6 @@ namespace Assets._Project.Scripts.SaveAndLoad
             }
 
 
-            var dataGroupId = saveHandler.DataGroupId;
-
-            if (string.IsNullOrEmpty(dataGroupId))
-            {
-                Debug.LogError("Invalid DataGroupId provided. (null or empty)");
-                return;
-            }
-
             __mainSaveHandlers.Remove(saveHandler);
             __saveHandlerByHandledObjectIdLookUp.Remove(saveHandler.HandledObjectId);
 
@@ -2543,9 +3245,6 @@ namespace Assets._Project.Scripts.SaveAndLoad
             //        $"it might means the object needs to check if it has already been destroyed.");
             //}
         }
-
-
-
 
 
 
@@ -2573,6 +3272,114 @@ namespace Assets._Project.Scripts.SaveAndLoad
             instance = default;
             return false;
 
+        }
+
+
+
+
+
+
+        public Dictionary<RandomId, LoadContext> _loadContextByObjectId = new();
+        public Dictionary<LoadContext, HashSet<RandomId>> _objectIdsByLoadContext = new();
+
+        public Dictionary<RandomId, VersionedType> _versionedTypesByInstanceId = new();
+        public Dictionary<RandomId, LoadContext> _loadContextByVersionedTypeIds = new();
+        public Dictionary<LoadContext, HashSet<RandomId>> _versionedTypesByLoadContext = new();
+
+
+        public class LoadContext
+        {
+            public MigrationContext MigrationContext { get; set; }
+
+            public LoadContext(Dictionary<RandomId, VersionedType> versionedTypesByInstanceId)
+            {
+                foreach ((var typeInstanceId, var versionedType) in versionedTypesByInstanceId)
+                {
+                    SaveAndLoadManager.Singleton._versionedTypesByInstanceId.Add(typeInstanceId, versionedType);
+                    SaveAndLoadManager.Singleton._loadContextByVersionedTypeIds.Add(typeInstanceId, this);
+                }
+
+                SaveAndLoadManager.Singleton._versionedTypesByLoadContext.Add(this, versionedTypesByInstanceId.Keys.ToHashSet());
+            }
+
+            public bool IsMigrating() => MigrationContext != null;
+        }
+
+
+        public bool IsVersionedTypeLoading(RandomId versionedTypeId, out LoadContext loadContext)
+        {
+            if (_loadContextByVersionedTypeIds.TryGetValue(versionedTypeId, out loadContext))
+                return true;
+            loadContext = null;
+            return false;
+        }
+
+
+        public bool IsObjectMigrating(RandomId id, out MigrationContext context)
+        {
+            if (_loadContextByObjectId.TryGetValue(id, out var loadContext))
+            {
+                context = loadContext.MigrationContext;
+
+                if (context != null)
+                    return true;
+                else return false;
+            }
+            context = null;
+            return false;
+        }
+
+        public VersionedType GetVersionedType(RandomId typeInstanceId)
+        {
+            return _versionedTypesByInstanceId[typeInstanceId];
+        }
+
+
+        //public void AddObjectToContextAs(RandomId objectId, RandomId @as, MigrationContext context)
+        //{
+        //    _objectIdsByMigrationContext.Add(objectId, context);
+        //    AddObjectToContextAs(objectId, @as);
+        //}
+
+        public void AddObjectToContextAs(RandomId objectId, RandomId @as)
+        {
+            var context = _loadContextByObjectId[@as];
+            _loadContextByObjectId.Add(objectId, context);
+            _objectIdsByLoadContext[context].Add(objectId);
+        }
+
+
+
+
+
+
+
+
+        [SaveHandler(343438274382730000, nameof(SaveAndLoadManager), typeof(SaveAndLoadManager), order: -100, singleton: true)]
+        public class SaveAndLoadManagerSaveHandler : UnmanagedSaveHandler<SaveAndLoadManager, SaveAndLoadManagerSaveData>
+        {
+            public override void Init(object instance)
+            {
+                base.Init(instance);
+                __saveData._appVersion = __instance._appVersion;
+                __saveData.versionedTypeCache = VersionedTypeCache.Singleton;
+            }
+
+            public override void CreateObject()
+            {
+                //do nothing
+            }
+
+            public override void _AssignInstance()
+            {
+                //do nothing
+            }
+        }
+
+        public class SaveAndLoadManagerSaveData : SaveDataBase
+        {
+            public int _appVersion;
+            public VersionedTypeCache versionedTypeCache;
         }
 
     }
@@ -2812,7 +3619,7 @@ namespace Assets._Project.Scripts.SaveAndLoad
         }
 
 
-        [SaveHandler(id: 107204973066903000, nameof(PrefabDescriptionRegistry), typeof(PrefabDescriptionRegistry), order: -90)]
+        [SaveHandler(id: 107204973066903000, nameof(PrefabDescriptionRegistry), typeof(PrefabDescriptionRegistry), order: -90, singleton: true)]
         public class PrefabDescriptionRegistrySaveHandler : UnmanagedSaveHandler<PrefabDescriptionRegistry, PrefabDescriptionRegistrySaveData>
         {
             public override void WriteSaveData()
@@ -2820,24 +3627,6 @@ namespace Assets._Project.Scripts.SaveAndLoad
                 base.WriteSaveData();
 
                 __saveData._prefabDescriptionByPrefabPartInstanceId = GetObjectId(__instance._prefabDescriptionByPrefabPartInstanceId, setLoadingOrder: true);
-            }
-
-            public override void CreateObject()
-            {
-                if (SaveAndLoadManager.PrefabDescriptionRegistry != null)
-                {
-                    Infra.Singleton.Unregister(SaveAndLoadManager.PrefabDescriptionRegistry);
-                    //SaveAndLoadManager.PrefabDescriptionRegistry = null;
-                }
-
-                base.CreateObject();
-
-                //SaveAndLoadManager.PrefabDescriptionRegistry = __instance;
-            }
-
-            public override void _AssignInstance()
-            {
-                __instance = SaveAndLoadManager.PrefabDescriptionRegistry;
             }
 
 
@@ -2944,6 +3733,7 @@ namespace Assets._Project.Scripts.SaveAndLoad
         public T _GetSceneObject<T>(RandomId sceneObjectInstanceId)
         {
             bool isScenePlaced = _IsScenePlaced(sceneObjectInstanceId);
+
 
             if (isScenePlaced && !_sceneObjectsById.ContainsKey(sceneObjectInstanceId))
             {
@@ -3078,7 +3868,7 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
 
 
-        [SaveHandler(id: 207204973066903000, nameof(ScenePlacedObjectRegistry), typeof(ScenePlacedObjectRegistry), order: -90)]
+        [SaveHandler(id: 207204973066903000, nameof(ScenePlacedObjectRegistry), typeof(ScenePlacedObjectRegistry), order: -90, singleton: true)]
         public class ScenePlacedObjectRegistrySaveHandler : UnmanagedSaveHandler<ScenePlacedObjectRegistry, ScenePlacedObjectRegistrySaveData>
         {
             public override void WriteSaveData()
@@ -3087,25 +3877,6 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
                 __saveData._sceneDescriptionBySceneObjectId = GetObjectId(__instance._sceneDescriptionBySceneObjectId, setLoadingOrder: true);
             }
-
-            public override void CreateObject()
-            {
-                if (SaveAndLoadManager.ScenePlacedObjectRegistry != null)
-                {
-                    Infra.Singleton.Unregister(SaveAndLoadManager.ScenePlacedObjectRegistry);
-                    //SaveAndLoadManager.ScenePlacedObjectRegistry = null;
-                }
-
-                base.CreateObject();
-
-                //SaveAndLoadManager.ScenePlacedObjectRegistry = __instance;
-            }
-
-            public override void _AssignInstance()
-            {
-                __instance = SaveAndLoadManager.ScenePlacedObjectRegistry;
-            }
-
 
             public override void LoadReferences()
             {
@@ -3157,11 +3928,10 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
     public class ObjectMetaData
     {
-        public string SaveHandlerId;
-        public bool IsGeneric;
-        public bool IsArray;
+        public long SaveHandlerId;
         public int Order;
-        public string SaveHandlerType;
+        public int Version;
+        public RandomId HandledType;
         public RandomId ObjectId;
     }
 
@@ -3171,17 +3941,590 @@ namespace Assets._Project.Scripts.SaveAndLoad
     }
 
 
-    public class SaveData
+
+
+
+
+
+
+
+    public class MigrationContext
     {
-        public string SerializedData;
-        public RandomId HandledObjectId;
-        public RandomId ParentObjectId;//for future use
-        public int Order;
-        public string DataGroupId;
+        public MigrationContext()
+        {
+        }
+
+
+        public void Init(int appVersionToStartMigratingFrom, List<SaveDataBase> savedataList)
+        {
+
+            foreach (var data in savedataList)
+            {
+                var metadata = data._MetaData_;
+
+                int pastDataVersion = metadata.Version;
+                int currentDataVersion = SaveAndLoadManager.Singleton.GetCurrentVersionOfTypeById(metadata.SaveHandlerId);
+
+                _saveDatasByObjectId.Add(data._ObjectId_, data);
+
+                _inheritanceChainByTypeId = SaveAndLoadManager.Singleton.GetInheritanceChainForAppVersion(appVersionToStartMigratingFrom);
+
+                if (pastDataVersion != currentDataVersion)
+                {
+                    CreatePipelinesForObject(metadata.ObjectId, metadata.SaveHandlerId);
+                }
+            }
+        }
+
+
+        public class MigrationStep
+        {
+            public MigrationStep(int appVersion) { this.appVersion = appVersion; }
+            public int appVersion;
+            public HashSet<SaveDataBase> changedSet = new();
+            public HashSet<SaveDataBase> addedSet = new();
+            public HashSet<SaveDataBase> removedSet = new();
+        }
+
+        public List<MigrationStep> _migrationSteps = new();
+
+
+        [JsonIgnore]
+        public Dictionary<long, IEnumerable<long>> _inheritanceChainByTypeId;
+        [JsonIgnore]
+        public Dictionary<RandomId, SaveDataBase> _saveDatasByObjectId = new();
+        [JsonIgnore]
+        public Dictionary<RandomId, List<MigrationiPipeline>> _pipelinesByObjectId = new();
+
+
+        [JsonIgnore]
+        public Queue<RandomId> _objectsToMigrate = new();
+
+        [JsonIgnore]
+        public MigrationStep CurrentStep => _migrationSteps.Last();
+
+
+
+        public HashSet<Data> _dataInstances = new();
+        public Dictionary<RandomId, HashSet<Data>> _dataInstancesByReferencedById = new();
+
+        public void AddDataInstance(Data data)
+        {
+            if (_dataInstances.Contains(data))
+            {
+                Debug.LogError("This data instance had already been added. Redundant calls should not happen.");
+                return;
+            }
+
+            _dataInstances.Add(data);
+            if (!_dataInstancesByReferencedById.ContainsKey(data.ReferencedBy))
+            {
+                _dataInstancesByReferencedById.Add(data.ReferencedBy, new HashSet<Data>());
+            }
+
+            _dataInstancesByReferencedById[data.ReferencedBy].Add(data);
+        }
+
+
+
+        public RandomId AddComponent<T>(T data, RandomId gameobjectId, RandomId addedBy, int? order = null) where T : MonoSaveDataBase
+        {
+            var go = GetObject<GameObjectSaveData>(gameobjectId);
+            go.Components.Add(data._ObjectId_);
+            _AddChanged(go);
+            data.GameObjectId = gameobjectId;
+
+            if (order == null)
+            {
+                order = go._MetaData_.Order;
+            }
+
+            var id = _AddNew(data, addedBy, isRootOject: true, order: order);
+            return id;
+        }
+
+
+        public RandomId AddNew<T>(T data, RandomId addedBy, bool? isRootOject = null, int? order = null) where T : SaveDataBase
+        {
+            if (data is MonoSaveDataBase)
+            {
+                Debug.LogError($"This api should not be used with components. Use the {nameof(AddComponent)} instead. " +
+                    $"ObjectId: {data._ObjectId_}, ActualType: {typeof(T).CleanAssemblyQualifiedName()}" +
+                    $"Returning default id.");
+                return RandomId.Default;
+            }
+
+            return _AddNew(data, addedBy, isRootOject, order);
+        }
+
+        public RandomId _AddNew<T>(T data, RandomId addedBy, bool? isRootOject = null, int? order = null) where T : SaveDataBase
+        {
+            RandomId objectId = RandomId.Get();
+
+            long savehandlerId = SaveAndLoadManager.Singleton._coreService.__saveHandlerIdBySaveDataType[typeof(T)];
+
+            var info = SaveAndLoadManager.Singleton._coreService.__saveHandlerAttributesById[savehandlerId];
+
+            data._ObjectId_ = objectId;
+
+            if (isRootOject == null)
+            {
+                //todo: scriptableobjects. get the handlerid of the scriptableobject type and check if it is in the inheritance chain of type T
+                if (data is GameObjectSaveData or StaticSaveDataBase)
+                {
+                    isRootOject = true;
+                }
+                else
+                    isRootOject = false;
+            }
+
+            data._isRootObject_ = isRootOject.Value;
+
+
+            if (order == null)
+            {
+                var referencing = _saveDatasByObjectId[addedBy];
+                order = referencing._MetaData_.Order;
+            }
+
+            ObjectMetaData metaData = new()
+            {
+                ObjectId = objectId,
+                SaveHandlerId = savehandlerId,
+                Version = CurrentStep.appVersion,
+                Order = order.Value,
+            };
+
+            data._MetaData_ = metaData;
+
+
+            _saveDatasByObjectId.Add(objectId, data);
+            CurrentStep.addedSet.Add(data);
+
+            SaveAndLoadManager.Singleton.AddObjectToContextAs(objectId, addedBy);
+
+
+            bool needMigration = CreatePipelinesForObject(objectId, savehandlerId);
+            if (needMigration)
+                _objectsToMigrate.Enqueue(objectId);
+
+            return objectId;
+        }
+
+
+
+        public bool CreatePipelinesForObject(RandomId objectId, long savehandlerId)
+        {
+            var inheritanceChain = _inheritanceChainByTypeId[savehandlerId];
+
+            List<MigrationiPipeline> pipelines = new();
+
+            if (SaveAndLoadManager.Singleton.__migrationPipelinesByHandlerId.TryGetValue(savehandlerId, out var pipeline))
+            {
+                pipelines.Add(pipeline);
+            }
+
+            foreach (var id in inheritanceChain)
+            {
+                if (SaveAndLoadManager.Singleton.__migrationPipelinesByHandlerId.TryGetValue(id, out pipeline))
+                {
+                    pipelines.Add(pipeline);
+                }
+            }
+
+            //note: so that the most base type is the first (System.Object) and the actual type is the last
+            //as derived types have the right to override base types' migration
+            pipelines.Reverse();
+
+            if (pipelines.Count > 0)
+            {
+                _pipelinesByObjectId.Add(objectId, pipelines);
+                return true;
+            }
+            else
+                return false;
+        }
+
+
+
+
+
+        public void EnsureChangePersists(SaveDataBase changedData, params string[] changedProperties)
+        {
+            var original = _saveDatasByObjectId[changedData._ObjectId_];
+
+            if (original != changedData)
+            {
+                CopyIdenticalMembers(from:changedData, to:original, changedProperties);
+                ClearConstructedObjectCacheFor(original._ObjectId_);
+            }
+
+            _AddChanged(changedData);
+        }
+
+
+        public void _AddChanged(SaveDataBase data)
+        {
+            RandomId objectId = data._ObjectId_;
+
+            if (CurrentStep.changedSet.Contains(data))
+            {
+                //Debug.LogError($"It is not expected to try to add the same objectId [{objectId}] multiple times " +
+                //    $"as a changed object during a single migration step. This fact may or may not signs of bugs.");
+                //update: it is possible. Multiple object may contribute to the migration of another object, each of them will report that object as changed
+            }
+            else
+            {
+                CurrentStep.changedSet.Add(data);
+
+                if (!_saveDatasByObjectId.ContainsKey(objectId))
+                {
+                    _saveDatasByObjectId[objectId] = data;
+                }
+            }
+        }
+
+
+
+        /// <summary>
+        /// this cache is particularly needed because <see cref="Data{T}"/> can repeatedly call <see cref="GetObject{T}(RandomId, bool)"/>
+        /// such that if the requested type is not the actual type of the object, it will create a new instance of the requested type
+        /// </summary>
+        public Dictionary<RandomId, Dictionary<Type, object>> _constructedRequestedDataByPerObjectCache = new();
+
+
+        public void ClearConstructedObjectCacheFor(RandomId objectId)
+        {
+            if (_constructedRequestedDataByPerObjectCache.ContainsKey(objectId))
+                _constructedRequestedDataByPerObjectCache.Remove(objectId);
+        }
+
+
+        /// <summary>
+        /// This api does not guarantee that the object it returns will be the same object that the object's migration context track.
+        /// If you make changes to the object you get via this api, then always call <see cref="EnsureChangePersists(SaveDataBase, string[])"/> on that object.
+        /// </summary>
+        /// <typeparam name="T">The "requested" type of the object</typeparam>
+        /// <param name="objectId"></param>
+        /// <param name="inheritsOrImplements">If set to true and If the requested type does not match the requested object's actual type 
+        ///     then a new instance of the requested type will be created and everything that can be will copied from the requested object to that new instance.</param>
+        /// <returns></returns>
+        public T GetObject<T>(RandomId objectId, bool inheritsOrImplements = false) ///where T: SaveDataBase cant because of <see cref="Data{T}"/> must accept any kind of T
+        {
+            Type requestedType = typeof(T);
+
+            if (_constructedRequestedDataByPerObjectCache.TryGetValue(objectId, out var constructedObjectsByRequestedType))
+            {
+                if (constructedObjectsByRequestedType.TryGetValue(requestedType, out var obj))
+                {
+                    return (T)obj;
+                }
+            }
+
+
+
+            if (_saveDatasByObjectId.TryGetValue(objectId, out var data))
+            {
+                if (data is T requestedData)
+                {
+                    return requestedData;
+                }
+                else
+                {
+                    if (inheritsOrImplements)
+                    {
+                        T requested = ObjectFactory.CreateInstance<T>();
+                        CopyIdenticalMembers(data, requested);
+
+                        if (!_constructedRequestedDataByPerObjectCache.ContainsKey(data._ObjectId_))
+                        {
+                            _constructedRequestedDataByPerObjectCache.Add(data._ObjectId_, new());
+                        }
+                        if (!_constructedRequestedDataByPerObjectCache[data._ObjectId_].ContainsKey(requestedType))
+                        {
+                            _constructedRequestedDataByPerObjectCache[data._ObjectId_].Add(requestedType, new());
+                        }
+
+                        _constructedRequestedDataByPerObjectCache[data._ObjectId_][requestedType] = requested;
+
+                        return requested;
+                    }
+                    else
+                    {
+                        Debug.LogError($"Type mismatch. The requested type for object [{objectId}] is not compatible with the object's actual type. " +
+                            $"Requested type: {typeof(T).CleanAssemblyQualifiedName()}, Object's actual type: {data.GetType().CleanAssemblyQualifiedName()}");
+                        return default;
+                    }
+                }
+            }
+            else
+            {
+                Debug.LogError($"No object found with id [{objectId}]. Returning default value.");
+                return default;
+            }
+        }
+
+
+
+        //public TTo FromCopyUnchangedMembers<TFrom, TTo>(TFrom from) where TFrom : SaveDataBase where TTo : SaveDataBase, new()
+        //{
+        //    TTo to = new();
+        //    CopyUnchangedMembers(from, to);
+        //    return to;
+        //}
+
+
+
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <typeparam name="TTo">The type of new version we migrating to</typeparam>
+        /// <param name="from">The instance of the previous version we migrating from</param>
+        /// <param name="current">The current progress that represents what has been migrated so far.</param>
+        /// <returns></returns>
+        public (TFrom, TTo) CreateFromCurrent<TFrom, TTo>(object from, object current) where TFrom : SaveDataBase, new() where TTo : SaveDataBase, new()
+        {
+            TTo to = new();
+            TFrom from_ = new();
+            CopyIdenticalMembers(from, from_);
+            CopyIdenticalMembers(from, to);
+            CopyIdenticalMembers(current, to);
+            return (from_, to);
+        }
+
+
+
+        [JsonIgnore]
+        public Dictionary<Type, FieldInfo[]> _fieldsCachePerType = new();
+        [JsonIgnore]
+        public Dictionary<Type, Dictionary<string, FieldInfo>> _fieldsLookupByNamePerTypeCache = new();
+
+
+        public FieldInfo[] GetFields(Type type)
+        {
+            if (!_fieldsCachePerType.ContainsKey(type))
+            {
+                _fieldsCachePerType.Add(type, type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance));
+            }
+            return _fieldsCachePerType[type];
+        }
+
+        public Dictionary<string, FieldInfo> GetFieldsLookupByName(Type type)
+        {
+            if (!_fieldsLookupByNamePerTypeCache.ContainsKey(type))
+            {
+                var fields = GetFields(type);
+                _fieldsLookupByNamePerTypeCache.Add(type, fields.ToDictionary(field => field.Name));
+            }
+            return _fieldsLookupByNamePerTypeCache[type];
+        }
+
+
+
+
+        public void CopyIdenticalMembers(object from, object to, bool deepCopy)
+        {
+            CopyIdenticalMembers(from, to, deepCopy, Array.Empty<string>());
+        }
+
+        public void CopyIdenticalMembers(object from, object to, params string[] membersToCopy)
+        {
+            CopyIdenticalMembers(from, to, deepCopy: false, membersToCopy);
+        }
+
+
+        public void CopyIdenticalMembers(object from, object to, bool deepCopy, string[] membersToCopy)
+        {
+            var fromFields = GetFieldsLookupByName(from.GetType());
+            var toFields = GetFieldsLookupByName(to.GetType());
+
+            List<FieldInfo> fieldsToCopy = new List<FieldInfo>();
+
+            if (membersToCopy.Length != 0)
+                foreach (var member in membersToCopy)
+                {
+                    if (fromFields.TryGetValue(member, out var fieldInfo))
+                    {
+                        fieldsToCopy.Add(fieldInfo);
+                    }
+                }
+            else
+                fieldsToCopy = fromFields.Values.ToList();
+
+
+            foreach (var fromField in fieldsToCopy)
+            {
+                if (toFields.TryGetValue(fromField.Name, out var toField))
+                {
+                    if (fromField.FieldType == toField.FieldType)
+                    {
+                        var val = fromField.GetValue(from);
+
+                        if (deepCopy 
+                            && val != default && val.GetType().IsClass && val.GetType() != typeof(string)
+                            && !val.GetType().IsAssignableTo(typeof(Delegate)))
+                        {
+                            //if (!val.GetType().IsAssignableTo(typeof(Delegate)))
+                            {
+                                var copy = ObjectFactory.CreateInstance(val.GetType());
+                                CopyIdenticalMembers(val, copy, deepCopy: true);
+                                toField.SetValue(to, copy);
+                            }
+                        }
+                        else
+                        {
+                            toField.SetValue(to, fromField.GetValue(from));
+                        }
+                    }
+                    else if (fromField.FieldType.IsAssignableTo(typeof(CustomSaveData))
+                        && toField.FieldType.IsAssignableTo(typeof(CustomSaveData)))
+                    {
+                        //todo: check if the types they handle are the different versions of the same typeid, in other words, they are compatible
+                        var prevVersion = fromField.GetValue(from) as CustomSaveData;
+
+                        try
+                        {
+                            var nextVersion = prevVersion.MigrateIfNeeded(this, out bool didMigrate);
+
+                            if (!didMigrate) throw new Exception("MigrateIfNeeded returned null when it was not expected to do so.");
+
+                            toField.SetValue(to, nextVersion);
+                        }
+                        catch (Exception e)
+                        {
+                            Debug.LogError($"Failed to migrate custom savedata field '{fromField.Name}' from type '{fromField.FieldType.CleanAssemblyQualifiedName()}' " +
+                                $"to type '{toField.FieldType.CleanAssemblyQualifiedName()}'. Make sure that the two customsavedata types handle different versions of the same type id.\n" +
+                                $"Exception: {e}");
+                        }
+                    }
+                    //todo: check if the types they handle are the different versions of the same typeid, in other words, they are compatible
+                    else if (fromField.FieldType.IsAssignableTo(typeof(Data))
+                        && toField.FieldType.IsAssignableTo(typeof(Data)))
+                    {
+                        var fromData = fromField.GetValue(from) as Data;
+                        var toData = toField.GetValue(to) as Data;
+
+                        try
+                        {
+                            toData.CopyFrom(fromData, this);
+                        }
+                        catch (Exception e)
+                        {
+                            Debug.LogError($"Failed to migrate Data field '{fromField.Name}' from type '{fromField.FieldType.CleanAssemblyQualifiedName()}' " +
+                                $"to type '{toField.FieldType.CleanAssemblyQualifiedName()}'.\n" +
+                                //$" Make sure that the two Data types handle different versions of the same type id.\n" +
+                                $"Exception: {e}");
+                        }
+                    }
+                }
+            }
+        }
+
+
+
+
+
+        public void Migrate(int appVersion)
+        {
+            PrepareNextVersionMigration(appVersion);
+
+            _objectsToMigrate = new(_pipelinesByObjectId.Keys);
+
+            while (_objectsToMigrate.Count > 0)
+            {
+                var id = _objectsToMigrate.Dequeue();
+
+                SaveDataBase pastData = _saveDatasByObjectId[id];
+
+                if (!_pipelinesByObjectId.ContainsKey(id))
+                {
+                    Debug.LogError(JsonConvert.SerializeObject(pastData));
+                }
+
+
+                //the pipelines are in the same order as the target type's inheritance chain it had at that appversion
+                //starting from the most base type, System.Object
+                var pipelines = _pipelinesByObjectId[id];
+
+
+                SaveDataBase current = pastData;
+                bool didMigrateInLastPipeline = false;
+                bool didMigrateAny = false;
+
+                foreach (var pipeline in pipelines)
+                {
+                    current = (SaveDataBase)pipeline.Migrate(pastData, current, appVersion, this, out bool didMigrate);
+
+                    ClearConstructedObjectCacheFor(id);
+
+                    didMigrateAny |= didMigrate;
+                    didMigrateInLastPipeline = didMigrate;
+                }
+
+
+                if (didMigrateAny)
+                {
+                    var final = current;
+
+                    if (!didMigrateInLastPipeline)
+                    {
+                        Debug.LogError($"An object did not migrate in its last migration pipeline. This is not allowed, it should not have happend. " +
+                            $"Id: {id}");
+                        CopyIdenticalMembers(current, pastData);
+                        final = pastData;
+                    }
+
+                    _saveDatasByObjectId[id] = final;
+
+                    _AddChanged(final);
+                }
+            }
+
+            FinalizeMigrationStep();
+        }
+
+
+        public void PrepareNextVersionMigration(int appVersion)
+        {
+            var step = new MigrationStep(appVersion);
+            _migrationSteps.Add(step);
+
+            _inheritanceChainByTypeId = SaveAndLoadManager.Singleton.GetInheritanceChainForAppVersion(appVersion);
+
+            foreach (var id in _pipelinesByObjectId.Keys.ToList())
+            {
+                var data = _saveDatasByObjectId[id];
+
+                _pipelinesByObjectId.Remove(id);
+                CreatePipelinesForObject(id, data._MetaData_.SaveHandlerId);
+            }
+        }
+
+
+        public void FinalizeMigrationStep()
+        {
+            foreach (var data in _dataInstances)
+            {
+                data.FinalizeMigrationStep(this);
+            }
+
+
+            Clone(CurrentStep.changedSet);
+            Clone(CurrentStep.addedSet);
+            Clone(CurrentStep.removedSet);
+
+            void Clone(HashSet<SaveDataBase> set)
+            {
+                foreach (var data in set.ToList())
+                {
+                    var clone = ObjectFactory.CreateInstance<SaveDataBase>(data.GetType());
+                    CopyIdenticalMembers(from: data, to: clone, deepCopy: true);
+                    set.Remove(data);
+                    set.Add(clone);
+                }
+            }
+        }
     }
 
-    public class SaveDataTable
-    {
-        public List<SaveData> Datas;
-    }
 }

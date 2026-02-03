@@ -24,7 +24,6 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
             SaveAndLoadManager.Singleton.ExpectingIsObjectLoadingRequest = false;
 
 
-
             Infra.Singleton.RegisterReference(__instance, __saveData._ObjectId_, rootObject: __saveData._isRootObject_);
         }
 

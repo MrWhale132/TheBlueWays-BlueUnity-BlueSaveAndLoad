@@ -5,7 +5,7 @@ using UnityEngine.InputSystem.Users;
 
 namespace Packages.com.theblueway.saveandload.Runtime.CustomSaveDatas
 {
-    [CustomSaveDataAttribute(HandledType = typeof(InputUser), GenerationMode = SaveHandlerGenerationMode.Manual)]
+    [CustomSaveData(652234312321049101,HandledType = typeof(InputUser), GenerationMode = SaveHandlerGenerationMode.Manual)]
     public class InputUserSaveData : CustomSaveData<UnityEngine.InputSystem.Users.InputUser>
     {
         public string controlScheme;
@@ -31,7 +31,7 @@ namespace Packages.com.theblueway.saveandload.Runtime.CustomSaveDatas
                 pairedDevices.Add(GetObjectId(device));
             }
         }
-        public override void WriteTo(ref UnityEngine.InputSystem.Users.InputUser instance)
+        public override void WriteInto(ref UnityEngine.InputSystem.Users.InputUser instance)
         {
             if(!valid)
             {

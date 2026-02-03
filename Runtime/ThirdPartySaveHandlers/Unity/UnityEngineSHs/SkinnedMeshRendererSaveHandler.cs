@@ -9,7 +9,8 @@ using System;
 using System.Reflection;
 using System.Linq;
 
-//reason it is manual: by the time we assign the materials array, the material instances must be in the added to the array
+//reason it is manual: by the time we assign the materials array, the material instances must be added to the array
+//this will be solved when setloadingorder is used everywhere
 namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.Unity.UnityEngineSHs
 {
     [SaveHandler(876827195521580802, "SkinnedMeshRenderer", typeof(UnityEngine.SkinnedMeshRenderer))]
@@ -28,8 +29,8 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.Unity.Unity
             __saveData.sharedMesh = GetAssetId(__instance.sharedMesh);
             __saveData.skinnedMotionVectors = __instance.skinnedMotionVectors;
             __saveData.vertexBufferTarget = __instance.vertexBufferTarget;
-            //__saveData.bounds.ReadFrom(__instance.bounds);
-            //__saveData.localBounds.ReadFrom(__instance.localBounds);
+            __saveData.bounds.ReadFrom(__instance.bounds);
+            __saveData.localBounds.ReadFrom(__instance.localBounds);
             __saveData.enabled = __instance.enabled;
             __saveData.shadowCastingMode = __instance.shadowCastingMode;
             __saveData.receiveShadows = __instance.receiveShadows;
@@ -68,8 +69,8 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.Unity.Unity
             __instance.sharedMesh = GetAssetById(__saveData.sharedMesh, __instance.sharedMesh);
             __instance.skinnedMotionVectors = __saveData.skinnedMotionVectors;
             __instance.vertexBufferTarget = __saveData.vertexBufferTarget;
-            //__saveData.bounds.WriteTo(__instance.bounds);
-            //__saveData.localBounds.WriteTo(__instance.localBounds);
+            __saveData.bounds.WriteInto(__instance.bounds);
+            __saveData.localBounds.WriteInto(__instance.localBounds);
             __instance.enabled = __saveData.enabled;
             __instance.shadowCastingMode = __saveData.shadowCastingMode;
             __instance.receiveShadows = __saveData.receiveShadows;
@@ -147,8 +148,8 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.Unity.Unity
         public RandomId sharedMesh;
         public System.Boolean skinnedMotionVectors;
         public UnityEngine.GraphicsBuffer.Target vertexBufferTarget;
-        //public DevTest.BoundsSaveData bounds = new();
-        //public DevTest.BoundsSaveData localBounds = new();
+        public CustomSaveData<Bounds> bounds = CustomSaveData.CreateFor<Bounds>();
+        public CustomSaveData<Bounds> localBounds = CustomSaveData.CreateFor<Bounds>();
         public System.Boolean enabled;
         public UnityEngine.Rendering.ShadowCastingMode shadowCastingMode;
         public System.Boolean receiveShadows;

@@ -9,7 +9,7 @@ using UnityEngine.SceneManagement;
 
 namespace Packages.com.theblueway.saveandload.Samples
 {
-    public class MySceneManager:MonoBehaviour
+    public class MySceneManager : MonoBehaviour
     {
         public static MySceneManager Singleton { get; private set; }
 
@@ -46,6 +46,22 @@ namespace Packages.com.theblueway.saveandload.Samples
 
             yield return StartCoroutine(UnLoadMainMenuScene());
         }
+
+
+        public IEnumerator OnLoadSavedWorldCompletedRoutine()
+        {
+            if (_transition.LoadedScene.GetRootGameObjects().Length > 0)
+            {
+                Debug.LogError($"Some objects are still present in the temporary scene used for loading the saved world. " +
+                    $"This is most probably due to an error in the loading process. " +
+                    $"Leaving the scene loaded for debugging.");
+            }
+            else
+            {
+                yield return StartCoroutine(UnloadScene(_transition.LoadedScene));
+            }
+        }
+
 
 
 

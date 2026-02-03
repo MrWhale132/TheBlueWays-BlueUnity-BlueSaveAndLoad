@@ -279,7 +279,7 @@ public class BulkAssetEditor : EditorWindow
             Debug.Log(AssetDatabase.GetMainAssetTypeAtPath(assetPath));
 
 
-            Object main = null;
+            //Object main = null;
             foreach (Object subAsset in subAssets)
             {
                 //if (AssetDatabase.IsMainAsset(subAsset))

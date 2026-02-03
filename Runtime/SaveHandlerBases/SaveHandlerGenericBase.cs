@@ -2,12 +2,14 @@
 using Assets._Project.Scripts.Infrastructure.AddressableInfra;
 using Assets._Project.Scripts.SaveAndLoad.SavableDelegates;
 using Assets._Project.Scripts.UtilScripts;
+using Assets._Project.Scripts.UtilScripts.CodeGen;
 using Newtonsoft.Json;
 using NUnit.Framework;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
+using Theblueway.SaveAndLoad.Packages.com.theblueway.saveandload.Runtime;
 using UnityEngine;
 
 namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
@@ -43,35 +45,39 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
 
             __saveData._ObjectId_ = HandledObjectId;
 
-            var handlerType = GetType();
+            int version = SaveAndLoadManager.Singleton.GetCurrentVersionOfTypeById(SaveHandlerId);
+
+            RandomId versionedType = VersionedType.From(__instance.GetType());
+
 
             __saveData._MetaData_ = new()
             {
                 SaveHandlerId = SaveHandlerId,
-                IsGeneric = handlerType.IsGenericType,
-                SaveHandlerType = handlerType.AssemblyQualifiedName,
                 ObjectId = HandledObjectId,
-                //Order = Order,
+                Version = version,
+                HandledType = versionedType,
             };
 
             var attr = __attributeCache[GetType()];
+            //hidden dependency jkanfiuhl5435huieurig
+            ///this does not override <see cref="Infra._SetLoadingOrder(RandomId, RandomId)"/> because it happens after this Init call
             Order = attr.Order;
 
-            __saveData._DataGroupId_ = DataGroupId;
-            __saveData._AssemblyQualifiedName_ = instance.GetType().AssemblyQualifiedName;
             __saveData._isRootObject_ = Infra.Singleton.IsRootObject(HandledObjectId);
         }
 
 
         public virtual void _SetObjectId()
         {
-            HandledObjectId = Infra.Singleton.GetObjectId(__instance, Infra.Singleton.GlobalReferencing);
-
-            if (HandledObjectId.IsDefault)
+            if (IsSingleton)
             {
-                Debug.LogError(__instance.GetType().FullName);
+                HandledObjectId = SaveAndLoadManager.Singleton.GetOrCreateSingletonObjectIdBySaveHandlerId(SaveHandlerId);
+                Infra.Singleton.RegisterReference(__instance, HandledObjectId, rootObject: true);
             }
+            else
+            HandledObjectId = Infra.Singleton.GetObjectId(__instance, Infra.GlobalReferencing);
         }
+
 
 
         public virtual void _AssignInstance()
@@ -80,6 +86,12 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
         }
 
 
+        public override void LoadValues()
+        {
+            base.LoadValues();
+            __saveData._MetaData_.HandledType = VersionedType.From(__instance.GetType());
+        }
+
         public override void ReleaseObject()
         {
             //this boxes a new instance in case of value types
@@ -87,6 +99,19 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
             __instance = default;
         }
 
+
+        public override void Accept(SaveDataBase data)
+        {
+            var savedata = data as TSaveData;
+
+            if(savedata == null)
+            {
+                Debug.LogError($"The given savedata type does not match what the handler is expecting.\n" +
+                    $"Type of given savedata: {data.GetType().CleanAssemblyQualifiedName()}.\n" +
+                    $"Type of what handler is expecting: {typeof(TSaveData).CleanAssemblyQualifiedName()}");
+            }
+            __saveData = (TSaveData)data;
+        }
 
         public override string Serialize()
         {

@@ -10,7 +10,7 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
         where TAsset : UnityEngine.Object
         where TSaveData : AssetSaveData, new()
     {
-        public bool IsDefensiveCopyOfOriginal => __saveData.instanceCopiedFromAsset.IsNotDefault;
+        public bool IsDefensiveCopyOfOriginal => __saveData.IsDefensiveCopyOfOriginal;
         public bool IsOriginalAsset => __saveData._AssetId_.IsNotDefault;
         public bool IsRuntimeGenerated => !IsOriginalAsset && !IsDefensiveCopyOfOriginal;
         public override bool IsValid => __instance != null;
@@ -23,6 +23,7 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
             base.Init(instance);
 
             __saveData.IsDefensiveCopyOfOriginal = __instance.IsDefensiveCopyOfOriginal(out string originalName);
+            bool isOriginal = !__saveData.IsDefensiveCopyOfOriginal;
 
             var assetId = GetAssetId2(__instance);
 
@@ -31,15 +32,16 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
 
             if (assetWasFound)
             {
-                __saveData.originalAssetsName = originalName;
 
-                if (IsDefensiveCopyOfOriginal)
+                if (isOriginal)
                 {
-                    __saveData.instanceCopiedFromAsset = assetId;
+                    __saveData._AssetId_ = assetId;
+                    __saveData.originalAssetsName = __instance.name;
                 }
                 else
                 {
-                    __saveData._AssetId_ = assetId;
+                    __saveData.instanceCopiedFromAsset = assetId;
+                    __saveData.originalAssetsName = originalName;
                 }
             }
             else if (!assetWasFound && !SupportsModificationsToTheInstance)
@@ -55,7 +57,7 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
         public override void WriteSaveData()
         {
             base.WriteSaveData();
-            __saveData.name = __instance.name;
+            __saveData._name = __instance.name;
         }
 
 
@@ -80,20 +82,22 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
 
         public override void _AssignInstance()
         {
-            if (IsOriginalAsset)
-            {
-                __instance = GetAssetById2<TAsset>(__saveData._AssetId_, null);
+            var assetId = IsOriginalAsset? __saveData._AssetId_ : __saveData.instanceCopiedFromAsset;
 
-                if (CopyRegardlessIfItIsOriginal)
-                {
-                    __instance = Object.Instantiate(__instance);
+            if (IsOriginalAsset || IsDefensiveCopyOfOriginal)
+            //{
+            //    __instance = GetAssetById2<TAsset>(__saveData._AssetId_, null);
 
-                    __instance.name = __saveData.name; //unity ads a (Clone) suffix
-                }
-            }
-            else if (IsDefensiveCopyOfOriginal)
+            //    //if (CopyRegardlessIfItIsOriginal)
+            //    {
+            //        __instance = Object.Instantiate(__instance);
+
+            //        __instance.name = __saveData.name; //unity ads a (Clone) suffix
+            //    }
+            //}
+            //else if (IsDefensiveCopyOfOriginal)
             {
-                var orig = GetAssetById2<TAsset>(__saveData.instanceCopiedFromAsset, null);
+                var orig = GetAssetById2<TAsset>(assetId, null);
 
                 if (orig != null)
                 {
@@ -121,7 +125,7 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
         public bool IsRuntimeGenerated;
         public bool SupportsModificationsToTheInstance;
         public string originalAssetsName;
-        public string name;
+        public string _name;
     }
 }
 

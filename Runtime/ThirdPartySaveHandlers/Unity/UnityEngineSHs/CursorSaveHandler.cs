@@ -8,7 +8,7 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.Unity.Unity
 
     public class StaticCursorSubtitute : StaticSubtitute<Cursor> { }
 
-    [SaveHandler(88897439587234832, nameof(StaticCursorSubtitute), typeof(StaticCursorSubtitute), isStatic: true, staticHandlerOf:typeof(Cursor))]
+    [SaveHandler(888974395872348320, nameof(StaticCursorSubtitute), typeof(StaticCursorSubtitute), staticHandlerOf: typeof(Cursor))]
     public class StaticCursorSaveHandler : StaticSaveHandlerBase<StaticCursorSubtitute, StaticCursorSaveData>
     {
         public override void WriteSaveData()

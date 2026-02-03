@@ -19,7 +19,7 @@ namespace Packages.com.theblueway.saveandload.Editor.SaveAndLoad
         {
             BuildLookupIfNeeded();
 
-            var handlerId = SaveAndLoadManager.Service_.GetHandlerIdByHandledType(handledType, isStatic);
+            var handlerId = SaveAndLoadManager.Service.GetHandlerIdByHandledType(handledType, isStatic);
             if(handledType.Name == "TankInputUser")
             {
 
@@ -45,7 +45,7 @@ namespace Packages.com.theblueway.saveandload.Editor.SaveAndLoad
 
                     while (current != null)
                     {
-                        var id = SaveAndLoadManager.Service_.GetHandlerIdByHandledType(current, false);
+                        var id = SaveAndLoadManager.Service.GetHandlerIdByHandledType(current, false);
 
                         if (_foundTypeGenConfigsByHandlerId.TryGetValue(id, out var configsForCurrentType))
                         {

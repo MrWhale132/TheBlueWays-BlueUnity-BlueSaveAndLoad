@@ -1,10 +1,11 @@
-﻿
-using Assets._Project.Scripts.Infrastructure.AddressableInfra;
-using Assets._Project.Scripts.Infrastructure;
+﻿using Assets._Project.Scripts.Infrastructure;
 using Assets._Project.Scripts.SaveAndLoad.SavableDelegates;
 using Assets._Project.Scripts.UtilScripts;
+using Assets._Project.Scripts.UtilScripts.CodeGen;
 using System;
+using Theblueway.SaveAndLoad.Packages.com.theblueway.saveandload.Runtime;
 using UnityEngine;
+using UnityEngine.Scripting;
 
 namespace Assets._Project.Scripts.SaveAndLoad
 {
@@ -13,31 +14,61 @@ namespace Assets._Project.Scripts.SaveAndLoad
     {
         public CustomSaveData()
         {
-            
+
         }
 
         public abstract void ReadFrom(in TStruct instance);
-        public abstract void WriteTo(ref TStruct instance);
+        public abstract void WriteInto(ref TStruct instance);
         public void ReadFrom(TStruct instance)
         {
             ReadFrom(in instance);
         }
-        public void WriteTo(TStruct instance)
+        public void WriteInto(TStruct instance)
         {
-            WriteTo(ref instance);
+            WriteInto(ref instance);
+        }
+
+
+        public override void SlowReadFrom<T>(in T instance)
+        {
+            if (instance is TStruct @struct)
+            {
+                ReadFrom(in @struct);
+            }
+            else
+            {
+                Debug.LogError($"Cant read from raw object of type {instance.GetType().CleanAssemblyQualifiedName()} " +
+                    $"into CustomSaveData of type {typeof(TStruct).CleanAssemblyQualifiedName()}");
+            }
+        }
+
+        public override void SlowWriteInto<T>(ref T instance)
+        {
+            if (instance is TStruct @struct)
+            {
+                WriteInto(ref @struct);
+                var copy = (T)(object)@struct;
+                instance = copy;
+            }
+            else
+            {
+                Debug.LogError($"Cant write to raw object of type {instance.GetType().CleanAssemblyQualifiedName()} " +
+                    $"from CustomSaveData of type {typeof(TStruct).CleanAssemblyQualifiedName()}");
+            }
+        }
+
+
+        public override Type GetHandledType()
+        {
+            return typeof(TStruct);
         }
 
 
 
         public RandomId GetObjectId(object obj)
         {
-            return Infra.Singleton.GetObjectId(obj, Infra.Singleton.GlobalReferencing);
+            return Infra.Singleton.GetObjectId(obj, Infra.GlobalReferencing);
         }
-        //todo:cleanup
-        //public RandomId GetAssetId(UnityEngine.Object asset)
-        //{
-        //    return AddressableDb.Singleton.GetAssetIdByAssetName(asset);
-        //}
 
         public InvocationList GetInvocationList<T>(T del) where T : Delegate
         {
@@ -51,12 +82,6 @@ namespace Assets._Project.Scripts.SaveAndLoad
             return Infra.Singleton.GetObjectById<T>(id);
         }
 
-        //public T GetAssetById<T>(RandomId id, T fallback) where T : UnityEngine.Object
-        //{
-        //    var asset = AddressableDb.Singleton.GetAssetByIdOrFallback<T>(fallback, ref id);
-
-        //    return asset;
-        //}
 
         public T GetDelegate<T>(InvocationList list) where T : Delegate
         {
@@ -64,5 +89,56 @@ namespace Assets._Project.Scripts.SaveAndLoad
         }
     }
 
-    public class CustomSaveData { }
+    [Preserve]
+    public abstract class CustomSaveData
+    {
+        public RandomId versionedType;
+
+        public CustomSaveData() { }
+
+        public abstract void SlowReadFrom<T>(in T instance);
+        public abstract void SlowWriteInto<T>(ref T instance);
+        public abstract Type GetHandledType();
+
+
+
+        public CustomSaveData MigrateIfNeeded(MigrationContext context, out bool didMigrate)
+        {
+            Type handledType = GetHandledType();
+            int appVersionOfThisHandler = SaveAndLoadManager.Singleton.GetCustomSaveDataAppVersionByHandledType(handledType);
+
+            CustomSaveData migrated = null;
+            
+            if (appVersionOfThisHandler == context.CurrentStep.appVersion)
+            {
+                didMigrate = true;
+                migrated = Migrate(context);
+                return migrated;
+            }
+            else
+            {
+                didMigrate = false;
+                return migrated;
+            }
+        }
+
+        protected virtual CustomSaveData Migrate(MigrationContext context)
+        {
+            Debug.LogError("Do not call this base method");
+            return null;
+        }
+
+        public static CustomSaveData<T> CreateFor<T>()
+        {
+            var instance = SaveAndLoadManager.Singleton.CreateCustomSaveDataInstanceFor<T>();
+
+            if (typeof(T).IsClass)
+            {
+                return instance;
+            }
+
+            instance.versionedType = VersionedType.From(typeof(T));
+            return instance;
+        }
+    }
 }

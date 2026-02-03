@@ -28,7 +28,7 @@ namespace Assets._Project.Scripts.SaveAndLoad
                 return started;
             }
 
-            var targetId = Infra.Singleton.GetObjectId(mono, Infra.Singleton.GlobalReferencing, setLoadingOrder:false);
+            var targetId = Infra.Singleton.GetObjectId(mono, Infra.GlobalReferencing, setLoadingOrder:false);
             var stateId = Infra.Singleton.GetObjectId(state, targetId, setLoadingOrder:true);
             var delegateSaveInfo = Infra.Singleton.GetDelegateSaveInfo(routine);
 
@@ -59,8 +59,8 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
         public static Coroutine StartCoroutineFromSaveData(this MonoBehaviour mono, Delegate coroutine, object state)
         {
-            var targetId = Infra.Singleton.GetObjectId(mono, Infra.Singleton.GlobalReferencing);
-            var stateId = Infra.Singleton.GetObjectId(state, Infra.Singleton.GlobalReferencing);
+            var targetId = Infra.Singleton.GetObjectId(mono, Infra.GlobalReferencing);
+            var stateId = Infra.Singleton.GetObjectId(state, Infra.GlobalReferencing);
             var delegateSaveInfo = Infra.Singleton.GetDelegateSaveInfo(coroutine);
 
             var routine = (IEnumerator)coroutine.DynamicInvoke(state);

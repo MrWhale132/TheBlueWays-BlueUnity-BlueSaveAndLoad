@@ -618,7 +618,7 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
                 //}
 
                 /////todo: when the <see cref="SaveHandlerBase.GetAssetId"/> is retired, theoretically, this will no longer be needed
-                //id3 = Infra.Singleton.GetObjectId(unityObj, Infra.Singleton.GlobalReferencing); //todo: GlobalReferencing should be a quick temp solution
+                //id3 = Infra.Singleton.GetObjectId(unityObj, Infra.GlobalReferencing); //todo: GlobalReferencing should be a quick temp solution
                 //return id3;
             }
 
@@ -639,7 +639,7 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
                 //&& (!unityObj.name.EndsWith(" Instance", System.StringComparison.Ordinal))
                 //&& (!unityObj.name.EndsWith(" (Instance)", System.StringComparison.Ordinal)))
                 {
-                    Debug.LogWarning($"AddressableDb: No ID found for asset type {unityObj.GetType().FullName} with name {unityObj.name}. Going to return a default value.");
+                    Debug.LogWarning($"AddressableDb: No ID found for asset type {unityObj.GetType().FullName} with name {unityObj.name}. Going to return a default value.",unityObj);
                 }
             }
 
@@ -742,17 +742,17 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
 
 
             //handle.Completed += op =>
-            {
-                if (handle.Status == AsyncOperationStatus.Failed)
-                {
-                    Debug.LogError($"AddressableDb: Failed to load asset of type {typeof(T).FullName} at address '{address}' for ID {id}. exception: {handle.OperationException}");
-                }
-                if (handle.Status == AsyncOperationStatus.Succeeded)
-                {
-                    return handle.Result;
-                }
-                else return default;
-            }
+            //{
+            //    if (handle.Status == AsyncOperationStatus.Failed)
+            //    {
+            //        Debug.LogError($"AddressableDb: Failed to load asset of type {typeof(T).FullName} at address '{address}' for ID {id}. exception: {handle.OperationException}");
+            //    }
+            //    if (handle.Status == AsyncOperationStatus.Succeeded)
+            //    {
+            //        return handle.Result;
+            //    }
+            //    else return default;
+            //}
         }
 
         [HideInInspector]
