@@ -1,22 +1,21 @@
 //auto-generated
-using UnityEngine;
-using Assets._Project.Scripts.UtilScripts;
 using Assets._Project.Scripts.Infrastructure;
 using Assets._Project.Scripts.SaveAndLoad;
 using Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases;
-using Assets._Project.Scripts.SaveAndLoad.SavableDelegates;
-using System.Collections.Generic;
 using System;
+using System.Collections.Generic;
 using System.Reflection;
+using UnityEngine;
 
 namespace UnityEngine_
 {
-	[SaveHandler(801744359158797818, "Shader", typeof(UnityEngine.Shader),order:-9, generationMode: SaveHandlerGenerationMode.Manual)]
+    [SaveHandler(801744359158797818, "Shader", typeof(UnityEngine.Shader),order:-9, generationMode: SaveHandlerGenerationMode.Manual)]
 	public class ShaderSaveHandler : AssetSaveHandlerBase<UnityEngine.Shader, ShaderSaveData> 
 	{
 		public override void WriteSaveData()
 		{
 			base.WriteSaveData();
+			__saveData.name = __instance.name;
 			__saveData.maximumLOD = __instance.maximumLOD;
 			__saveData.hideFlags = __instance.hideFlags;
 		}
@@ -24,11 +23,18 @@ namespace UnityEngine_
 		public override void LoadReferences()
 		{
 			base.LoadReferences();
+			//no need to set name here because it already has that name
 			__instance.maximumLOD = __saveData.maximumLOD;
 			__instance.hideFlags = __saveData.hideFlags;
 		}
 
-		static ShaderSaveHandler()
+        public override void _AssignInstance()
+        {
+			__instance = Shader.Find(__saveData.name);
+			__instance = UnityEngine.Object.Instantiate(__instance);
+        }
+
+        static ShaderSaveHandler()
 		{
 			Dictionary<string, long> methodToId = new()
 			{
@@ -102,6 +108,7 @@ namespace UnityEngine_
 
 	public class ShaderSaveData : AssetSaveData 
 	{
+		public string name;
 		public System.Int32 maximumLOD;
 		public UnityEngine.HideFlags hideFlags;
 	}

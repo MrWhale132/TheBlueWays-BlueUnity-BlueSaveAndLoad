@@ -1,5 +1,4 @@
-﻿
-using Assets._Project.Scripts.UtilScripts;
+﻿using Assets._Project.Scripts.UtilScripts;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -7,11 +6,12 @@ using System.IO;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
-using UnityEngine.ResourceManagement.AsyncOperations;
-using System.Threading;
 using Object = UnityEngine.Object;
 using Assets._Project.Scripts.UtilScripts.Misc;
-using Packages.com.blueutils.core.Runtime.Misc;
+using Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases;
+using Theblueway.Core.Runtime.Packages.com.blueutils.core.Runtime.Debugging.Logging;
+
+
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -22,15 +22,19 @@ using Assets._Project.Scripts.UtilScripts.Addressables;
 
 namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
 {
-    public class AddressableDb : MonoBehaviour
+    [CreateAssetMenu(fileName = "AddressableDb", menuName = "Scriptable Objects/Infra/Addressable Db")]
+    public class AddressableDb : ScriptableSingleton<AddressableDb>
     {
         [Serializable]
         public class AddressableDTO
         {
             public RandomId id;
+            public string unityId;
             public string address;
-            public string typedAddress = "";
-            public string assetName;//todo: its typed, add the "typed" prefix
+            public string assetPath;
+            public string assetName; //its extended with asset type
+            [NonSerialized]
+            public bool isUnityBuiltinResource;
         }
 
 
@@ -39,30 +43,36 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
         {
             public List<AddressableDTO> _addressables = new();
 
-            [Newtonsoft.Json.JsonIgnore]
+            //indexes
+            [NonSerialized]
             public Dictionary<RandomId, AddressableDTO> _id;
-            [Newtonsoft.Json.JsonIgnore]
-            public Dictionary<string, AddressableDTO> _assetName;
+            [NonSerialized]
+            public Dictionary<string, AddressableDTO> _unityId;
+
+            //document-based like columns
+            public List<RandomId> _unityBuiltinResource;
+            [NonSerialized]
+            public HashSet<RandomId> _unityBuiltinResourceColumn;
+
 
 
             [Newtonsoft.Json.JsonIgnore]
             public bool Dirty { get; set; }
 
 
-            public void BuildIndexes()
+            public void BuildIndexesAndColumns()
             {
                 if (_addressables == null)
                 {
                     Debug.LogError("Addressables list is null. Cannot build indexes.");
                     return;
                 }
-                if (_id != null)
-                {
-                    return;
-                }
 
-                _id = new Dictionary<RandomId, AddressableDTO>();
-                _assetName = new Dictionary<string, AddressableDTO>();
+                _id = new();
+                _unityId = new();
+
+                _unityBuiltinResourceColumn = new(_unityBuiltinResource);
+
 
                 foreach (var entry in _addressables)
                 {
@@ -75,13 +85,18 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
                         Debug.LogError($"Duplicate ID found: {entry.id}. Skipping addition.");
                     }
 
-                    if (!_assetName.ContainsKey(entry.assetName))
+                    if (!_unityId.ContainsKey(entry.unityId))
                     {
-                        _assetName.Add(entry.assetName, entry);
+                        _unityId.Add(entry.unityId, entry);
                     }
                     else
                     {
-                        Debug.LogError($"Duplicate asset name found: {entry.assetName}. Skipping addition.");
+                        Debug.LogError($"Duplicate unityId found: {entry.unityId}. SKipping addition.");
+                    }
+
+                    if (_unityBuiltinResourceColumn.Contains(entry.id))
+                    {
+                        entry.isUnityBuiltinResource = true;
                     }
                 }
             }
@@ -89,31 +104,40 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
 
             public void Add(AddressableDTO dto)
             {
-                if (_addressables.Contains(dto))
-                {
-                    Debug.LogError($"AddressableDb: Addressable with ID '{dto.id}' and asset name '{dto.assetName}' already exists. Skipping addition.");
-                    return;
-                }
                 if (_id.ContainsKey(dto.id))
                 {
-                    Debug.LogError($"AddressableDb: Addressable with ID '{dto.id}' already exists. Skipping addition.");
+                    Debug.LogError($"AddressableDb: AssetEntry with ID '{dto.id}' already exists. Skipping addition.");
                     return;
                 }
-                if (_assetName.TryGetValue(dto.assetName, out var existingAddressable))
+                if (_unityId.TryGetValue(dto.unityId, out var existingAddressable))
                 {
-                    Debug.LogError($"Cant add addressable entry with name '{dto.assetName}' and address '{dto.typedAddress}' " +
-                             $"because an other addressable had already been added with this asset name. " +
-                             $"Already existing addressable: {existingAddressable.typedAddress}. " +
+                    Debug.LogError($"Cant add AssetEntry entry with unityId '{dto.unityId}'\n" +
+                             $"because an other AssetEntry had already been added with this unityId.\n" +
+                             $"Already existing AssetEntry Id: {existingAddressable.id}.\n" +
+                             $"Colliding AssetEntry Id: {dto.id}\n" +
                              $"Skipping addition.");
                     return;
                 }
 
+                if (dto.isUnityBuiltinResource)
+                {
+                    if (_unityBuiltinResourceColumn.Contains(dto.id))
+                        Debug.LogError($"ERROR AssetDb: Add asset entry. Asset entry: {dto.id} tried to be added as unity built-in resource, " +
+                            $"but the db already contains this id as such. Should not cause problmes, letting the entry continue to be added.");
+                    else
+                    {
+                        _unityBuiltinResource.Add(dto.id);
+                        _unityBuiltinResourceColumn.Add(dto.id);
+                    }
+                }
 
                 _addressables.Add(dto);
                 _id.Add(dto.id, dto);
-                _assetName.Add(dto.assetName, dto);
+                _unityId.Add(dto.unityId, dto);
 
                 Dirty = true;
+
+                Debug.Log($"DEBUG: Added AssetEntry with id: {dto.id}, name: {dto.assetName}, and unityId: {dto.unityId}'.");
             }
 
 
@@ -123,7 +147,13 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
                 {
                     _addressables.Remove(dto);
                     _id.Remove(dto.id);
-                    _assetName.Remove(dto.assetName);
+                    _unityId.Remove(dto.unityId);
+
+                    if (dto.isUnityBuiltinResource)
+                    {
+                        _unityBuiltinResource.Remove(dto.id);
+                        _unityBuiltinResourceColumn.Remove(dto.id);
+                    }
 
                     Dirty = true;
                 }
@@ -133,9 +163,56 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
                         $"Skipping removal.");
                 }
             }
+
+
+            public bool Update(AddressableDTO request)
+            {
+                if (!_id.ContainsKey(request.id))
+                {
+                    Debug.LogError($"ERROR AssetDb: Can not Update entry {request.id} because it is not in the database.");
+                    return false;
+                }
+                if (_unityId.TryGetValue(request.unityId, out var existingDto))
+                {
+                    if (existingDto.id != request.id)
+                    {
+                        Debug.LogError($"ERROR AssetDb: Can not Update entry with unityid {request.unityId} because an other entry also has this unityId " +
+                            $"but with a different asset id.\n" +
+                            $"Existing entry's asset id: {existingDto.id}\n" +
+                            $"Update request entry's asset id: {request.id}");
+                        return false;
+                    }
+                }
+
+                var existing = _id[request.id];
+                _CopyFromInto(from: request, into: existing);
+
+                return true;
+            }
+
+
+            public void _CopyFromInto(AddressableDTO from, AddressableDTO into)
+            {
+                into.unityId = from.unityId;
+                into.address = from.address;
+                into.assetName = from.assetName;
+                into.assetPath = from.assetPath;
+                into.isUnityBuiltinResource = from.isUnityBuiltinResource;
+            }
+
+
+            public static void _LogDebug(string message)
+            {
+                BlueDebug.Debug("AssetDb: " + message);
+            }
         }
 
 
+
+        public static void LogError(string message, Object context = null)
+        {
+
+        }
 
 
 
@@ -148,16 +225,63 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
 
 #if UNITY_EDITOR
 
+        public AddressableDTO ToUpdateDTO(AddressableAssetEntry entry, AddressableDTO from)
+        {
+            return ToDTO(entry, from.id);
+        }
+
         public AddressableDTO ToDTO(AddressableAssetEntry entry)
         {
+            return ToDTO(entry, RandomId.New);
+        }
+
+        public AddressableDTO ToDTO(AddressableAssetEntry entry, RandomId id)
+        {
+            var unityId = GetUnityId(entry.TargetAsset, entry.MainAssetType);
             var assetName = _service.GetExtendedAssetName(entry.AssetName(), entry.MainAssetType);
+
             return new AddressableDTO
             {
-                id = RandomId.Get(),
+                id = id,
+                unityId = unityId,
                 address = entry.address,
-                typedAddress = _service.GetTypedAddress(entry),
                 assetName = assetName,
+                assetPath = entry.AssetPath,
             };
+        }
+
+
+        public AddressableDTO ToDTOFromUnityBuiltinResource(Object unityBuiltinResource)
+        {
+            var unityId = GetUnityId(unityBuiltinResource);
+            var name = _service.GetExtendedAssetName(unityBuiltinResource);
+
+            return new AddressableDTO
+            {
+                id = RandomId.New,
+                unityId = unityId,
+                assetName = name,
+                assetPath = null,
+                isUnityBuiltinResource = true
+            };
+        }
+
+
+
+        public bool trigger;
+        private void OnValidate()
+        {
+            if (trigger)
+            {
+                trigger = false;
+
+                var paths = AssetDatabase.GetAllAssetPaths();
+
+                var pathToGuid = paths.ToDictionary(path => path, path => AssetDatabase.AssetPathToGUID(path));
+
+                File.WriteAllText("c:/temp/pathstoguids", JsonConvert.SerializeObject(pathToGuid));
+
+            }
         }
 
 
@@ -165,19 +289,61 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
 
         [Tooltip("If true, will reuse existing IDs for addressables with the same asset name. " +
             "Can be used when the path of assets changed but their names not.")]
-
+        [Obsolete]
+        [HideInInspector]
         public bool _reuseIds = true;
-        public bool _includeSubAssetsToo = false;
 
 
         public void Refresh()
         {
-            Init();
+            InitIfNeeded();
+
+
+            //__db._unityBuiltinResource.Clear();
+            //foreach ((var name, var asset) in _unityBuiltInResourcesByExtendedName)
+            {
+                //Debug.Log(asset.name);
+                //var id = _unityBuiltInResourceExtendedNamesToObjectIdsMap[name];
+
+                //__db._unityBuiltinResource.Add(id);
+                //var unityId = GetUnityId(asset);
+
+                //var dto = new AddressableDTO
+                //{
+                //    id = id,
+                //    unityId = unityId,
+                //    assetName = name,
+                //};
+
+                //__db.Add(dto);
+            }
+            //EditorUtility.SetDirty(this); 
+            //AssetDatabase.Refresh();
+            //return;
+
+
+
+            //todo: remove the ones that are not used anymore?
+            var assets = GetUnityBuiltinResources();
+            //Debug.Log(assets.Count);
+            foreach (var asset in assets)
+            {
+                var unityId = GetUnityId(asset);
+                //Debug.Log(unityId);
+                if (!__db._unityId.ContainsKey(unityId))
+                {
+                    var dto = ToDTOFromUnityBuiltinResource(asset);
+
+                    __db.Add(dto);
+                }
+            }
+            //EditorUtility.SetDirty(this);
+            //AssetDatabase.Refresh();
+            //return;
+
 
             var entries = AddressableUtils.GetAllAddressableEntries();
-            //var test = entries.Find(e => e.address == "Assets/FreeCharacter/FreeCharacter_Mecanim.FBX");
 
-            if (_includeSubAssetsToo)
             {
                 List<AddressableAssetEntry> subs = new List<AddressableAssetEntry>();
                 foreach (var entry in entries)
@@ -188,117 +354,74 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
             }
 
 
-            List<AddressableAssetEntry> distinct = new List<AddressableAssetEntry>();
-            Dictionary<string, AddressableAssetEntry> byAddress = new Dictionary<string, AddressableAssetEntry>();
-            Dictionary<string, AddressableAssetEntry> byAssetName = new Dictionary<string, AddressableAssetEntry>();
 
 
             foreach (var entry in entries)
             {
-                string assetName;
+                var unityId = GetUnityId(entry);
+                string assetName = _service.GetExtendedAssetName(entry.AssetName(), entry.MainAssetType);
 
-                assetName = _service.GetExtendedAssetName(entry.AssetName(), entry.MainAssetType);
-
-                if (byAssetName.TryGetValue(assetName, out AddressableAssetEntry existing))
+                if (string.IsNullOrEmpty(unityId))
                 {
-                    Debug.LogError($"AddressableDb: Two addressable with the same asset name found:" +
-                        $"{existing.address}, \n" +
-                        $"{entry.address} " +
-                        $"Please make sure that each addressable has a uniqe asset name.");
+                    Debug.LogError($"Could not find unityId for addressable with asset name '{assetName}' and address '{entry.address}'. Skipping addition.");
+                    continue;
+                }
+
+
+                if (__db._unityId.TryGetValue(unityId, out var dto))
+                {
+                    if (entry.address != dto.address)
+                    {
+                        string oldAddress = dto.address;
+
+                        var updateRequest = ToUpdateDTO(entry, dto);
+
+                        bool result = __db.Update(updateRequest);
+
+                        if (result)
+                        {
+                            Debug.Log($"DEBUG: Updated addressable AssetEntry with id: {dto.id},\n" +
+                                $"from old address: {oldAddress}\n" +
+                                $"to new address: {dto.address}");
+                        }
+                    }
+                    //Debug.LogError($"ERROR AssetDb: Can not add addressable: {entry.address} with unityId: {unityId}to assetdb " +
+                    //    $"because an other AssetEntry is already registered with is unityId.\n" +
+                    //    $"Other's ID: {dto.id}\n");
+                    //the other dto might not be an addressable, it can be anything, so cant log more info about it
                 }
                 else
                 {
-                    distinct.Add(entry);
-                    byAddress.Add(_service.GetTypedAddress(entry), entry);
-                    byAssetName.Add(assetName, entry);
+
+                    var newDto = ToDTO(entry);
+
+                    __db.Add(newDto);
                 }
             }
 
 
 
-            foreach (var entry in distinct)
-            {
-                string assetName = _service.GetExtendedAssetName(entry.AssetName(), entry.MainAssetType);
-                string typedAddress = _service.GetTypedAddress(entry);
-
-                RandomId id;
 
 
-                if (__db._assetName.TryGetValue(assetName, out var dto))
-                {
-                    bool isSame = dto.typedAddress == typedAddress;
-                    if (isSame) continue;
+            //foreach (var dbEntry in __db._addressables.ToList())
+            //{
+            //    if (!byAddress.ContainsKey(dbEntry.typedAddress))
+            //    {
+            //        Debug.Log($"DEBUG AddressableDb: Removing Addressable with asset name '{dbEntry.assetName}' and address '{dbEntry.typedAddress}' " +
+            //            $"does not exist in the current addressables. Going to remove it from the database.");
 
-
-                    bool stillExists = byAddress.ContainsKey(dto.typedAddress);
-
-                    if (stillExists)
-                    {
-                        Debug.LogError($"AddressableDb: Addressable with asset name '{assetName}' already exists with address '{dto.typedAddress}'. " +
-                            $"Skipping addition.");
-                        continue;
-                    }
-                    //TODO: additional checks if the asset type is the same, etc.
-                    //For example, allow reassign only if the asset type is the same as the existing one.
-                    __db.Remove(dto);
-
-                    Debug.Log($"TRACE: Removed unused addressable DTO with asset name '{assetName}' and address '{dto.typedAddress}'.");
-
-
-                    if (_reuseIds)
-                    {
-                        Debug.Log($"TRACE: Reusing ID for addressable with asset name '{assetName}' and address '{typedAddress}'. " +
-                            $"Old address: {dto.typedAddress}, New address: {typedAddress} " +
-                            $"ID: {dto.id}.");
-
-                        id = dto.id;
-                    }
-                    else
-                    {
-                        id = RandomId.Get();
-
-                        Debug.Log($"TRACE: Reusing IDs for the same asset name is false so going to create a new one." +
-                            $"Old addressable with same name: {dto.typedAddress}, New addressable with same name: {typedAddress}" +
-                            $"New ID: {id}");
-                    }
-                }
-                else id = RandomId.Get();
+            //        __db.Remove(dbEntry);
+            //    }
+            //}
 
 
 
-                var newDto = ToDTO(entry);
-                newDto.id = id;
-
-                __db.Add(newDto);
-
-                Debug.Log($"TRACE: Added addressable DTO with asset name '{assetName}' and address '{typedAddress}'. " +
-                    $"ID: {newDto.id}.");
-            }
-
-
-
-
-
-            foreach (var dbEntry in __db._addressables.ToList())
-            {
-                if (!byAddress.ContainsKey(dbEntry.typedAddress))
-                {
-                    Debug.Log($"TRACE: AddressableDb: Removing Addressable with asset name '{dbEntry.assetName}' and address '{dbEntry.typedAddress}' " +
-                        $"does not exist in the current addressables. Going to remove it from the database.");
-
-                    __db.Remove(dbEntry);
-                }
-            }
-
-
-
-            _reuseIds = true;
 
             Debug.Log($"AddressableDb: Refresh completed.");
 
             if (__db.Dirty)
             {
-                Debug.Log($"AddressableDb: Changes detected. Going to save to disk.");
+                Debug.Log($"AddressableDb: Changes were detected. Going to save to disk.");
                 SaveToDisk();
                 __db.Dirty = false;
             }
@@ -306,12 +429,22 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
             {
                 Debug.Log($"AddressableDb: No changes detected. No need to save to disk.");
             }
+
+            EditorUtility.SetDirty(this);
+            AssetDatabase.Refresh();
         }
 
 
 #endif
 
-        public static AddressableDb Singleton { get; private set; }
+        new public static AddressableDb Singleton {
+            get
+            {
+                var instance = ScriptableSingleton<AddressableDb>.Singleton;
+                instance.InitIfNeeded();
+                return instance;
+            }
+        }
 
         //[NonSerialized] //this is the way to drop the db
         public DataBase __db;
@@ -320,26 +453,19 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
 
 
 
-        private void Awake()
+
+
+
+        [NonSerialized]
+        public bool _didInit;
+
+
+        public void InitIfNeeded()
         {
-            if (Singleton != null && Singleton != this)
-            {
-                DebugUtil.LogFatal("AddressableDb: Singleton instance already exists. Destroying the new instance.");
-                Destroy(gameObject);
-                return;
-            }
+            if (_didInit) return;
+            _didInit = true;
 
-            Singleton = this;
-            DontDestroyOnLoad(gameObject);
-
-
-            Init();
-        }
-
-
-        public void Init()
-        {
-            __db.BuildIndexes();
+            __db.BuildIndexesAndColumns();
 
             CreateUnityBuiltInResourceLookUp();
             LoadInUnityBuiltInResourceObjectIds();
@@ -433,7 +559,7 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
                 };
 
 
-                string extendedName = GetExtendedAssetName(obj);
+                string extendedName = _service.GetExtendedAssetName(obj);
 
                 if (_unityBuiltInResourcesByExtendedName.ContainsKey(extendedName))
                 {
@@ -446,14 +572,9 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
         }
 
 
-        public string GetExtendedAssetName(string name, Type type)
-        {
-            return _service.GetExtendedAssetName(name, type);
-        }
-        public string GetExtendedAssetName(Object asset)
-        {
-            return _service.GetExtendedAssetName(asset);
-        }
+
+
+
 
 
         public void LoadInUnityBuiltInResourceObjectIds()
@@ -487,16 +608,30 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
 
 
 
+        public List<Object> GetUnityBuiltinResources()
+        {
+            var result = new List<Object>();
+
+            var additionals = GetAdditionalUnityAssets();
+
+            result.AddRange(_unityBuiltInResources);
+            result.AddRange(additionals);
+
+            return result;
+        }
+
+
         public List<Object> GetAdditionalUnityAssets()
         {
             var assets = new List<Object>();
 
             var image = _defaults.GetComponentInChildren<UnityEngine.UI.Image>(true);
             assets.Add(image.material);
-            assets.Add(image.material.shader);
+            //assets.Add(image.material.shader);
 
-            var collider = _defaults.GetComponentInChildren<BoxCollider>(true);
-            assets.Add(collider.material);
+            //lol: if the comp is on a child of the gameobject, then unity appends the (Instance) suffix to the name of the default PhysicsMaterial
+            //var collider = _defaults.GetComponentInChildren<BoxCollider>(true);
+            //assets.Add(collider.sharedMaterial);
 
             return assets;
         }
@@ -520,6 +655,18 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
 
             public string GetExtendedAssetName(string name, Type type)
             {
+                string nameExtension = GetAssetNameExtension(type);
+                return name + nameExtension;
+            }
+
+
+            public string GetAssetNameExtension(Object obj)
+            {
+                return GetAssetNameExtension(obj.GetType());
+            }
+
+            public string GetAssetNameExtension(Type type)
+            {
                 var typeName = type.Name;
 
                 //todo: figure out something for this case
@@ -528,8 +675,9 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
                     typeName = "AudioMixerGroupController";
                 }
 
-                return $"{name} ({typeName})";
+                return $" ({typeName})";
             }
+
 
 #if UNITY_EDITOR
             public string GetExtendedAssetName(string assetPath)
@@ -567,40 +715,36 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
 
 
 
-        //todo: clean up later
-        //public RandomId GetAssetIdOfOriginalAssetFromCopy(UnityEngine.Object unityObj, out string originalName)
-        //{
-        //    if (unityObj == null)
-        //    {
-        //        originalName = string.Empty;
-        //        return RandomId.Default;
-        //    }
 
-        //    //assume its name ends with " Instance" or " (Instance)"
-        //    string name = unityObj.name.Substring(0,unityObj.name.LastIndexOf(' '));
-
-        //    string extendedName = _service.GetExtendedAssetName(name, unityObj.GetType());
+        public HashSet<RandomId> GetUnityBuiltinResourceIds()
+        {
+            return __db._unityBuiltinResourceColumn;
+        }
 
 
-        //    RandomId id = _GetIdByAssetName(extendedName);
 
-        //    if (id.IsDefault)
-        //    {
-        //        //if (unityObj.name != "Default UI Material")
-        //        {
-        //            Debug.LogWarning($"AddressableDb: Did not find the ID of the original asset of copy: {unityObj.name}. Type: {unityObj.GetType().FullName}. Going to return a default value.",unityObj);
-        //            originalName = string.Empty;
-        //            return RandomId.Default;
-        //        }
-        //    }
+        public void RegisterUnityBuiltinResources()
+        {
+            var ids = GetUnityBuiltinResourceIds();
 
-        //    originalName = name;
-        //    return id;
-        //}
+            //Debug.Log(ids.Count);
+            foreach (var id in ids)
+            {
+                var asset = _GetAssetById<Object>(id);
+
+                var initContext = new AssetInitContext { instantiatedFromAssetId = id };
+                Infra.S.Register(asset, ifHasntAlready: true, context: initContext, rootObject: false, createSaveHandler: true);
+            }
+        }
 
 
+
+
+
+        [Obsolete]
         public RandomId GetAssetIdByAssetName(UnityEngine.Object unityObj)
         {
+            Debug.LogError($"{nameof(AddressableDb.GetAssetIdByAssetName)} is obsolete and ot supported anymore.");
             if (unityObj == null) return RandomId.Default;
 
 
@@ -609,21 +753,10 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
             if (unityObj.IsDefensiveCopyOfOriginal())
             {
                 name = unityObj.name.Substring(0, unityObj.name.LastIndexOf(' '));
-
-                //string extendedName2 = _service.GetExtendedAssetName(name,unityObj.GetType());
-
-                //if (_unityBuiltInResourceExtendedNamesToObjectIdsMap.TryGetValue(extendedName2, out var id3))
-                //{
-                //    return id3;
-                //}
-
-                /////todo: when the <see cref="SaveHandlerBase.GetAssetId"/> is retired, theoretically, this will no longer be needed
-                //id3 = Infra.Singleton.GetObjectId(unityObj, Infra.GlobalReferencing); //todo: GlobalReferencing should be a quick temp solution
-                //return id3;
             }
 
 
-            string extendedName = GetExtendedAssetName(name, unityObj.GetType());
+            string extendedName = _service.GetExtendedAssetName(name, unityObj.GetType());
 
             if (_unityBuiltInResourceExtendedNamesToObjectIdsMap.TryGetValue(extendedName, out var id2))
             {
@@ -633,18 +766,17 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
 
             RandomId id = _GetIdByAssetName(extendedName);
 
-            if (id.IsDefault /*&& !string.IsNullOrEmpty(unityObj.name)*/)
+            if (id.IsDefault)
             {
-                //if (unityObj.name != "Default UI Material"
-                //&& (!unityObj.name.EndsWith(" Instance", System.StringComparison.Ordinal))
-                //&& (!unityObj.name.EndsWith(" (Instance)", System.StringComparison.Ordinal)))
-                {
-                    Debug.LogWarning($"AddressableDb: No ID found for asset type {unityObj.GetType().FullName} with name {unityObj.name}. Going to return a default value.",unityObj);
-                }
+                //Debug.LogWarning($"AddressableDb: No ID found for asset type {unityObj.GetType().FullName} with name {unityObj.name}. Going to return a default value.", unityObj);
             }
+
 
             return id;
         }
+
+
+
 
         public RandomId _GetIdByAssetName(string assetName)
         {
@@ -653,11 +785,11 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
                 return RandomId.Default;
             }
 
-            if (__db._assetName.TryGetValue(assetName, out var dto))
-            {
-                return dto.id;
-            }
-            else
+            //if (__db._assetName.TryGetValue(assetName, out var dto))
+            //{
+            //    return dto.id;
+            //}
+            //else
             {
                 //Debug.LogWarning($"AddressableDb: No ID found for asset name {assetName}. Going to return a default value.");
                 return RandomId.Default;
@@ -692,8 +824,10 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
 
         public T _GetAssetById<T>(RandomId id) where T : UnityEngine.Object
         {
-            if (_unityBuiltInResourceObjectIdsToExtendedNameMap.TryGetValue(id, out var extendedName))
+            //if (_unityBuiltInResourceObjectIdsToExtendedNameMap.TryGetValue(id, out var extendedName))
+            if (__db._id.TryGetValue(id, out var dto) && dto.isUnityBuiltinResource)
             {
+                var extendedName = dto.assetName;
                 if (_unityBuiltInResourcesByExtendedName.TryGetValue(extendedName, out var obj))
                 {
                     if (obj is T tObj)
@@ -811,6 +945,140 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
 
 
 
+
+#if UNITY_EDITOR
+        public AssetEntryInfo GetAssetEntryInfo(UnityEngine.Object asset)
+        {
+            var unityId = GetUnityId(asset);
+
+            if (unityId == null)
+            {
+                if (asset != null)
+                    BlueDebug.Debug($"AssetDb: No unityid found for unity object. name: {asset.name}");
+
+                return null;
+            }
+
+            if (__db._unityId.TryGetValue(unityId, out var dto))
+            {
+                return GetAssetEntryInfo(dto);
+            }
+            else
+            {
+                BlueDebug.Debug($"AddressableDb: no entry for unityId: {unityId}");
+                return null;
+            }
+        }
+
+
+
+        public AssetEntryInfo GetAssetEntryInfo(RandomId id)
+        {
+            if (__db._id.TryGetValue(id, out var dto))
+            {
+                return GetAssetEntryInfo(dto);
+            }
+            else
+            {
+                BlueDebug.Debug($"AddressableDb: no entry for asset id: {id}");
+                return null;
+            }
+        }
+
+
+        public AssetEntryInfo GetAssetEntryInfo(AddressableDTO dto)
+        {
+            var info = new AssetEntryInfo
+            {
+                assetId = dto.id,
+                name = dto.assetName,
+                assetPath = dto.assetPath,
+                key = dto.address,
+            };
+
+            return info;
+        }
+
+
+
+
+#if UNITY_EDITOR
+        public string GetUnityId(AddressableAssetEntry addressable)
+        {
+            return GetUnityId(addressable.TargetAsset, addressable.MainAssetType);
+        }
+#endif
+
+        public string GetUnityId(Object unityObj)
+        {
+            return GetUnityId(unityObj, unityObj == null ? null : unityObj.GetType());
+        }
+
+
+        public string GetUnityId(Object unityObj, Type acutalAssetType)
+        {
+            if (unityObj == null)
+            {
+                BlueDebug.Debug("AddressableDb: object is null");
+                return null;
+            }
+
+            string path = AssetDatabase.GetAssetPath(unityObj);
+
+            if (string.IsNullOrEmpty(path))
+            {
+
+                if (unityObj.name == "Default UI Material")
+                {
+                    return _service.GetExtendedAssetName(unityObj);
+                }
+
+                BlueDebug.Debug($"AddressableDb: did not find asset path. Name: {unityObj.name}");
+
+                return null;
+            }
+
+            string guid = AssetDatabase.AssetPathToGUID(path);
+
+            if (string.IsNullOrEmpty(guid))
+            {
+                //Debug.Log($"[DEBUG] AddressableDb: did not find guid. Name: {unityObj.name}");
+                guid = path; //idk if this is a good idea or not, time will tell
+            }
+
+            ///unity uses these special guids for internal reserved resources like Cube/Plain/Sphere etc... mesh
+            ///the problem is he assigns the same guid for multiple resources
+            ///for example all primitive meshes has the same guid
+            //System.IO.File.WriteAllText("unityguids_34823748",
+            //    UnityEngine.JsonUtility.ToJson(
+            //        AssetDatabase.GetAllAssetPaths()
+            //        .Select(path => AssetDatabase.GUIDFromAssetPath(path) + ": " + path)));
+            if (guid.StartsWith("0000000"))
+            {
+                string extension = _service.GetExtendedAssetName(unityObj.name, acutalAssetType);
+                guid += "/" + extension;
+                return guid;
+            }
+
+
+            if (!AssetDatabase.IsSubAsset(unityObj))
+            {
+                return guid;
+            }
+            else
+            {
+                var extension = _service.GetExtendedAssetName(unityObj.name, acutalAssetType);
+                return $"{guid}/{extension}";
+            }
+        }
+#endif
+
+
+
+
+
+
+
         public string GetNameFromTypedName(string typedName)
         {
             string untypedName = typedName.Substring(0, typedName.LastIndexOf(" (", StringComparison.Ordinal));
@@ -829,54 +1097,13 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
 
 
 
-        //not working, delete somewhen
-        public static class AddressablesHelper
-        {
-            public static T SafeLoadAssetBlocking<T>(object key) where T : UnityEngine.Object
-            {
-                var handle = Addressables.LoadAssetAsync<T>(key);
-
-                // Use a manual reset event to block until the callback fires
-                using var waitHandle = new ManualResetEvent(false);
-
-                T result = null;
-                Exception exception = null;
-
-                handle.Completed += op =>
-                {
-                    if (op.Status == AsyncOperationStatus.Succeeded)
-                    {
-                        result = op.Result;
-                    }
-                    else
-                    {
-                        exception = op.OperationException ?? new System.Exception("Addressable load failed with unknown reason.");
-                    }
-
-                    waitHandle.Set();
-                };
-
-                // Wait until the operation completes
-                waitHandle.WaitOne();
-
-                if (exception != null)
-                {
-                    Debug.LogError($"[Addressables] Failed to load asset '{key}': {exception}");
-                    return null;
-                }
-
-                return result;
-            }
-        }
 
 
-
-        //dont want to have dependency on SaintsField in package. May want to implement our own.
-        //[SaintsField.ReadOnly]
+        //[ReadOnly]
         public int __majorVersion;
-        //[SaintsField.ReadOnly]
+        //[ReadOnly]
         public int __minorVersion;
-        //[SaintsField.ReadOnly]
+        //[ReadOnly]
         public int __patchVersion;
 
         public string _savePathRelativeToAssetsFolder;
@@ -969,15 +1196,55 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
 
 
     [Serializable]
-    public class AssetNameAlias
+    public class AssetEntryInfo
     {
-        public Component assetHolder;
         public RandomId assetId;
-        //public RandomIdReference assetIdRef;
-
-        [Tooltip("Use this for arrays or lists, like MeshRenderer.sharedMaterials")]
-        public List<RandomIdReference> listElementAssetIds;
+        //[ReadOnly] //cant not use because it makes the text hard to read and cant nobe selected
+        public string name;
+        public string assetPath;
+        //[ReadOnly]
+        [Tooltip("The key is what will be used to load the asset from whatever provider it is configured to")]
+        public string key;
     }
+
+
+
+
+
+    [Serializable]
+    public class AssetEntryReference
+    {
+        public Object asset;
+
+        [HideInInspector]
+        public Object _lastKnownAsset;
+
+        public AssetEntryInfo entryInfo;
+        public RandomId assetId => entryInfo.assetId;
+        public bool isValid => entryInfo != null;
+
+
+#if UNITY_EDITOR
+        public void UpdateReferenceIfNeeded()
+        {
+            if (_lastKnownAsset != asset)
+            {
+                entryInfo = AddressableDb.Singleton.GetAssetEntryInfo(asset);
+
+                if (entryInfo is null)
+                {
+                    Debug.LogError("AssetEntryRefernce: Could not update asset reference because no asset entry found for the assigned asset.");
+                }
+
+                _lastKnownAsset = asset;
+            }
+        }
+#endif
+    }
+
+
+
+
 
 
 

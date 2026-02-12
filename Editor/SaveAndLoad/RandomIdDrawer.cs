@@ -1,6 +1,8 @@
 ﻿using Assets._Project.Scripts.UtilScripts;
 using UnityEditor;
 using UnityEngine;
+using Thebluway.Core.Editor.Extensions;
+using Thebluway.Core;
 
 namespace Packages.com.theblueway.saveandload.Editor.SaveAndLoad
 {
@@ -17,34 +19,67 @@ namespace Packages.com.theblueway.saveandload.Editor.SaveAndLoad
             position = EditorGUI.PrefixLabel(position, label);
 
             // split into text + small button
+            int buttonWidth = 30;
             var fieldRect = new Rect(position.x, position.y, position.width - 30f, position.height);
-            var btnRect = new Rect(fieldRect.xMax + 2f, position.y, 28f, position.height);
+
+            float nextButtonPosX = fieldRect.xMax + 2;
+
+            Rect GetNextButtonRect()
+            {
+                var current = new Rect(nextButtonPosX, position.y, 28f, position.height);
+                nextButtonPosX -= buttonWidth;
+                return current;
+            }
+
+            var copyButtonRect = new Rect(fieldRect.xMax + 2f, position.y, 28f, position.height);
             var pasteButtonRect = new Rect(fieldRect.xMax - 28f, position.y, 28f, position.height);
 
             EditorGUI.BeginDisabledGroup(true);
             EditorGUI.PropertyField(fieldRect, idProp, GUIContent.none);
             EditorGUI.EndDisabledGroup();
 
-            //if (GUI.Button(btnRect, "⧉")) // unicode clipboard icon (only displayed as square somewhy)
-            if (GUI.Button(btnRect, "C")) // unicode clipboard icon
+
+            if (idProp.longValue == default && property.IsDefined<AutoGenerateAttribute>())
+            {
+                idProp.longValue = long.Parse(RandomId.New.ToString());
+            }
+
+
+
+
+            //if (GUI.Button(btnRect, "⧉")) // unicode clipboard icon (does not work, only displayed as a square somewhy)
+            if (GUI.Button(GetNextButtonRect(), "C")) // unicode clipboard icon
             {
                 EditorGUIUtility.systemCopyBuffer = idProp.longValue.ToString();
             }
-            if (GUI.Button(pasteButtonRect, "P"))
+
+
+            if (property.HasAttribute<AllowEditAttribute>(out var editAttribute))
             {
-                if (long.TryParse(EditorGUIUtility.systemCopyBuffer, out long val))
-                {
-                    if (val >= 100000000000000000)
+                if (editAttribute.RandomIdEditMode.HasFlag(RandomIdEditMode.Paste))
+                    if (GUI.Button(GetNextButtonRect(), "P"))
                     {
-                        idProp.longValue = val;
+                        if (long.TryParse(EditorGUIUtility.systemCopyBuffer, out long val))
+                        {
+                            if (val >= 100000000000000000)
+                            {
+                                idProp.longValue = val;
+                            }
+                            else
+                            {
+                                Debug.LogWarning("RandomId long value must be at least 100000000000000000.");
+                            }
+                        }
+                        else
+                            Debug.LogWarning("Clipboard does not contain a valid RandomId long value.");
                     }
-                    else
+
+
+                if (editAttribute.RandomIdEditMode.HasFlag(RandomIdEditMode.Generate))
+                    if (GUI.Button(GetNextButtonRect(), "G"))
                     {
-                        Debug.LogWarning("RandomId long value must be at least 100000000000000000.");
+                        idProp.longValue = long.Parse(RandomId.New.ToString());
                     }
-                }
-                else
-                    Debug.LogWarning("Clipboard does not contain a valid RandomId long value.");
             }
         }
     }

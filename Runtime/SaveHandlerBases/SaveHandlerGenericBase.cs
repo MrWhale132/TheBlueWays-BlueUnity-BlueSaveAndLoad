@@ -149,38 +149,40 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
 
 
         //these are quick fixes because dynamic object load order setting is not ready yet
-        //todo
-        public void GetAssetIdList(IEnumerable<UnityEngine.Object> objs, List<RandomId> ids)
-        {
-            ids.Clear();
-            int i = 0;
-            foreach (var obj in objs)
-            {
-                if (obj != null)
-                {
-                    var assetId = GetAssetId2(obj);
-                    //Infra.Singleton.KeepAlive(assetId, HandledObjectId);
-                    ids.Add(assetId);
-                }
-                i++;
-            }
-        }
+        //todo: may cleanup later
+        //[Obsolete]
+        //public void GetAssetIdList(IEnumerable<UnityEngine.Object> objs, List<RandomId> ids)
+        //{
+        //    ids.Clear();
+        //    int i = 0;
+        //    foreach (var obj in objs)
+        //    {
+        //        if (obj != null)
+        //        {
+        //            var assetId = GetAssetId2(obj);
+        //            Infra.Singleton.KeepAlive(assetId, HandledObjectId);
+        //            ids.Add(assetId);
+        //        }
+        //        i++;
+        //    }
+        //}
 
-        public T[] GetAssetList<T>(List<RandomId> ids) where T : UnityEngine.Object
-        {
-            T[] assets = new T[ids.Count];
+        //[Obsolete]
+        //public T[] GetAssetList<T>(List<RandomId> ids) where T : UnityEngine.Object
+        //{
+        //    T[] assets = new T[ids.Count];
 
-            for (int i = 0; i < ids.Count; i++)
-            {
-                var id = ids[i];
+        //    for (int i = 0; i < ids.Count; i++)
+        //    {
+        //        var id = ids[i];
 
-                var asset = GetAssetById2<T>(id,null);
+        //        var asset = GetAssetById2<T>(id, null);
 
-                if (asset != null)
-                    assets[i] = asset;
-            }
+        //        if (asset != null)
+        //            assets[i] = asset;
+        //    }
 
-            return assets;
-        }
+        //    return assets;
+        //}
     }
 }

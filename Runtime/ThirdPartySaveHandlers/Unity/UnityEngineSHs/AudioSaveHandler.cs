@@ -52,6 +52,7 @@ namespace DevTest
             __saveData.rolloffMode = __instance.rolloffMode;
             __saveData.enabled = __instance.enabled;
             __saveData.hideFlags = __instance.hideFlags;
+            __saveData.isPlaying = __instance.isPlaying;
         }
 
         public override void LoadReferences()
@@ -92,7 +93,7 @@ namespace DevTest
             __instance.rolloffMode = __saveData.rolloffMode;
             __instance.enabled = __saveData.enabled;
             __instance.hideFlags = __saveData.hideFlags;
-            if (__instance.enabled && __instance.gameObject.activeInHierarchy)
+            if (__instance.enabled && __instance.gameObject.activeInHierarchy && __saveData.isPlaying)
                 __instance.Play();
         }
 
@@ -206,6 +207,7 @@ namespace DevTest
 #if UNITY_EDITOR
         public UnityEngine.GamepadSpeakerOutputType gamepadSpeakerOutputType;
 #endif
+        public System.Boolean isPlaying;
         public System.Boolean loop;
         public System.Boolean ignoreListenerVolume;
         public System.Boolean playOnAwake;

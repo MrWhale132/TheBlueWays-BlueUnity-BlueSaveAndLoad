@@ -6,6 +6,7 @@ using Assets._Project.Scripts.UtilScripts.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Theblueway.Core.Runtime.Packages.com.blueutils.core.Runtime.Debugging.Logging;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -25,21 +26,12 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
         public override bool IsValid => __instance != null;
 
         public bool ShouldRegisterComponents =>
-            !__saveData.IsPrefabAsset
+            !IsPrefabAsset
             && (_initContext == null || (!_initContext.isPrefabPart && !_initContext.isScenePlaced))
-            && (_goInfra == null || (!_goInfra.HasPrefabParts && !_goInfra.HasSceneParts));
+            && (_goInfra == null || (!_goInfra.HasPrefabParts && !_goInfra.HasSceneParts && !_goInfra.HasInlinedSceneParts && !_goInfra.HasInlinedPrefabParts));
 
 
-        public T AddComponent<T>() where T : Component
-        {
-            if (ComponentAddingTracker == null)
-            {
-                Debug.LogError("ComponentAddingTracker is null. Cannot add component via tracker");
-                return null;
-            }
-
-            return ComponentAddingTracker.AddComponent<T>();
-        }
+        public bool IsPrefabAsset => __saveData.PrefabAssetId.IsNotDefault;
 
 
 
@@ -51,17 +43,52 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
 
 
             __saveData.GameObjectId = __saveData._ObjectId_;
-            var isPrefabAsset = __instance.IsProbablyPrefabAsset(); //todo: maybe we can use to check if Awake has ran instead?
-            __saveData.IsPrefabAsset = isPrefabAsset;
 
-            if (isPrefabAsset)
+            var isProbablyPrefabAsset = __instance.IsProbablyPrefabAsset(); //todo: maybe we can use to check if Awake has ran instead?
+
+            _goInfra = __instance.GetComponent<GOInfra>();
+
+
+            if (isProbablyPrefabAsset)
             {
-                __saveData.PrefabAssetId = GetAssetId2(__instance);
+                string message = null;
+
+                if (_goInfra == null)
+                {
+                    message = $"GOSaveHandler: It was detected that a gameobject instance might be a prefab asset and not an instance of it \n" +
+                        $"but it does not have a {nameof(GOInfra)} that could tell which prefab this GameObject is.\n" +
+                        $"ObjectId: {HandledObjectId}, name: {__instance.name}";
+                }
+                else if (_goInfra.PrefabAssetId.IsDefault)
+                {
+                    message = $"GOSaveHandler: It was detected that a gameobject instance might be a prefab asset and not an instance of it \n" +
+                        $"but it does not have a prefab asset id that could tell which prefab this GameObject is.\n" +
+                        $"ObjectId: {HandledObjectId}, name: {__instance.name}";
+                }
+                else
+                {
+                    __saveData.PrefabAssetId = _goInfra.PrefabAssetId;
+                }
+
+
+                if (message != null)
+                {
+                    BlueDebug.Error(message,__instance);
+
+                    ///todo: for this exception to be effective, we need a SaveContext, it would catch the exception, map it to an error code
+                    ///and return a response to <see cref="SaveAndLoadManager.Save"/> consumers to let them handle.
+                    ///PLUS: save the savefile anyway for debugging and restoring purposes, but has to be marked as invalid
+                    ///so (e.g) load menus can ignore it
+                    //throw new Exception(message);
+                    return;
+                }
             }
-            else if (!isPrefabAsset && ShouldRegisterComponents)
+            else if (!isProbablyPrefabAsset && ShouldRegisterComponents)
             {
                 _goInfra = __instance.GetOrAddComponent<GOInfra>();
+                __saveData._goInfra = GetObjectId(_goInfra);
             }
+
 
             //easier troubleshooting if this is set now so it can be used later
             __saveData.HierarchyPath = __instance.HierarchyPath();
@@ -103,9 +130,9 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
             __saveData.sceneHandle = __instance.scene.handle;
             __saveData.isRootInScene = __instance.transform.parent == null;
             __saveData._initContext = _initContext;
-            __saveData._goInfra = GetObjectId(_goInfra, setLoadingOrder:true);
+            __saveData.HierarchyPath = __instance.HierarchyPath();
 
-            if (!__saveData.IsPrefabAsset)
+            if (!IsPrefabAsset)
                 __saveData.sceneInstanceId = Infra.SceneManagement.SceneIdByHandle(__instance.scene.handle);
 
             _components.Clear();
@@ -119,7 +146,7 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
             {
                 var comp = _components[i];
 
-                if (__saveData.IsPrefabAsset)
+                if (IsPrefabAsset)
                 {
                     if (Infra.Singleton.IsRegistered(comp))
                     {
@@ -131,7 +158,7 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
                         __saveData.Components.Add(RandomId.Default);
                 }
                 else if (ShouldRegisterComponents
-                    || Infra.Singleton.IsRegistered(comp)) //todo: write a nice comment explaining this. Prefab and scene placed parts are may already registered
+                    || Infra.Singleton.IsRegistered(comp)) //Prefab and scene placed parts are may already registered
                 {
                     var compId = Infra.Singleton.GetObjectId(comp, HandledObjectId);
 
@@ -148,11 +175,6 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
             base.CreateObject();
 
             HandledObjectId = __saveData.GameObjectId;
-
-            if (HandledObjectId.IsDefault)
-            {
-                Debug.LogWarning(__saveData.GameObjectName);
-            }
 
             _AssignInstance();
 
@@ -171,42 +193,13 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
         public override void _AssignInstance()
         {
 
-            if (__saveData.IsPrefabAsset)
+            if (IsPrefabAsset)
             {
-                __instance = GetAssetById2<GameObject>(__saveData.PrefabAssetId,null);
-
-                _components.Clear();
-
-                __instance.GetComponents(typeof(Component), _components);
-
-                for (int i = 0; i < _components.Count; i++)
-                {
-                    var comp = _components[i];
-
-                    try
-                    {
-                        var compId = __saveData.Components[i];
-
-                        if (compId.IsDefault) continue;
-
-                        Infra.Singleton.RegisterReference(comp, compId, rootObject: true);
-                    }
-                    catch (Exception e)
-                    {
-                        Debug.LogWarning($"Failed to register component of prefab {__saveData.GameObjectName} at index {i}. Exception: {e}");
-                        Debug.Log(string.Join(", ", _components.Select(c => c.GetType().Name).ToArray()));
-                        throw;
-                    }
-
-                }
-
+                __instance = GetAssetById2<GameObject>(__saveData.PrefabAssetId, null);
+                
                 return;
             }
-            else if (SaveAndLoadManager.PrefabDescriptionRegistry.IsPartOfPrefab<GameObject>(HandledObjectId, out var instance))
-            {
-                __instance = instance;
-            }
-            else if (SaveAndLoadManager.ScenePlacedObjectRegistry.IsScenePlaced<GameObject>(HandledObjectId, out instance))
+            else if (SaveAndLoadManager.S.IsPartOfPrefabOrScenePlaced<GameObject>(HandledObjectId, out var instance))
             {
                 __instance = instance;
             }
@@ -219,6 +212,8 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
             //its enough to move the roots only as the children will come along when they set their parent to this root
             if (__saveData.isRootInScene)
             {
+                __instance.transform.SetParent(null);
+
                 var scene = Infra.SceneManagement.SceneById(__saveData.sceneInstanceId);
                 SceneManager.MoveGameObjectToScene(__instance, scene);
             }
@@ -230,7 +225,7 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
         {
             base.LoadValues();
 
-            if (__saveData.IsPrefabAsset) return;
+            if (IsPrefabAsset) return;
 
             __instance.name = __saveData.GameObjectName;
             __instance.tag = __saveData.tag;
@@ -239,7 +234,24 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
             __instance.SetActive(__saveData.activeSelf);
 
             _goInfra = GetObjectById<GOInfra>(__saveData._goInfra);
-            _initContext = __saveData. _initContext;
+            _initContext = __saveData._initContext;
+        }
+
+
+
+
+
+
+
+        public T AddComponent<T>() where T : Component
+        {
+            if (ComponentAddingTracker == null)
+            {
+                Debug.LogError("ComponentAddingTracker is null. Cannot add component via tracker");
+                return null;
+            }
+
+            return ComponentAddingTracker.AddComponent<T>();
         }
     }
 
@@ -248,7 +260,7 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
         public RandomId GameObjectId;
         public string GameObjectName;
         public string HierarchyPath;
-        public bool IsPrefabAsset;
+        //public bool IsPrefabAsset;
         public RandomId PrefabAssetId;
         public List<RandomId> Components = new();
         public RandomId _goInfra;

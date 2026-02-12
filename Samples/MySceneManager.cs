@@ -1,9 +1,11 @@
 ﻿
-using Assets._Project.Scripts.SaveAndLoad;
+using Assets._Project.Scripts.Infrastructure;
+using Assets._Project.Scripts.UtilScripts;
+using Assets._Project.Scripts.UtilScripts.Extensions;
 using Eflatun.SceneReference;
-using NUnit.Framework;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -35,33 +37,6 @@ namespace Packages.com.theblueway.saveandload.Samples
 
 
 
-        public void OnLoadSavedWorld()
-        {
-            StartCoroutine(OnLoadSavedWorldRoutine());
-        }
-
-        public IEnumerator OnLoadSavedWorldRoutine()
-        {
-            yield return StartCoroutine(LoadEmptyScene());
-
-            yield return StartCoroutine(UnLoadMainMenuScene());
-        }
-
-
-        public IEnumerator OnLoadSavedWorldCompletedRoutine()
-        {
-            if (_transition.LoadedScene.GetRootGameObjects().Length > 0)
-            {
-                Debug.LogError($"Some objects are still present in the temporary scene used for loading the saved world. " +
-                    $"This is most probably due to an error in the loading process. " +
-                    $"Leaving the scene loaded for debugging.");
-            }
-            else
-            {
-                yield return StartCoroutine(UnloadScene(_transition.LoadedScene));
-            }
-        }
-
 
 
 
@@ -72,15 +47,7 @@ namespace Packages.com.theblueway.saveandload.Samples
 
         public IEnumerator StartNewWorldRoutine()
         {
-            yield return StartCoroutine(LoadEmptyScene());
-
-            yield return StartCoroutine(UnLoadMainMenuScene());
-
-            yield return StartCoroutine(LoadScene(_worldScene.BuildIndex));
-
-            yield return StartCoroutine(UnloadEmptyScene());
-
-            SceneManager.SetActiveScene(_worldScene.LoadedScene);
+            yield return Transition(_mainMenu, _worldScene);
         }
 
 
@@ -91,15 +58,7 @@ namespace Packages.com.theblueway.saveandload.Samples
 
         public IEnumerator ExitWorldRoutine()
         {
-            yield return StartCoroutine(LoadScene(_transition.BuildIndex));
-
-            yield return StartCoroutine(UnloadScene(_worldScene.LoadedScene));
-
-            yield return StartCoroutine(LoadScene(_mainMenu.BuildIndex));
-
-            yield return StartCoroutine(UnloadScene(_transition.LoadedScene));
-
-            SceneManager.SetActiveScene(_mainMenu.LoadedScene);
+            yield return Transition(_worldScene, _mainMenu);
         }
 
 
@@ -110,36 +69,86 @@ namespace Packages.com.theblueway.saveandload.Samples
 
         public IEnumerator OnBootstrapCompletedRoutine()
         {
-            yield return StartCoroutine(LoadMainMenu());
+            yield return Transition(_bootstrapScene, _mainMenu);
+        }
 
-            yield return StartCoroutine(UnloadBootstrapScene());
+
+        public IEnumerator PrepareLoadSavedWorldRoutine()
+        {
+            yield return StartCoroutine(LoadScene(_transition.BuildIndex));
+
+            yield return StartCoroutine(UnloadScene(_mainMenu.LoadedScene));
         }
 
 
 
-        public HashSet<Scene> GetAffectedSceneByExitingWorld()
+
+        public IEnumerator OnLoadSavedWorldCompletedRoutine()
         {
-            HashSet<Scene> loadedWorldScenes = new HashSet<Scene>();
+            var rootObjects = _transition.LoadedScene.GetRootGameObjects();
 
-            int count = SceneManager.sceneCount;
-            for (int i = 0; i < count; i++)
+            var unhandledObjects = rootObjects.Where(x => !Infra.S.IsScheduledOrDestroyed(x));
+
+            if (unhandledObjects.Count() > 0)
             {
-                Scene scene = SceneManager.GetSceneAt(i);
+                Debug.LogError($"Some objects are still present in the temporary scene used for loading the saved world. " +
+                    $"This is most probably due to an error in the loading process. " +
+                    $"Leaving the scene loaded for debugging.");
 
-                if (scene == _worldScene.LoadedScene)
+                List<string> reportList = new();
+
+                foreach (var obj in unhandledObjects)
                 {
-                    loadedWorldScenes.Add(scene);
+                    var id = Infra.S.IsRegistered(obj) ? Infra.S.GetObjectId(obj, Infra.GlobalReferencing) : RandomId.Default;
+                    var path = obj.HierarchyPath();
+                    reportList.Add(id + " | " + path + " | " + (obj == null).ToString());
                 }
+
+                string report = string.Join("\n", reportList);
+
+                Debug.LogError($"The list of root objects that are still present in the temporary scene:\n{report}");
+
+#if UNITY_EDITOR
+                Debug.Log("Going to pause the editor to let inspect the stall gameobject.");
+                Debug.Break();
+#endif
+            }
+            else
+            {
+                yield return StartCoroutine(UnloadScene(_transition.LoadedScene));
+            }
+        }
+
+
+
+
+
+        public IEnumerator Transition(SceneReference from, SceneReference to)
+        {
+            yield return StartCoroutine(LoadScene(_transition.BuildIndex));
+
+            yield return StartCoroutine(UnloadScene(from.LoadedScene));
+
+            SceneManager.SetActiveScene(_transition.LoadedScene);
+
+            yield return StartCoroutine(LoadScene(to.BuildIndex));
+
+            SceneManager.SetActiveScene(to.LoadedScene);
+
+            foreach (var go in _transition.LoadedScene.GetRootGameObjects())
+            {
+                SceneManager.MoveGameObjectToScene(go, to.LoadedScene);
             }
 
-            return loadedWorldScenes;
+            yield return StartCoroutine(UnloadScene(_transition.LoadedScene));
         }
+
 
 
         public IEnumerator LoadScene(int index)
         {
             AsyncOperation loadOperation = SceneManager.LoadSceneAsync(index, LoadSceneMode.Additive);
-
+            
             while (!loadOperation.isDone)
             {
                 yield return null;
@@ -154,70 +163,6 @@ namespace Packages.com.theblueway.saveandload.Samples
             {
                 yield return null;
             }
-        }
-
-
-        public IEnumerator UnloadBootstrapScene()
-        {
-            AsyncOperation unloadOperation = SceneManager.UnloadSceneAsync(_bootstrapScene.BuildIndex);
-
-            while (!unloadOperation.isDone)
-            {
-                yield return null;
-            }
-        }
-
-
-        public IEnumerator LoadEmptyScene()
-        {
-            AsyncOperation loadOperation = SceneManager.LoadSceneAsync(_transition.BuildIndex, LoadSceneMode.Additive);
-
-            while (!loadOperation.isDone)
-            {
-                yield return null;
-            }
-        }
-
-
-        public IEnumerator UnloadEmptyScene()
-        {
-            AsyncOperation loadOperation = SceneManager.UnloadSceneAsync(_transition.BuildIndex);
-
-            while (!loadOperation.isDone)
-            {
-                yield return null;
-            }
-        }
-
-
-        public IEnumerator LoadMainMenu()
-        {
-            AsyncOperation loadOperation = SceneManager.LoadSceneAsync(_mainMenu.BuildIndex, LoadSceneMode.Additive);
-
-            while (!loadOperation.isDone)
-            {
-                yield return null;
-            }
-        }
-
-        public IEnumerator UnLoadMainMenuScene()
-        {
-            AsyncOperation unloadOperation = SceneManager.UnloadSceneAsync(_mainMenu.BuildIndex);
-
-
-            while (!unloadOperation.isDone)
-            {
-                yield return null;
-            }
-
-            //if (unloadOperation.isDone)
-            //{
-            //    Debug.Log("Main menu scene unloaded successfully.");
-            //}
-            //else
-            //{
-            //    Debug.LogError("Failed to unload main menu scene.");
-            //}
         }
     }
 }

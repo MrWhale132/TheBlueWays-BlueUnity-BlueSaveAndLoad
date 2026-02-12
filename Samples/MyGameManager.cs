@@ -1,6 +1,8 @@
 ﻿
 using Assets._Project.Scripts.Infrastructure;
+using Assets._Project.Scripts.Infrastructure.AddressableInfra;
 using Assets._Project.Scripts.SaveAndLoad;
+using Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases;
 using Assets._Project.Scripts.UtilScripts;
 using System.Collections;
 using System.Collections.Generic;
@@ -31,12 +33,31 @@ namespace Packages.com.theblueway.saveandload.Samples
         }
 
 
+        public void OnBootstrapCompleted() { StartCoroutine(OnBootstrapCompletedRoutine()); }
+
+        public IEnumerator OnBootstrapCompletedRoutine()
+        {
+            yield return MySceneManager.Singleton.OnBootstrapCompletedRoutine();
+
+        }
+
+
         public void StartNewWorld()
+        {
+            StartCoroutine(StartNewWorldRoutine());
+        }
+
+        public IEnumerator StartNewWorldRoutine()
         {
             BeforeEnterWorld();
 
-            MySceneManager.Singleton.StartNewWorld();
+            yield return MySceneManager.Singleton.StartNewWorldRoutine();
+
+            AfterEnterWorld();
         }
+
+
+
 
         public void LoadSavedWorld(string filePath)
         {
@@ -47,11 +68,13 @@ namespace Packages.com.theblueway.saveandload.Samples
         {
             BeforeEnterWorld();
 
-            yield return MySceneManager.Singleton.OnLoadSavedWorldRoutine();
+            yield return MySceneManager.Singleton.PrepareLoadSavedWorldRoutine();
 
             yield return SaveAndLoadManager.Singleton.LoadRoutine(filePath);
 
             yield return MySceneManager.Singleton.OnLoadSavedWorldCompletedRoutine();
+
+            AfterEnterWorld();
         }
 
 
@@ -60,46 +83,27 @@ namespace Packages.com.theblueway.saveandload.Samples
             _objectIdsWhenEnteredWorld = Infra.Singleton.GetAllObjectIds();
         }
 
+        public void AfterEnterWorld()
+        {
+            AddressableDb.Singleton.RegisterUnityBuiltinResources();
+        }
+
+
 
         public void ExitWorld()
         {
+
             var allObjectIdsNow = Infra.Singleton.GetAllObjectIds();
 
             var addedObjects = new HashSet<RandomId>(allObjectIdsNow.Except(_objectIdsWhenEnteredWorld));
-            var scenemanager = Infra.Singleton.GetObjectId(Infra.SceneManagement,Infra.GlobalReferencing);
+            
             foreach(var id in addedObjects)
             {
-                if(id == scenemanager)
-                {
-                    Debug.Log("here");
-                }
-                Infra.Singleton.Unregister(id); 
+                Infra.Singleton.Unregister(id);
+                AssetIdMap.ObjectIdToAssetId.Remove(id);
             }
 
             MySceneManager.Singleton.ExitWorld();
-
-
-            //return;
-            //var scenesToBeUnloaded = MySceneManager.Singleton.GetAffectedSceneByExitingWorld();
-
-            //foreach (var scene in scenesToBeUnloaded)
-            //{
-            //    var infras = GOInfra.GetInfrasByScene(scene);
-            //    //return;
-            //    foreach (var infra in infras)
-            //    {
-            //        infra.Unregister();
-            //    }
-            //}
-
-            //var unreferencedObjects = Infra.Singleton.GetUnreferencedObjects();
-
-            //foreach (RandomId obj in unreferencedObjects)
-            //{
-            //    Infra.Singleton.Unregister(obj);
-            //}
-
-            //MySceneManager.Singleton.ExitWorld();
         }
     }
 }

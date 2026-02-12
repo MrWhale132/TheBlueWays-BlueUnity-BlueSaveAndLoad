@@ -8,12 +8,12 @@ using Unity.Collections;
 using UnityEngine;
 namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.UnitySHs
 {
-    [SaveHandler(118760465134539926, "Mesh", typeof(UnityEngine.Mesh), order:-9)]
+    [SaveHandler(118760465134539926, "Mesh", typeof(UnityEngine.Mesh), order:-8)]
 	public class MeshSaveHandler : AssetSaveHandlerBase<Mesh, MeshSaveData> 
 	{
 		public override void WriteSaveData()
 		{
-			if (IsDefensiveCopyOfOriginal) return;
+			if (true) return;
 			base.WriteSaveData();
 			__saveData.indexFormat = __instance.indexFormat;
 			__saveData.vertexBufferTarget = __instance.vertexBufferTarget;
@@ -25,13 +25,14 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.UnitySHs
 
 		public override void LoadReferences()
 		{
-			if (IsDefensiveCopyOfOriginal) return;
+			if (true) return;
 			base.LoadReferences();
 			__instance.indexFormat = __saveData.indexFormat;
 			__instance.vertexBufferTarget = __saveData.vertexBufferTarget;
 			__instance.indexBufferTarget = __saveData.indexBufferTarget;
 			__instance.bindposes = GetObjectById<UnityEngine.Matrix4x4[]>(__saveData.bindposes);
 			__instance.subMeshCount = __saveData.subMeshCount;
+			__instance.name = __saveData.name;
 		}
 
         static MeshSaveHandler()

@@ -1,7 +1,7 @@
-﻿
-using Assets._Project.Scripts.Infrastructure;
+﻿using Assets._Project.Scripts.Infrastructure;
+using Assets._Project.Scripts.Infrastructure.AddressableInfra;
 using Assets._Project.Scripts.SaveAndLoad;
-using Assets._Project.Scripts.UtilScripts;
+using Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -14,6 +14,9 @@ namespace Theblueway.SaveAndLoad.Packages.com.theblueway.saveandload.Runtime.Inf
     {
         public List<GOInfra> scenePlacedGOInfras_EditorView = new();
         public HashSet<GOInfra> ScenePlacedGOInfras { get; set; } = new();
+
+
+        public List<AssetEntryReference> assetEntryReferences = new();
 
         public bool IsObjectLoading => SaveAndLoadManager.IsObjectLoading(this);
 
@@ -43,6 +46,11 @@ namespace Theblueway.SaveAndLoad.Packages.com.theblueway.saveandload.Runtime.Inf
         {
 #if UNITY_EDITOR
             CollectInfras();
+
+            foreach (var assetRef in assetEntryReferences)
+            {
+                assetRef.UpdateReferenceIfNeeded();
+            }
 #endif
         }
 
@@ -55,11 +63,23 @@ namespace Theblueway.SaveAndLoad.Packages.com.theblueway.saveandload.Runtime.Inf
 
             ScenePlacedGOInfras = scenePlacedGOInfras_EditorView.ToHashSet();
 
+            ScenePlacedGOInfras.RemoveWhere(x => x.TurnedOff);
+
 
             //this is done by SceneInfra because not every gameobject is active at start, so GOInfra Awake may not be called
-            foreach(var infra in ScenePlacedGOInfras)
+            foreach (var infra in ScenePlacedGOInfras)
             {
                 GOInfra.AddToAllInfras(infra);
+            }
+
+
+            foreach (var assetRef in assetEntryReferences)
+            {
+                if(!assetRef.isValid) continue;
+
+                var initContext = new AssetInitContext { instantiatedFromAssetId = assetRef.assetId };
+
+                Infra.S.Register(assetRef.asset, ifHasntAlready: true, context: initContext, rootObject: false, createSaveHandler: true);
             }
         }
 
@@ -81,14 +101,16 @@ namespace Theblueway.SaveAndLoad.Packages.com.theblueway.saveandload.Runtime.Inf
 
             foreach (var infra in ScenePlacedGOInfras)
             {
-                if(infra == null)
+                if (infra == null)
                 {
                     Debug.LogError("Null GOInfra found in SceneInfra's _scenePlacedGOInfras list. Please fix the references. " +
                         "You might forgot to refresh the list after you removed GOInfra components from the scene.");
                     continue;
                 }
 
-                infra.ApplyAssetNameAliases();
+
+                infra.RegisterAssetRefernces();
+
 
                 if (infra.DescribeSceneObject(out var result))
                 {
@@ -131,7 +153,7 @@ namespace Theblueway.SaveAndLoad.Packages.com.theblueway.saveandload.Runtime.Inf
             if (!Application.isPlaying)
             {
                 ScenePlacedGOInfras.RemoveWhere(infra => infra == null);
-                
+
                 scenePlacedGOInfras_EditorView.Clear();
                 scenePlacedGOInfras_EditorView.AddRange(ScenePlacedGOInfras);
                 return;
@@ -152,11 +174,11 @@ namespace Theblueway.SaveAndLoad.Packages.com.theblueway.saveandload.Runtime.Inf
                     continue;
                 }
 
-                if (!infra.HasSceneParts) continue;
-
-                var result = infra.CollectSceneParts();
-
-                results.Add(result);
+                if (infra.HasAnySceneParts)
+                {
+                    infra.CollectSceneParts(out var result);
+                    results.Add(result);
+                }
             }
 
             return results;

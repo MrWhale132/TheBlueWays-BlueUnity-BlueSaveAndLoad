@@ -1,7 +1,7 @@
 ﻿
 using Assets._Project.Scripts.Infrastructure;
-using Assets._Project.Scripts.UtilScripts.CodeGen;
 using Assets._Project.Scripts.UtilScripts.Extensions;
+using UnityEngine;
 
 namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
 {
@@ -28,11 +28,11 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
             HandledObjectId = __saveData._ObjectId_;
 
 
-            if (__saveData.IsFromPrefabAsset)
-            {
-                __instance = Infra.Singleton.GetObjectById<TSavable>(__saveData._ObjectId_);
-            }
-            else
+            //if (__saveData.IsFromPrefabAsset)
+            //{
+            //    //__instance = Infra.Singleton.GetObjectById<TSavable>(__saveData._ObjectId_);
+            //}
+            //else
             {
                 _AssignInstance();
 
@@ -48,8 +48,15 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
             }
             else
             {
-            var goSH = SaveAndLoadManager.Singleton.GetSaveHandlerById<GameObjectSaveHandler>(__saveData.GameObjectId);
-                __instance = goSH.AddComponent<TSavable>();
+                var goSH = SaveAndLoadManager.Singleton.GetSaveHandlerById<GameObjectSaveHandler>(__saveData.GameObjectId);
+
+                if (goSH.IsPrefabAsset)
+                {
+                    var go = Infra.S.GetObjectById<GameObject>(__saveData.GameObjectId);
+                    __instance = go.GetComponent<TSavable>();
+                }
+                else
+                    __instance = goSH.AddComponent<TSavable>();
             }
         }
     }

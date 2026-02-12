@@ -20,6 +20,12 @@ using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
 using Theblueway.SaveAndLoad.Packages.com.theblueway.saveandload.Runtime;
 using ObjectFactory = Theblueway.SaveAndLoad.Packages.com.theblueway.saveandload.Runtime.ObjectFactory;
+using static Assets._Project.Scripts.SaveAndLoad.SaveAndLoadManager;
+using Theblueway.Core.Runtime.Packages.com.blueutils.core.Runtime.Debugging.Logging;
+using System.Runtime.CompilerServices;
+
+
+
 
 
 
@@ -38,8 +44,8 @@ namespace Assets._Project.Scripts.SaveAndLoad
     {
         public static SaveAndLoadManager Singleton { get; private set; }
         public static SaveAndLoadManager S => Singleton;
-        public static PrefabDescriptionRegistry PrefabDescriptionRegistry { get; set; } = new PrefabDescriptionRegistry();
-        public static ScenePlacedObjectRegistry ScenePlacedObjectRegistry { get; set; } = new ScenePlacedObjectRegistry();
+        public static PrefabDescriptionRegistry PrefabDescriptionRegistry { get; set; }
+        public static ScenePlacedObjectRegistry ScenePlacedObjectRegistry { get; set; }
 
 
         public enum SaveState
@@ -110,6 +116,8 @@ namespace Assets._Project.Scripts.SaveAndLoad
                 Destroy(gameObject);
             }
 
+            PrefabDescriptionRegistry = new();
+            ScenePlacedObjectRegistry = new();
 
             __currentSaveHandlers = __mainSaveHandlers;
 
@@ -1980,7 +1988,6 @@ namespace Assets._Project.Scripts.SaveAndLoad
         {
             //I actually dont know what workflow causes this method to be called
             //if every type and every method is registered that needs to be saved then I geuss this method will never be called
-            Debug.Log("here");
 
             if (__saveHandlerTypeByHandledObjectTypeLookUp.TryGetValue(objectType, out var handlerType))
             {
@@ -2583,21 +2590,16 @@ namespace Assets._Project.Scripts.SaveAndLoad
             //Debug.LogWarning("serialize " + stopwatch.ElapsedMilliseconds / 1000f);
 
 
-            string now = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
-
-            string fileName = "/savedata_" + now + ".json";
-
-            string relPath = Paths.Singleton.WorldSavePath + fileName;
-
-            var basePath = Application.persistentDataPath; //this is not thread-safe, thats why it is here
-            var absPath = Path.Combine(basePath, relPath);
+            var absPath = CreateAbsPathForSaveFile();
 
             Debug.Log($"Saving data to {absPath}.");
 
             var writeTask = Task.Run(() => { WriteSnapshotToDisk(absPath, flatList); });
 
+
             while (!writeTask.IsCompleted)
                 yield return null;
+
 
             if (writeTask.Exception != null)
             {
@@ -2656,17 +2658,57 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
 
 
+        public string CreateAbsPathForSaveFile()
+        {
+            string fileTag = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
+
+            string fileName = "/savedata_" + fileTag + ".json";
+
+            string relPath = Paths.Singleton.WorldSavePath + fileName;
+
+            var basePath = Application.persistentDataPath; //this is not thread-safe, thats why it is here
+            var absPath = Path.Combine(basePath, relPath);
+
+            return absPath;
+        }
+
+
+        public string GetFileTagFromPath(string path)
+        {
+            string name = Path.GetFileNameWithoutExtension(path);
+
+            int expectedTagLength = "yyyy-MM-dd_HH-mm-ss".Length;
+
+            int tagStart = name.Length - expectedTagLength;
+
+            string tag = name.Substring(tagStart);
+
+            return tag;
+        }
 
 
 
 
-        public SceneReference _mainMenuSceneRef;
-        public SceneReference _emptySceneForLoadingFromSaveFile;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
         public Coroutine __loadCoroutine;
 
-        public AsyncOperation op;
 
 
         public enum LoadingStage
@@ -2683,6 +2725,9 @@ namespace Assets._Project.Scripts.SaveAndLoad
         }
 
         public LoadingDebugContext d_laodingContext = new();
+
+
+
 
 
 
@@ -2748,7 +2793,7 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
 
 
-            LoadContext loadContext = new LoadContext(versionedTypesByTypeInstanceId);
+            LoadContext loadContext = new LoadContext(saveFileAbsPath, versionedTypesByTypeInstanceId);
 
 
 
@@ -2890,13 +2935,17 @@ namespace Assets._Project.Scripts.SaveAndLoad
                 }
 
 
-                string d_text = string.Join("\n", serializedDataList);
-                File.WriteAllText("c:/temp/migrated_list.json", d_text);
+                //string d_text = string.Join("\n", serializedDataList);
+                //File.WriteAllText("c:/temp/migrated_list.json", d_text);
 
 
-                //todo: enable it via config
+                //todo: enable it via config + path
+                string now = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
+
+                string tag = GetFileTagFromPath(saveFileAbsPath);
+
                 string debugJson = JsonConvert.SerializeObject(migrationContext);
-                File.WriteAllText("MigrationContext.json", debugJson);
+                File.WriteAllText($"MigrationContext_{tag}_{now}.json", debugJson);
 
                 loadContext.MigrationContext = null;
 
@@ -3087,7 +3136,7 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
             //let collisions and everything else we dont have control over trigger
             //our components should filter these if they are loading
-            //update: this logic I think could be handled by integrators
+            //todo:
             yield return null;
             yield return null;
             yield return null;
@@ -3107,6 +3156,7 @@ namespace Assets._Project.Scripts.SaveAndLoad
             ///todo: clear <see cref="PrefabDescriptionRegistry"/> and <see cref="ScenePlacedObjectRegistry"/>
 
 
+
             void DisposeScope(LoadContext context)
             {
                 if (_objectIdsByLoadContext.TryGetValue(context, out var objectsOfThisScope))
@@ -3114,7 +3164,11 @@ namespace Assets._Project.Scripts.SaveAndLoad
                     foreach (var objId in objectsOfThisScope)
                     {
                         _loadContextByObjectId.Remove(objId);
+
+                        if (AssetIdMap.ObjectIdToAssetInstance.ContainsKey(objId))
+                            AssetIdMap.ObjectIdToAssetInstance.Remove(objId);
                     }
+
                     _objectIdsByLoadContext.Remove(context);
                 }
 
@@ -3126,9 +3180,12 @@ namespace Assets._Project.Scripts.SaveAndLoad
                         _versionedTypesByInstanceId.Remove(typeId);
                         _loadContextByVersionedTypeIds.Remove(typeId);
                     }
+
                     _versionedTypesByLoadContext.Remove(context);
                 }
             }
+
+            LoadingLoadContextCompleted(loadContext);
 
             DisposeScope(loadContext);
 
@@ -3140,6 +3197,13 @@ namespace Assets._Project.Scripts.SaveAndLoad
         public bool d_continue;
         public bool d_suspendLoading;
         public int d_loadedOrder;
+
+
+
+
+
+
+        public event Action<LoadContext> LoadingLoadContextCompleted;
 
 
 
@@ -3289,10 +3353,16 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
         public class LoadContext
         {
+            public string _saveFilePath;
+            public string _fileTag;
+
             public MigrationContext MigrationContext { get; set; }
 
-            public LoadContext(Dictionary<RandomId, VersionedType> versionedTypesByInstanceId)
+            public LoadContext(string saveFilePath, Dictionary<RandomId, VersionedType> versionedTypesByInstanceId)
             {
+                _saveFilePath = saveFilePath;
+                _fileTag = SaveAndLoadManager.S.GetFileTagFromPath(saveFilePath);
+
                 foreach ((var typeInstanceId, var versionedType) in versionedTypesByInstanceId)
                 {
                     SaveAndLoadManager.Singleton._versionedTypesByInstanceId.Add(typeInstanceId, versionedType);
@@ -3304,6 +3374,19 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
             public bool IsMigrating() => MigrationContext != null;
         }
+
+
+
+        public LoadContext GetLoadContextOf(RandomId instance)
+        {
+            if (_loadContextByObjectId.TryGetValue(instance, out var context)) return context;
+            else
+            {
+                Debug.LogError($"SaveAndLoad: It is not expected that semething asks for the load context of an object that is not actually loading.");
+                return null;
+            }
+        }
+
 
 
         public bool IsVersionedTypeLoading(RandomId versionedTypeId, out LoadContext loadContext)
@@ -3421,6 +3504,36 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
         public Dictionary<RandomId, object> _prefabPartsByInstanceId = new();
 
+        public Dictionary<LoadContext, HashSet<RandomId>> _instantiatedPrefabPartsByLoadContext = new();
+
+
+        public PrefabDescriptionRegistry()
+        {
+            SaveAndLoadManager.S.LoadingLoadContextCompleted += DisposeScope;
+        }
+
+
+        public void DisposeScope(LoadContext context)
+        {
+            ///
+            if (_instantiatedPrefabPartsByLoadContext.TryGetValue(context, out var prefabParts))
+            {
+                foreach (var id in prefabParts)
+                {
+                    var part = _prefabPartsByInstanceId[id];
+                    _prefabPartsByInstanceId.Remove(id);
+
+                    if (Infra.S.IsNotRegistered(id) && part is Object obj)
+                    {
+                        //BlueDebug.Debug((id, obj.name, obj.GetType().Name));
+                        Infra.S.Destroy(obj);
+                    }
+                }
+
+                _instantiatedPrefabPartsByLoadContext.Remove(context);
+            }
+        }
+
 
         public void RemoveIfPartOfPrefab(RandomId instanceId)
         {
@@ -3460,79 +3573,9 @@ namespace Assets._Project.Scripts.SaveAndLoad
         {
             bool isPartOfPrefab = _IsPartOfPrefab(prefabPartInstanceId);
 
-            if (isPartOfPrefab && !_prefabPartsByInstanceId.ContainsKey(prefabPartInstanceId))
+            if (isPartOfPrefab && !_IsPrefabPartCollected(prefabPartInstanceId))
             {
-                var desc = _prefabDescriptionByPrefabPartInstanceId[prefabPartInstanceId];
-
-                var prefab = AddressableDb.Singleton.GetAssetByIdOrFallback<GameObject>(null, ref desc.prefabAssetId);
-
-
-                SaveAndLoadManager.Singleton.ExpectingIsObjectLoadingRequest = true;
-
-                var instance = Object.Instantiate(prefab);
-
-                SaveAndLoadManager.Singleton.ExpectingIsObjectLoadingRequest = false;
-
-
-                var infra = instance.GetComponent<GOInfra>();
-
-                if (infra == null)
-                {
-                    Debug.LogError($"Invalid workflow. An instance of an object was saved as part of a prefab but the root of its prefab" +
-                        $"does not have a {nameof(GOInfra)} component. The root gameobject should have a component that handles prefab workflows." +
-                        $"Solution: add a {nameof(GOInfra)} component to the root of the prefab (and set it up correctly).");
-                }
-
-                var results = infra.CollectPrefabParts();
-
-                Dictionary<RandomId, object> prefabPartsByPrefabPartId = new();
-                Dictionary<RandomId, List<object>> arrayElementsByArrayMemberId = new();
-
-                foreach (var result in results)
-                {
-                    foreach (var idPair in result.membersById)
-                    {
-                        prefabPartsByPrefabPartId.Add(idPair.Key, idPair.Value);
-                    }
-                    foreach (var arrayPair in result.arrayElementMembersByArrayMemberId)
-                    {
-                        arrayElementsByArrayMemberId.Add(arrayPair.Key, arrayPair.Value);
-                    }
-                }
-
-
-                foreach (var idPair in desc.memberToInstanceIds)
-                {
-                    var part2 = prefabPartsByPrefabPartId[idPair.memberId];
-
-                    _prefabPartsByInstanceId.Add(idPair.instanceId, part2);
-                }
-
-                foreach (var arrayPair in desc.arrayMemberToElementIdsList)
-                {
-                    var elements = arrayElementsByArrayMemberId[arrayPair.memberId];
-
-                    for (int i = 0; i < arrayPair.elementIds.Count; i++)
-                    {
-                        var elementId = arrayPair.elementIds[i];
-                        if (i >= elements.Count)
-                        {
-                            Debug.LogError("Mismatch in number of array elements found in prefab instance and the number of element Ids stored in PrefabDescription. " +
-                                $"GameObject: {instance.HierarchyPath()}, Prefab asset id: {desc.prefabAssetId}, array member id: {arrayPair.memberId}. " +
-                                $"Going to skip the rest of the elements.");
-
-                            var idlist = string.Join(", ", arrayPair.elementIds);
-                            var types = string.Join(", ", elements.Select(e => e.GetType().Name));
-
-                            Debug.LogError($"Element Ids: {idlist}");
-                            Debug.LogError($"Element types: {types}");
-                            break;
-                        }
-                        var element = elements[i];
-
-                        _prefabPartsByInstanceId.Add(elementId, element);
-                    }
-                }
+                _CollectPrefabParts(prefabPartInstanceId);
             }
 
             var part = _prefabPartsByInstanceId[prefabPartInstanceId];
@@ -3540,6 +3583,97 @@ namespace Assets._Project.Scripts.SaveAndLoad
             return (T)part;
         }
 
+
+        public bool _IsPrefabPartCollected(RandomId prefabPartInstanceId)
+        {
+            return _prefabPartsByInstanceId.ContainsKey(prefabPartInstanceId);
+        }
+
+
+        public void _CollectPrefabParts(RandomId prefabPartInstanceId)
+        {
+            LoadContext loadContext = SaveAndLoadManager.S.GetLoadContextOf(prefabPartInstanceId);
+
+            if (!_instantiatedPrefabPartsByLoadContext.ContainsKey(loadContext))
+            {
+                _instantiatedPrefabPartsByLoadContext.Add(loadContext, new());
+            }
+
+
+            var desc = _prefabDescriptionByPrefabPartInstanceId[prefabPartInstanceId];
+
+            var prefab = AddressableDb.Singleton.GetAssetByIdOrFallback<GameObject>(null, ref desc.prefabAssetId);
+
+
+            SaveAndLoadManager.Singleton.ExpectingIsObjectLoadingRequest = true;
+
+            var instance = Object.Instantiate(prefab);
+
+            SaveAndLoadManager.Singleton.ExpectingIsObjectLoadingRequest = false;
+
+
+            var infra = instance.GetComponent<GOInfra>();
+
+            if (infra == null)
+            {
+                Debug.LogError($"Invalid workflow. An instance of an object was saved as part of a prefab but the root of its prefab" +
+                    $"does not have a {nameof(GOInfra)} component. The root gameobject should have a component that handles prefab workflows." +
+                    $"Solution: add a {nameof(GOInfra)} component to the root of the prefab (and set it up correctly).");
+            }
+
+            var results = infra.CollectPrefabParts();
+
+            Dictionary<RandomId, object> prefabPartsByPrefabPartId = new();
+            Dictionary<RandomId, List<object>> arrayElementsByArrayMemberId = new();
+
+            foreach (var result in results)
+            {
+                foreach (var idPair in result.membersById)
+                {
+                    prefabPartsByPrefabPartId.Add(idPair.Key, idPair.Value);
+                }
+                foreach (var arrayPair in result.arrayElementMembersByArrayMemberId)
+                {
+                    arrayElementsByArrayMemberId.Add(arrayPair.Key, arrayPair.Value);
+                }
+            }
+
+
+            foreach (var idPair in desc.memberToInstanceIds)
+            {
+                var part2 = prefabPartsByPrefabPartId[idPair.memberId];
+
+                _prefabPartsByInstanceId.Add(idPair.instanceId, part2);
+                _instantiatedPrefabPartsByLoadContext[loadContext].Add(idPair.instanceId);
+            }
+
+            foreach (var arrayPair in desc.arrayMemberToElementIdsList)
+            {
+                var elements = arrayElementsByArrayMemberId[arrayPair.memberId];
+
+                for (int i = 0; i < arrayPair.elementIds.Count; i++)
+                {
+                    var elementId = arrayPair.elementIds[i];
+                    if (i >= elements.Count)
+                    {
+                        Debug.LogError("Mismatch in number of array elements found in prefab instance and the number of element Ids stored in PrefabDescription. " +
+                            $"GameObject: {instance.HierarchyPath()}, Prefab asset id: {desc.prefabAssetId}, array member id: {arrayPair.memberId}. " +
+                            $"Going to skip the rest of the elements.");
+
+                        var idlist = string.Join(", ", arrayPair.elementIds);
+                        var types = string.Join(", ", elements.Select(e => e.GetType().Name));
+
+                        Debug.LogError($"Element Ids: {idlist}");
+                        Debug.LogError($"Element types: {types}");
+                        break;
+                    }
+                    var element = elements[i];
+
+                    _prefabPartsByInstanceId.Add(elementId, element);
+                    _instantiatedPrefabPartsByLoadContext[loadContext].Add(elementId);
+                }
+            }
+        }
 
 
 
@@ -3562,16 +3696,17 @@ namespace Assets._Project.Scripts.SaveAndLoad
                     idPairs.Add(pair);
                 }
 
-                for (int i = 0; i < result.arrayMemberIds.Count; i++)
-                {
-                    var pair = new ArrayMemberToElementIds()
+                if (result.arrayMemberIds.IsNotNullAndNotEmpty())
+                    for (int i = 0; i < result.arrayMemberIds.Count; i++)
                     {
-                        memberId = result.arrayMemberIds[i],
-                        elementIds = result.arrayElementMemberIdsPerArrayMembers[i],
-                    };
+                        var pair = new ArrayMemberToElementIds()
+                        {
+                            memberId = result.arrayMemberIds[i],
+                            elementIds = result.arrayElementMemberIdsPerArrayMembers[i],
+                        };
 
-                    arraysAndTheirElementIds.Add(pair);
-                }
+                        arraysAndTheirElementIds.Add(pair);
+                    }
             }
 
 
@@ -3695,6 +3830,37 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
         public Dictionary<RandomId, object> _sceneObjectsById = new();
 
+        public Dictionary<LoadContext, HashSet<RandomId>> _loadedSceneObjectsByLoadContext = new();
+
+
+
+        public ScenePlacedObjectRegistry()
+        {
+            SaveAndLoadManager.S.LoadingLoadContextCompleted += DisposeScope;
+        }
+
+
+        public void DisposeScope(LoadContext context)
+        {
+            if (_loadedSceneObjectsByLoadContext.TryGetValue(context, out var prefabParts))
+            {
+                foreach (var id in prefabParts)
+                {
+                    var part = _sceneObjectsById[id];
+                    _sceneObjectsById.Remove(id);
+
+                    if (Infra.S.IsNotRegistered(id) && part is Object obj)
+                    {
+                        //BlueDebug.Debug((id, obj.name, obj.GetType().Name));
+                        Infra.S.Destroy(obj);
+                    }
+                }
+
+                _loadedSceneObjectsByLoadContext.Remove(context);
+            }
+        }
+
+
 
         public void RemoveIfScenePlaced(RandomId objectId)
         {
@@ -3808,16 +3974,17 @@ namespace Assets._Project.Scripts.SaveAndLoad
                     idPairs.Add(pair);
                 }
 
-                for (int i = 0; i < result.arrayMemberIds.Count; i++)
-                {
-                    var pair = new ArrayMemberToElementIds()
+                if (result.arrayMemberIds.IsNotNullAndNotEmpty())
+                    for (int i = 0; i < result.arrayMemberIds.Count; i++)
                     {
-                        memberId = result.arrayMemberIds[i],
-                        elementIds = result.arrayElementMemberIdsPerArrayMembers[i],
-                    };
+                        var pair = new ArrayMemberToElementIds()
+                        {
+                            memberId = result.arrayMemberIds[i],
+                            elementIds = result.arrayElementMemberIdsPerArrayMembers[i],
+                        };
 
-                    arraysAndTheirElementIds.Add(pair);
-                }
+                        arraysAndTheirElementIds.Add(pair);
+                    }
             }
 
 
@@ -4005,7 +4172,9 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
 
 
+        [JsonIgnore]
         public HashSet<Data> _dataInstances = new();
+        [JsonIgnore]
         public Dictionary<RandomId, HashSet<Data>> _dataInstancesByReferencedById = new();
 
         public void AddDataInstance(Data data)
@@ -4155,7 +4324,7 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
             if (original != changedData)
             {
-                CopyIdenticalMembers(from:changedData, to:original, changedProperties);
+                CopyIdenticalMembers(from: changedData, to: original, changedProperties);
                 ClearConstructedObjectCacheFor(original._ObjectId_);
             }
 
@@ -4361,7 +4530,7 @@ namespace Assets._Project.Scripts.SaveAndLoad
                     {
                         var val = fromField.GetValue(from);
 
-                        if (deepCopy 
+                        if (deepCopy
                             && val != default && val.GetType().IsClass && val.GetType() != typeof(string)
                             && !val.GetType().IsAssignableTo(typeof(Delegate)))
                         {

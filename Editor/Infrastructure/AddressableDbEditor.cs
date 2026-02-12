@@ -11,7 +11,7 @@ public class AddressableDbEditor:Editor
 
         AddressableDb myTarget = (AddressableDb)target;
 
-        if (GUILayout.Button("Rebuild"))
+        if (GUILayout.Button("Refresh"))
         {
             myTarget.Refresh();
         }

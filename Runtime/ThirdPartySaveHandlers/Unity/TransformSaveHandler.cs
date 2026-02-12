@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers
 {
-    [SaveHandler(id: 32989643, dataGroupName: nameof(Transform), typeof(Transform), order:-9)]
+    [SaveHandler(id: 32989643, dataGroupName: nameof(Transform), typeof(Transform), order: -9)]
     public class TransformSaveHandler : MonoSaveHandler<Transform, TransformSaveData>
     {
         public TransformSaveHandler() { }
@@ -50,23 +50,10 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers
         {
             base.LoadReferences();
 
-
-            //parent id can be null for root objects
-            if (!__saveData.ParentGOId.IsDefault)
-            {
-                GameObject parent = Infra.Singleton.GetObjectById<GameObject>(__saveData.ParentGOId);
-                //if (parent == null) Debug.Log(HandledObjectId);
-                //if (parent == null) Debug.Log(__saveData._ObjectId_);
-                //if (parent == null) Debug.Log(__saveData.GameObjectId);
+            GameObject parent = Infra.Singleton.GetObjectById<GameObject>(__saveData.ParentGOId);
+            if (parent != null)
                 __instance.SetParent(parent.transform);
-            }
-        }
-
-
-
-        public override void LoadValues()
-        {
-            base.LoadValues();
+            else __instance.SetParent(null);
 
             __instance.localPosition = __saveData.localPosition;
             __instance.localRotation = __saveData.localRotation;

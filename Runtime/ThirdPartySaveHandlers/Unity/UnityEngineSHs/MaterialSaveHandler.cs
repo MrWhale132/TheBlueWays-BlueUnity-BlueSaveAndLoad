@@ -1,18 +1,18 @@
 //auto-generated
-using UnityEngine;
-using Assets._Project.Scripts.UtilScripts;
 using Assets._Project.Scripts.Infrastructure;
 using Assets._Project.Scripts.SaveAndLoad;
 using Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases;
-using Assets._Project.Scripts.SaveAndLoad.SavableDelegates;
-using System.Collections.Generic;
+using Assets._Project.Scripts.UtilScripts;
 using System;
+using System.Collections.Generic;
 using System.Reflection;
+using UnityEngine;
 using UnityEngine.Rendering;
+using Object = UnityEngine.Object;
 
 namespace UnityEngine_
 {
-    [SaveHandler(549644073204883384, "Material", typeof(UnityEngine.Material), dependsOn: new[] { typeof(Shader) }, generationMode: SaveHandlerGenerationMode.Manual, order: -8)]
+    [SaveHandler(549644073204883384, "Material", typeof(UnityEngine.Material), order: -6, dependsOn: new[] { typeof(Shader) }, generationMode: SaveHandlerGenerationMode.Manual)]
     public class MaterialSaveHandler : AssetSaveHandlerBase<UnityEngine.Material, MaterialSaveData>
     {
         public override bool SupportsModificationsToTheInstance => true;
@@ -75,10 +75,11 @@ namespace UnityEngine_
 
         public override void LoadReferences()
         {
+            //return;
             base.LoadReferences();
             //order does matter
 
-            foreach(var colorOverride in __saveData.colors)
+            foreach (var colorOverride in __saveData.colors)
             {
                 var color = colorOverride.value;
                 __instance.SetColor(colorOverride.name, color);
@@ -113,27 +114,31 @@ namespace UnityEngine_
         }
 
 
-        public override void CreateObject()
+        public override void _AssignInstance()
         {
-            if (IsRuntimeGenerated)
-            {
-                //Debug.LogError("Not supporting runtime created Material objects yet.");
-                var shader = GetObjectById<UnityEngine.Shader>(__saveData.shader);
+            base._AssignInstance();
 
-                if (shader != null)
-                {
-                    __instance = new UnityEngine.Material(shader);
-                }
-                else
-                {
-                    Debug.LogError("Shader is null when creating Material");
-                }
-            }
-            else
+
+            if (__instance == null)
             {
-                base.CreateObject();
+                {
+                    var shader = GetObjectById<UnityEngine.Shader>(__saveData.shader);
+
+                    if (shader != null)
+                    {
+                        __instance = new UnityEngine.Material(shader);
+                    }
+                    else
+                    {
+                        Debug.LogError("Did not find shader to create Material");
+                    }
+                }
             }
         }
+
+
+
+
 
         static MaterialSaveHandler()
         {
@@ -507,8 +512,6 @@ namespace UnityEngine_
         public System.Boolean doubleSidedGI;
         public System.Boolean enableInstancing;
         public UnityEngine.HideFlags hideFlags;
-
-        public RandomId materialAsset;   // Asset GUID or Addressable key
 
         public List<FloatOverride> floats = new();
         public List<ColorOverride> colors = new();

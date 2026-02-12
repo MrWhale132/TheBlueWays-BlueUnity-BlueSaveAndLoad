@@ -16,6 +16,19 @@ namespace Theblueway.SaveAndLoad.Packages.com.theblueway.saveandload.Runtime.Inf
 
         public List<RandomId> arrayMemberIds;
         public List<List<RandomId>> arrayElementMemberIdsPerArrayMembers;
+
+        public GraphWalkingResult()
+        {
+
+        }
+        public GraphWalkingResult(bool init)
+        {
+            if (init)
+            {
+                memberIds = new();
+                generatedIds = new();
+            }
+        }
     }
 
     public class ObjectMemberGraphWalker
@@ -212,6 +225,15 @@ namespace Theblueway.SaveAndLoad.Packages.com.theblueway.saveandload.Runtime.Inf
         {
             public Dictionary<RandomId, object> membersById;
             public Dictionary<RandomId, List<object>> arrayElementMembersByArrayMemberId;
+
+            public MemberCollectionResult(bool init = false)
+            {
+                if(init)
+                {
+                    membersById = new();
+                    arrayElementMembersByArrayMemberId = new();
+                }
+            }
         }
 
 

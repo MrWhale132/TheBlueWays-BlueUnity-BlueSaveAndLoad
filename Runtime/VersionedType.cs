@@ -204,7 +204,9 @@ namespace Theblueway.SaveAndLoad.Packages.com.theblueway.saveandload.Runtime
         {
             if (type.IsGenericParameter)
             {
-                Debug.LogError($"error");
+                Debug.LogError($"[VersionedType] Can not get type expression of type that has generic parameter(s).\n" +
+                    $"This method works with closed generic types only.\n" +
+                    $"Type: {type.CleanAssemblyQualifiedName()}");
             }
 
 

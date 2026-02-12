@@ -1,13 +1,10 @@
-﻿using Assets._Project.Scripts.Infrastructure.AddressableInfra;
-using Assets._Project.Scripts.SaveAndLoad;
+﻿using Assets._Project.Scripts.SaveAndLoad;
 using Assets._Project.Scripts.SaveAndLoad.SavableDelegates;
 using Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases;
 using Assets._Project.Scripts.UtilScripts;
 using Assets._Project.Scripts.UtilScripts.CodeGen;
-using Assets._Project.Scripts.UtilScripts.Extensions;
 using Assets._Project.Scripts.UtilScripts.Misc;
 using Newtonsoft.Json;
-using Packages.com.blueutils.core.Runtime.Misc;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -28,7 +25,9 @@ namespace Assets._Project.Scripts.Infrastructure
     public class Infra : MonoBehaviour
     {
         public static Infra Singleton { get; private set; }
+        public static Infra S => Singleton;
         public static SceneManagement SceneManagement { get; set; } = new();
+        public static UnityObjectLifeCycleManagementService UnityObjectLifeCycleManagement { get; set; } = new();
 
         //had been serialized once
         [HideInInspector]
@@ -78,13 +77,19 @@ namespace Assets._Project.Scripts.Infrastructure
         }
 
 
+        public void Update()
+        {
+            UnityObjectLifeCycleManagement.CleanDestroyedReferences();
+        }
+
+
 
         public void RegisterSingleton(object singleton)
         {
             var handler = SaveAndLoadManager.Singleton.GetSaveHandlerFor(singleton);
             if (!handler.IsSingleton)
             {
-                Debug.LogError("The save handler for the singleton object is not marked as singleton. Type: "+singleton.GetType().CleanAssemblyQualifiedName());
+                Debug.LogError("The save handler for the singleton object is not marked as singleton. Type: " + singleton.GetType().CleanAssemblyQualifiedName());
             }
             handler.Init(singleton);
             SaveAndLoadManager.Singleton.AddSaveHandler(handler);
@@ -365,15 +370,39 @@ namespace Assets._Project.Scripts.Infrastructure
         }
 
 
-        public RandomId Register(object obj, bool rootObject = false, bool createSaveHandler = true, InitContext context = null)
+
+        /// <summary>
+        /// This api is idempotent, subsequent calls beyond the first will return the already registered id.
+        /// But, the different parameters can alter how an object is registered and if different systems try to register the same object with
+        /// different parameters it can create erroneous behaviour. Thus, even though the api is idempotent, it is still validated that "everybody"
+        /// who wants to register the same objects "thinks" the same about that object, they are all on the same page.
+        /// For example imagine that one system wants to register an object as root object but an other does not. Which is correct then?
+        /// This behaviour is turned on by default but can be opt-out by setting the <paramref name="ifHasntAlready"/> parameter to true.
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <param name="rootObject">If this is true, this object does not have to be referenced by other objects to not to be cleared out.</param>
+        /// <param name="createSaveHandler"></param>
+        /// <param name="context">Conext is supplied to the created savehandler to Init it.</param>
+        /// <param name="ifHasntAlready"></param>
+        /// <returns></returns>
+        public RandomId Register(object obj, bool rootObject = false, bool createSaveHandler = true, InitContext context = null,
+            bool ifHasntAlready = false)
         {
+            if (ifHasntAlready && IsRegistered(obj))
+            {
+                var id = _GetObjectIdWithoutReferencing(obj, autoRegister: false);
+                return id;
+            }
+
             if (__objectIds.ContainsKey(obj))
             {
                 var id = __objectIds[obj];
 
                 if (context != null)
                 {
-                    Debug.LogError($"An object with id {id} is already registered but a non-null init context is supplied. The context will be ignored.", obj as UnityEngine.Object);
+                    Debug.LogError($"An object with id {id} is already registered but a non-null init context is supplied.\n" +
+                        $"Initalization context can only be supplied once at the very first Registration attempt.\n" +
+                        $"The context will be ignored.", obj as UnityEngine.Object);
                 }
                 //Debug.LogWarning($"Infra: object with id {id} is already registered. Skipping registration.");
                 //todo: check if it has savehandler, it should if it is already enlisted. Except if multiple caller want to register this obj and they supply different value for createSaveHandler
@@ -381,9 +410,17 @@ namespace Assets._Project.Scripts.Infrastructure
                 {
                     if (!__rootObjectIds.Contains(id))
                     {
-                        Debug.LogError($"an object with id {id} is already registered but it was not requested to be a root object that time.");
+                        Debug.LogError($"An object with id {id} is already registered but it was not requested to be a root object that time.");
                     }
                 }
+                else
+                {
+                    if (__rootObjectIds.Contains(id))
+                    {
+                        Debug.LogError($"An object with id {id} is already registered as root object but now requested as a non-root object.");
+                    }
+                }
+
                 return id;
             }
 
@@ -504,6 +541,22 @@ namespace Assets._Project.Scripts.Infrastructure
             __globalReferenceCache.Remove(id);
         }
 
+
+        public bool IsNotRegistered(RandomId id)
+        {
+            return !IsRegistered(id);
+        }
+
+        public bool IsRegistered(RandomId id)
+        {
+            bool registered = __globalReferenceCache.ContainsKey(id);
+            return registered;
+        }
+
+        public bool IsNotRegistered(object obj)
+        {
+            return !IsRegistered(obj);
+        }
 
         //maybe this does not need a UnityEngine.Object overload (?)
         public bool IsRegistered(object obj)
@@ -1116,6 +1169,16 @@ namespace Assets._Project.Scripts.Infrastructure
 
 
 
+        new public void Destroy(Object obj)
+        {
+            UnityObjectLifeCycleManagement.ScheduleToDestroy(obj);
+        }
+
+
+        public bool IsScheduledOrDestroyed(Object obj)
+        {
+            return UnityObjectLifeCycleManagement.IsScheduledOrDestroyed(obj);
+        }
 
 
 
@@ -1143,7 +1206,7 @@ namespace Assets._Project.Scripts.Infrastructure
                 ///as the instances of the derived types of these types are assigned with field initializers
                 ObjectCreationHandling = ObjectCreationHandling.Auto,
                 //TypeNameHandling = TypeNameHandling.Auto,
-                //WARNING: DO NOT FUCKING SET THIS. From 0.03 to 1.8s on first call, then worse and worse on subsequent calls.
+                //WARNING: DO NOT SET THIS. From 0.03 to 1.8s on first call, then worse and worse on subsequent calls.
                 //if newtonsoft tries to read a field or property via reflection in a unityobject, unity might trigger events to them, for example gpu readbacks
                 //ContractResolver = new DefaultContractResolver
                 //{
@@ -1152,13 +1215,6 @@ namespace Assets._Project.Scripts.Infrastructure
             };
         }
 
-        //public class CustomNewtonsoftContractResolver: DefaultContractResolver
-        //{
-        //    protected override List<MemberInfo> GetSerializableMembers(Type objectType)
-        //    {
-        //        return base.GetSerializableMembers(objectType);
-        //    }
-        //}
 
 
 
@@ -1166,6 +1222,64 @@ namespace Assets._Project.Scripts.Infrastructure
 
 
 
+
+
+
+        public class UnityObjectLifeCycleManagementService
+        {
+            public Dictionary<int, WeakReference<Object>> _trackedObjects = new();
+
+            public void ScheduleToDestroy(Object obj)
+            {
+                if (obj == null) return;
+
+                if (!_trackedObjects.ContainsKey(obj.GetInstanceID()))
+                {
+                    _trackedObjects.Add(obj.GetInstanceID(), new WeakReference<Object>(obj));
+                    Object.Destroy(obj);
+                }
+            }
+
+            public bool IsScheduledOrDestroyed(Object obj)
+            {
+                if (obj == null) return true;
+
+                if (_trackedObjects.ContainsKey(obj.GetInstanceID())) return true;
+                else return false;
+            }
+
+
+            public List<int> _keysToRemove = new();
+
+            public void CleanDestroyedReferences()
+            {
+                _keysToRemove.Clear();
+
+                foreach (var (key, weakRef) in _trackedObjects)
+                {
+                    bool managedPartExists = weakRef.TryGetTarget(out var obj);
+
+                    // if the c# managed object is not GC-ed
+                    if (managedPartExists)
+                    {
+                        bool enginePartExists = obj != null;
+
+                        //but the engine side part is destroyed
+                        if (!enginePartExists)
+                            _keysToRemove.Add(key);
+                    }
+                    else
+                        _keysToRemove.Add(key);
+                }
+
+                foreach (var key in _keysToRemove)
+                {
+                    _trackedObjects.Remove(key);
+                }
+
+                _keysToRemove.Clear();
+            }
+        }
 
 
 

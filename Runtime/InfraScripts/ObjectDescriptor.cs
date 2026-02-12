@@ -2,7 +2,6 @@
 using Assets._Project.Scripts.UtilScripts;
 using System;
 using System.Collections.Generic;
-using UnityEditor;
 using UnityEngine;
 
 namespace Theblueway.SaveAndLoad.Packages.com.theblueway.saveandload.Runtime.InfraScripts
@@ -97,7 +96,7 @@ namespace Theblueway.SaveAndLoad.Packages.com.theblueway.saveandload.Runtime.Inf
                     {
                         foreach (var arrayElementMember in settings.arrayElementMembers)
                         {
-                            if (arrayElementMember.memberId.IsDefault || ids.Contains(settings.memberId))
+                            if (arrayElementMember.memberId.IsDefault || ids.Contains(arrayElementMember.memberId))
                             {
                                 arrayElementMember.memberId = RandomId.New;
                             }
@@ -130,10 +129,9 @@ namespace Theblueway.SaveAndLoad.Packages.com.theblueway.saveandload.Runtime.Inf
         ArrayElement,
         GameObject,
         Components,
-        ImmediateChildren, //gameobject + transform
-        ChildrenRecursive, //gameobject + transform
-        AllChildrenAndComponentsRecursive, //+ gameobject
-        //NotMigrated = 99,
+        ImmediateChildren,
+        ChildrenRecursive,
+        AllChildrenAndComponentsRecursive,
     }
 }
 
