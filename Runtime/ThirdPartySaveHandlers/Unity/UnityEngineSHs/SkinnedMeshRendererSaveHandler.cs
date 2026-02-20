@@ -1,16 +1,27 @@
-﻿using UnityEngine;
-using Assets._Project.Scripts.UtilScripts;
-using Assets._Project.Scripts.Infrastructure;
-using Assets._Project.Scripts.SaveAndLoad;
+﻿using Assets._Project.Scripts.Infrastructure;
 using Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases;
-using Assets._Project.Scripts.SaveAndLoad.SavableDelegates;
-using System.Collections.Generic;
+using Assets._Project.Scripts.UtilScripts;
 using System;
-using System.Reflection;
+using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using UnityEngine;
+using Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.UnitySHs;
 
-//reason it is manual: by the time we assign the materials array, the material instances must be added to the array
-//this will be solved when setloadingorder is used everywhere
+///reason it is manual: same as <see cref="MeshRendererSaveHandler"/>
+///todo: implement the same solution as for <see cref="MeshRendererSaveHandler"/>
+//loading order
+/*
+1. Create mesh
+2. Assign mesh data
+3. Assign bindposes
+4. Assign bone weights
+5. Assign mesh to SMR
+6. Assign bones[]
+7. Assign rootBone
+8. Restore localBounds   ← AFTER mesh + bones
+*/
+
 namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.Unity.UnityEngineSHs
 {
     [SaveHandler(876827195521580802, "SkinnedMeshRenderer", typeof(UnityEngine.SkinnedMeshRenderer))]
@@ -53,7 +64,6 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.Unity.Unity
         }
 
 
-        //I dont know if other properties may or may not require the materials to be assigned, so I set everything in LoadValues to be sure
         public override void LoadValues()
         {
             base.LoadValues();
@@ -69,8 +79,8 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.Unity.Unity
             __instance.sharedMesh = GetAssetById(__saveData.sharedMesh, __instance.sharedMesh);
             __instance.skinnedMotionVectors = __saveData.skinnedMotionVectors;
             __instance.vertexBufferTarget = __saveData.vertexBufferTarget;
-            __saveData.bounds.WriteInto(__instance.bounds);
-            __saveData.localBounds.WriteInto(__instance.localBounds);
+            //__instance.bounds = __saveData.bounds.WriteInto(__instance.bounds);
+            __instance.localBounds = __saveData.localBounds.WriteInto(__instance.localBounds);
             __instance.enabled = __saveData.enabled;
             __instance.shadowCastingMode = __saveData.shadowCastingMode;
             __instance.receiveShadows = __saveData.receiveShadows;

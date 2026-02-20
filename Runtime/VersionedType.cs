@@ -114,7 +114,7 @@ namespace Theblueway.SaveAndLoad.Packages.com.theblueway.saveandload.Runtime
                 }
             }
 
-            return ResolveType(root, onHasId);
+            return _ResolveType(root, onHasId);
         }
 
 
@@ -134,11 +134,11 @@ namespace Theblueway.SaveAndLoad.Packages.com.theblueway.saveandload.Runtime
                 return type;
             }
 
-            return ResolveType(root, onHasId);
+            return _ResolveType(root, onHasId);
         }
 
 
-        public Type ResolveType(Node parent, Func<Node, Type> onHasId)
+        public Type _ResolveType(Node parent, Func<Node, Type> onHasId)
         {
             Type type;
 
@@ -167,7 +167,7 @@ namespace Theblueway.SaveAndLoad.Packages.com.theblueway.saveandload.Runtime
                 for (int i = 0; i < args.Length; i++)
                 {
                     Node child = parent.genericArguments[i];
-                    Type arg = ResolveType(child, onHasId);
+                    Type arg = _ResolveType(child, onHasId);
                     args[i] = arg;
                 }
 

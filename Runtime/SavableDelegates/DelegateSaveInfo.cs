@@ -9,11 +9,11 @@ namespace Assets._Project.Scripts.SaveAndLoad.SavableDelegates
     {
         public RandomId TargeId { get; init; }
         public long MethodId { get; init; }
+        public long GenericVairantId { get; set; }
+        public List<RandomId> GenericTypeArguments { get; set; }
         public bool GetByMethodInfo { get; init; }
         [JsonIgnore]
         public bool IsGeneric => GenericTypeArguments != null && GenericTypeArguments.Count > 0;
-        public long GenericVairantId { get; set; }
-        public List<string> GenericTypeArguments { get; set; }
 
         public DelegateSaveInfo(RandomId targetInstanceId, long methodId)
         {

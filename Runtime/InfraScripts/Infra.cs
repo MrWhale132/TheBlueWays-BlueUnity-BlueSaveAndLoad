@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using Theblueway.SaveAndLoad.Packages.com.theblueway.saveandload.Runtime;
 using Theblueway.SaveAndLoad.Packages.com.theblueway.saveandload.Runtime.InfraScripts;
 using UnityEngine;
 using UnityEngine.Events;
@@ -375,7 +376,7 @@ namespace Assets._Project.Scripts.Infrastructure
         /// This api is idempotent, subsequent calls beyond the first will return the already registered id.
         /// But, the different parameters can alter how an object is registered and if different systems try to register the same object with
         /// different parameters it can create erroneous behaviour. Thus, even though the api is idempotent, it is still validated that "everybody"
-        /// who wants to register the same objects "thinks" the same about that object, they are all on the same page.
+        /// who wants to register the same objects "thinks" the same about that object. They are all on the same page.
         /// For example imagine that one system wants to register an object as root object but an other does not. Which is correct then?
         /// This behaviour is turned on by default but can be opt-out by setting the <paramref name="ifHasntAlready"/> parameter to true.
         /// </summary>
@@ -827,9 +828,10 @@ namespace Assets._Project.Scripts.Infrastructure
 
                             for (int i = 0; i < typeArgs.Length; i++)
                             {
-                                string stringType = saveInfo.GenericTypeArguments[i];
-                                Type type = Type.GetType(stringType);
-                                typeArgs[i] = type;
+                                VersionedType versionedType = SaveAndLoadManager.S.GetVersionedType(saveInfo.GenericTypeArguments[i]);
+                                Type resolvedType = versionedType.ResolveForCurrentHandledType();
+
+                                typeArgs[i] = resolvedType;
                             }
 
                             MethodInfo concreteGeneric = methodInfo.MakeGenericMethod(typeArgs);
@@ -1003,7 +1005,7 @@ namespace Assets._Project.Scripts.Infrastructure
                     GenericVairantId = variantId,
                     //todo: to get the type args every single time is costly, we could cache them per method info
                     GenericTypeArguments = Method.IsGenericMethod
-                        ? Method.GetGenericArguments().Select(arg => arg.AssemblyQualifiedName).ToList()
+                        ? Method.GetGenericArguments().Select(arg => VersionedType.From(arg)).ToList()
                         : null,
                 };
                 return saveInfo;
@@ -1026,7 +1028,7 @@ namespace Assets._Project.Scripts.Infrastructure
                         {
                             GetByMethodInfo = Method.IsGenericMethod || Method.GetParameters().Any(p => p.ParameterType.CanNotBeUsedAsGenericParameter()) || Method.ReturnType.CanNotBeUsedAsGenericParameter(),
                             GenericVairantId = variantId,
-                            GenericTypeArguments = Method.GetGenericArguments().Select(arg => arg.AssemblyQualifiedName).ToList(),
+                            GenericTypeArguments = Method.GetGenericArguments().Select(arg => VersionedType.From(arg)).ToList(),
                         };
 
                         __methodIdsByMethodSignaturePerType[targetType][signature] = variantId;

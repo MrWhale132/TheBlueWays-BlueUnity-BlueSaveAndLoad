@@ -2475,15 +2475,29 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
 
 
+        public bool _saveingIsInProgress;
+
 
         public void Save()
         {
-            //todo: check against multiple save requests
+            if(_saveingIsInProgress)
+            {
+                Debug.LogError("A save process is already in progress. Returning.");
+                return;
+            }
+
+
             StartCoroutine(SaveRoutine());
+
         }
 
-        public IEnumerator SaveRoutine()
+
+        internal IEnumerator SaveRoutine()
         {
+            _saveingIsInProgress = true;
+
+
+
             IsIteratingSaveHandlers = true;
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
@@ -2610,6 +2624,10 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
             stopwatch.Stop();
             //Debug.LogWarning("save to disk " + stopwatch.ElapsedMilliseconds / 1000f);
+
+
+            _saveingIsInProgress = false;
+
             Debug.Log("Save completed.");
         }
 

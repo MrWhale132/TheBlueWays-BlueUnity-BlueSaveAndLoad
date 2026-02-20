@@ -15,9 +15,6 @@ namespace UnityEngine_
     [SaveHandler(549644073204883384, "Material", typeof(UnityEngine.Material), order: -6, dependsOn: new[] { typeof(Shader) }, generationMode: SaveHandlerGenerationMode.Manual)]
     public class MaterialSaveHandler : AssetSaveHandlerBase<UnityEngine.Material, MaterialSaveData>
     {
-        public override bool SupportsModificationsToTheInstance => true;
-
-
         public override void WriteSaveData()
         {
             base.WriteSaveData();

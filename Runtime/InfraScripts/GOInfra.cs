@@ -37,7 +37,7 @@ namespace Assets._Project.Scripts.Infrastructure
         public static HashSet<GOInfra> _allInfras = new HashSet<GOInfra>();
 
 
-        [Tooltip("With this toggle this instance will act like an inactive component AND will be ignored by external systems like " + nameof(SceneInfra)+
+        [Tooltip("With this toggle this instance will act like an inactive component AND will be ignored by external systems like " + nameof(SceneInfra) +
                  ".\n The primary purpose of this toggle is to test out what would happen if this component wasnt there.")]
         public bool TurnedOff;
 
@@ -285,7 +285,7 @@ namespace Assets._Project.Scripts.Infrastructure
                 {
                     results.Add(result);
                 }
-                if(results.Count == 2)
+                if (results.Count == 2)
                 {
                     Debug.Log(gameObject.HierarchyPath());
                 }
@@ -322,7 +322,7 @@ namespace Assets._Project.Scripts.Infrastructure
 
                 foreach (var memberDesc in InlinedPrefabDescription.members)
                 {
-                    if(memberDesc.member == null)
+                    if (memberDesc.member == null)
                     {
                         Debug.LogError($"A null list element found in the inlined prefab member element list of gameobject: {gameObject.HierarchyPath()}.\n" +
                             $"This is invalid and it should be removed. You can remove it manually or by triggering a recollection of members.\n" +
@@ -380,7 +380,7 @@ namespace Assets._Project.Scripts.Infrastructure
         {
             var results = new List<ObjectMemberGraphWalker.MemberCollectionResult>();
 
-            var childrenAndSelf = GetChildrenInfra(includeTurnedOff:false, includeSelf: true);
+            var childrenAndSelf = GetChildrenInfra(includeTurnedOff: false, includeSelf: true);
 
             var walker = new ObjectMemberGraphWalker();
 
@@ -460,17 +460,18 @@ namespace Assets._Project.Scripts.Infrastructure
                 {
                     foreach (var assetReference in referenceInfo.references)
                     {
-                        var assets = _GetAssetFromAssetReference(assetReference, referenceInfo.assetHolder);
+                        var assetRegistrations = _GetAssetFromAssetReference(assetReference, referenceInfo.assetHolder);
 
-                        foreach (var asset in assets)
-                            if (Infra.S.IsNotRegistered(asset))
+                        foreach (var assetReg in assetRegistrations)
+                            if (Infra.S.IsNotRegistered(assetReg.asset))
                             {
                                 var initContext = new AssetInitContext()
                                 {
-                                    instantiatedFromAssetId = assetReference.assetEntryInfo.assetId
+                                    instantiatedFromAssetId = assetReference.assetEntryInfo.assetId,
+                                    mutable = assetReg.mutable,
                                 };
 
-                                Infra.S.Register(asset, context: initContext, rootObject: false, createSaveHandler: true);
+                                Infra.S.Register(assetReg.asset, context: initContext, rootObject: false, createSaveHandler: true);
                             }
                     }
                 }
@@ -479,9 +480,26 @@ namespace Assets._Project.Scripts.Infrastructure
 
 
 
-        public IEnumerable<Object> _GetAssetFromAssetReference(AssetReferenceInfo assetReference, Component comp)
+        public struct AssetRegistration
         {
-            List<Object> assets = new();
+            public Object asset;
+            public bool mutable;
+
+            public static implicit operator AssetRegistration(Object asset)
+            {
+                var reg = new AssetRegistration()
+                {
+                    asset = asset,
+                    mutable = false,
+                };
+                return reg;
+            }
+        }
+
+
+        public IEnumerable<AssetRegistration> _GetAssetFromAssetReference(AssetReferenceInfo assetReference, Component comp)
+        {
+            List<AssetRegistration> assetRegistrations = new();
 
             var member = assetReference.memberPath.memberEnum;
             int index = assetReference.memberPath.index;
@@ -491,8 +509,8 @@ namespace Assets._Project.Scripts.Infrastructure
                 if (member == TypeMemberEnum.Mesh)
                 {
                     if (assetReference.useNonSharedCounterpartToo)
-                        assets.Add(meshFilter.mesh);
-                    assets.Add(meshFilter.sharedMesh);
+                        assetRegistrations.Add(new() { asset = meshFilter.mesh, mutable = true });
+                    assetRegistrations.Add(meshFilter.sharedMesh);
                 }
             }
             else if (comp is MeshRenderer meshRenderer)
@@ -501,36 +519,36 @@ namespace Assets._Project.Scripts.Infrastructure
                 {
                     if (assetReference.useNonSharedCounterpartToo)
                     {
-                        assets.Add(meshRenderer.materials[index]);
+                        assetRegistrations.Add(new() { asset = meshRenderer.materials[index], mutable = true });
                     }
-                    assets.Add(meshRenderer.sharedMaterials[index]);
+                    assetRegistrations.Add(meshRenderer.sharedMaterials[index]);
                 }
                 if (member == TypeMemberEnum.Shader)
                 {
-                    if (assetReference.useNonSharedCounterpartToo)
-                    {
-                        assets.Add(meshRenderer.materials[index].shader);
-                    }
-                    assets.Add(meshRenderer.sharedMaterials[index].shader);
+                    //if (assetReference.useNonSharedCounterpartToo)
+                    //{
+                    //    assetRegistrations.Add(meshRenderer.materials[index].shader);
+                    //}
+                    assetRegistrations.Add(meshRenderer.sharedMaterials[index].shader);
                 }
             }
             else if (comp is Image image)
             {
-                if (member == TypeMemberEnum.Sprite) assets.Add(image.sprite);
-                if (member == TypeMemberEnum.Material) assets.Add(image.material);
-                if (member == TypeMemberEnum.Shader) assets.Add(image.material.shader);
+                if (member == TypeMemberEnum.Sprite) assetRegistrations.Add(image.sprite);
+                if (member == TypeMemberEnum.Material) assetRegistrations.Add(image.material);
+                if (member == TypeMemberEnum.Shader) assetRegistrations.Add(image.material.shader);
             }
             else if (comp is AudioSource audioSource)
             {
-                if (member == TypeMemberEnum.OutputAudioMixerGroup) assets.Add(audioSource.outputAudioMixerGroup);
-                if (member == TypeMemberEnum.Resource) assets.Add(audioSource.resource);
+                if (member == TypeMemberEnum.OutputAudioMixerGroup) assetRegistrations.Add(audioSource.outputAudioMixerGroup);
+                if (member == TypeMemberEnum.Resource) assetRegistrations.Add(audioSource.resource);
             }
             else
             {
                 Debug.LogError("You forget to add the new comp type here too.");
             }
 
-            return assets;
+            return assetRegistrations;
         }
 
 
@@ -638,31 +656,12 @@ namespace Assets._Project.Scripts.Infrastructure
 #if UNITY_EDITOR
         public void RefreshReferencedAssets()
         {
-            //ObjectDescriptor descriptor;
-
-            //if (HasPrefabParts)
-            //{
-            //    descriptor = PrefabDescriptor;
-            //}
-            //else if (HasSceneParts)
-            //{
-            //    descriptor = ScenePlacedDescriptor;
-            //}
-            //else
-            //{
-            //    Debug.Log("An object descriptor is needed to refresh asset references that tells which assets to check for.\n" +
-            //        "This gameobject has neither a prefab nor a scene object descriptor.");
-            //    return;
-            //}
-
             _assetReferences.Clear();
 
             List<Component> helper = new();
             List<Component> componentsToCheck = new();
 
 
-            //todo: update this with the other member types
-            //if (descriptor.membersSettings.Has(settings => settings.memberIndexV2 is GameObjectMembers.AllChildrenAndComponentsRecursive, out var settings))
             {
                 void Traverse(Transform parent)
                 {
@@ -672,21 +671,12 @@ namespace Assets._Project.Scripts.Infrastructure
                     for (int i = 0; i < parent.childCount; i++)
                     {
                         var child = parent.GetChild(i);
-
-                        child.GetComponents(helper);
-                        componentsToCheck.AddRange(helper);
-
                         Traverse(child);
                     }
                 }
 
                 Traverse(gameObject.transform);
             }
-            //else
-            //{
-            //    Debug.LogError($"Auto asset reference collection currently only works if one of the settings is {GameObjectMembers.AllChildrenAndComponentsRecursive}.\n" +
-            //        $"You can still add references manually though.");
-            //}
 
 
 
@@ -712,7 +702,7 @@ namespace Assets._Project.Scripts.Infrastructure
                     {
                         assetMembers.Add((mat, new(TypeMemberEnum.Materials, i)));
                         assetMembers.Add((mat.shader, new(TypeMemberEnum.Shader, i)));
-                        
+
                         i++;
                     }
                 }
@@ -733,7 +723,7 @@ namespace Assets._Project.Scripts.Infrastructure
                 //todo: remove the default ui material filter
                 //todo: configurable and extendable for users
                 assetMembers.RemoveAll(asset => asset.member == null || asset.member.name == "" || asset.member.name == "Default UI Material");
-                
+
                 if (assetMembers.Count > 0)
                 {
                     List<AssetReferenceInfo> referenceInfos = new(assetMembers.Count);
@@ -944,7 +934,7 @@ namespace Assets._Project.Scripts.Infrastructure
             }
             else
             {
-                children= gameObject.GetComponentsInChildrenExcludeSelf<GOInfra>(includeInactive: true).ToList();
+                children = gameObject.GetComponentsInChildrenExcludeSelf<GOInfra>(includeInactive: true).ToList();
             }
 
             if (!includeTurnedOff)

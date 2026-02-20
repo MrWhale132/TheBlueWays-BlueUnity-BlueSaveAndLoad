@@ -133,13 +133,13 @@ public class SaveHandlerAutoGenerator : ScriptableObject
 
         string generationModeEnumText;
 
-        if(session.TypeGenerationSettingsRegistry.HasSettingsForHandledType(typeReport.ReportedType,isStatic:false, out var settings))
+        if (session.TypeGenerationSettingsRegistry.HasSettingsForHandledType(typeReport.ReportedType, isStatic: false, out var settings))
         {
-            generationModeEnumText = nameof(SaveHandlerGenerationMode)+"."+nameof(SaveHandlerGenerationMode.Configured);
+            generationModeEnumText = nameof(SaveHandlerGenerationMode) + "." + nameof(SaveHandlerGenerationMode.Configured);
         }
         else
         {
-            generationModeEnumText = nameof(SaveHandlerGenerationMode)+"."+nameof(SaveHandlerGenerationMode.FullAutomata);
+            generationModeEnumText = nameof(SaveHandlerGenerationMode) + "." + nameof(SaveHandlerGenerationMode.FullAutomata);
         }
 
 
@@ -172,7 +172,7 @@ public class SaveHandlerAutoGenerator : ScriptableObject
         string typeName = FlattenTypeNameIfNested(typeReport.ReportedType);
 
         string fileName = $"{typeName}CustomSaveData";
-        
+
         CustomSaveDataInfo.FileName = fileName;
 
         result.HandlerInfo = CustomSaveDataInfo;
@@ -192,7 +192,7 @@ public class SaveHandlerAutoGenerator : ScriptableObject
 
         var staticReport = isStatic ? typeReport : typeReport.StaticReport;
 
-        if(staticReport == null)
+        if (staticReport == null)
         {
             return result;
         }
@@ -332,7 +332,7 @@ public class SaveHandlerAutoGenerator : ScriptableObject
             string attribute = GetAttributeTextWithoutId(typeToHandle);
 
             IEnumerable<string> typeArgNames = typeToHandle.BaseType.IsGenericType ?
-                typeToHandle.BaseType.GetGenericArguments().Select(arg => CodeGenUtils.ToTypeReferenceText(arg,withNameSpace:true))
+                typeToHandle.BaseType.GetGenericArguments().Select(arg => CodeGenUtils.ToTypeReferenceText(arg, withNameSpace: true))
                 : Enumerable.Empty<string>();
 
             var baseTypeGenericParameterList = typeToHandle.BaseType.IsGenericType ? "<" + string.Join(", ", typeArgNames) + ">" : "";
@@ -421,7 +421,7 @@ public class SaveHandlerAutoGenerator : ScriptableObject
             {
                 generationModeEnumText = nameof(SaveHandlerGenerationMode) + "." + nameof(SaveHandlerGenerationMode.Configured);
 
-                if(settings.HasAttributeGenerationSettings(out var attributeSettings))
+                if (settings.HasAttributeGenerationSettings(out var attributeSettings))
                 {
                     if (attributeSettings.loadOrder.HasValue)
                     {
@@ -564,11 +564,17 @@ public class SaveHandlerAutoGenerator : ScriptableObject
                     string readModifier = isField ? "in " : "";
                     string writeModifier = isField ? "ref " : "";
 
+
                     writeData = $"{saveDataAccessor}{fieldName}.{nameof(CustomSaveData<int>.ReadFrom)}({readModifier}{instanceAccessor}{fieldName});";
 
-                    readData = $"{saveDataAccessor}{fieldName}.{nameof(CustomSaveData<int>.WriteInto)}({writeModifier}{instanceAccessor}{fieldName});";
-
-                    //additionalNameSpaces.Add(customSaveDataType.Namespace);
+                    if (isField)
+                    {
+                        readData = $"{saveDataAccessor}{fieldName}.{nameof(CustomSaveData<int>.WriteInto)}({writeModifier}{instanceAccessor}{fieldName});";
+                    }
+                    else
+                    {
+                        readData = $"{instanceAccessor}{fieldName} = {saveDataAccessor}{fieldName}.{nameof(CustomSaveData<int>.WriteInto)}({instanceAccessor}{fieldName});";
+                    }
                 }
             }
             else if (typeof(Delegate).IsAssignableFrom(type))
@@ -711,7 +717,7 @@ public class SaveHandlerAutoGenerator : ScriptableObject
                     //debug
                     if (length < 0)
                     {
-                        Debug.LogError(typeToHandle.CleanAssemblyQualifiedName() +" "+isStatic +"\n"+line);
+                        Debug.LogError(typeToHandle.CleanAssemblyQualifiedName() + " " + isStatic + "\n" + line);
                     }
                     var key = line.Substring(start, keyvalSep - start - 1);
                     var val = line.Substring(keyvalSep + 2, line.Length - keyvalSep - 4);
@@ -842,8 +848,8 @@ public class SaveHandlerAutoGenerator : ScriptableObject
                     if (inclusionMode is Packages.com.theblueway.saveandload.Editor.SaveAndLoad.MemberInclusionMode.Exclude)
                     {
                         dictEntries.Remove(methodId);
-                        if(idToMethodLookUpLines.ContainsKey(methodId)) idToMethodLookUpLines.Remove(methodId);
-                        if(idToGenMethodDefLookUpLines.ContainsKey(methodId)) idToGenMethodDefLookUpLines.Remove(methodId);
+                        if (idToMethodLookUpLines.ContainsKey(methodId)) idToMethodLookUpLines.Remove(methodId);
+                        if (idToGenMethodDefLookUpLines.ContainsKey(methodId)) idToGenMethodDefLookUpLines.Remove(methodId);
                     }
                 }
             }
@@ -1069,7 +1075,7 @@ public class SaveHandlerAutoGenerator : ScriptableObject
 
     [NonSerialized]
     public string _SaveDataTemplate =
-        $"[{nameof(SaveDataAttribute)[..^"Attribute".Length]}({SaveHandlerId})]"+_NewLine+
+        $"[{nameof(SaveDataAttribute)[..^"Attribute".Length]}({SaveHandlerId})]" + _NewLine +
         $"public class {GeneratedTypeName}SaveData{GenericParameterList} : {SaveDataBaseClassName} {GenericConstraints}" +
         _NewLine +
         "{" +

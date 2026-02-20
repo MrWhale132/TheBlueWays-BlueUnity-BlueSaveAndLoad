@@ -183,12 +183,10 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.UnitySHs
 
             __instance.additionalVertexStreams = GetAssetById(__saveData.additionalVertexStreams, __instance.additionalVertexStreams);
             __instance.enlightenVertexStream = GetAssetById(__saveData.enlightenVertexStream, __instance.enlightenVertexStream);
-            //todo:
-            //Debug.Log(Newtonsoft.Json.JsonConvert.SerializeObject(__saveData.bounds));
-            //Debug.LogWarning(Newtonsoft.Json.JsonConvert.SerializeObject(__instance.bounds));
-            __saveData.bounds.WriteInto(__instance.bounds);
-            //Debug.LogWarning(Newtonsoft.Json.JsonConvert.SerializeObject(__instance.bounds));
-            __saveData.localBounds.WriteInto(__instance.localBounds);
+            //todo: for most cases these dont have to bet set, in some cases however they are need to handle manually
+            //a config is needed to drive this.
+            //__instance.bounds = __saveData.bounds.WriteInto(__instance.bounds);
+            //__instance.localBounds = __saveData.localBounds.WriteInto(__instance.localBounds);
             __instance.enabled = __saveData.enabled;
             __instance.shadowCastingMode = __saveData.shadowCastingMode;
             __instance.receiveShadows = __saveData.receiveShadows;

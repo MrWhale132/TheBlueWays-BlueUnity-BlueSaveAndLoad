@@ -13,6 +13,7 @@ namespace Assets._Project.Scripts.SaveAndLoad
 {
     //todo, optimization: create an other ctor that accepts the "type" of T so it doesn't have to be checked every time
     //todo: should this be a struct instead?
+    //todo: create a MigrationData<T> that inherits from Data<T> or from Data to separate migration logic?
     public class Data<T> : Data
     {
         public T _Value;
@@ -42,6 +43,34 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
             SetValueOrNoneAccessors(this);
         }
+
+
+
+        public void Set(T value, RandomId referencedBy)
+        {
+            _Reset();
+
+            ReferencedBy = referencedBy;
+
+            Type typeToVersion = value?.GetType() ?? typeof(T);
+            _versionedType = VersionedType.From(typeToVersion);
+
+            Type instanceType = value?.GetType();
+            SetAccessors(DetermineDataType(instanceType));
+            SetHelpers(this, instanceType, _dataType);
+
+            _Set(value);
+        }
+
+        public void _Set(T value)
+        {
+            _setter(value, this);
+        }
+        public T Get()
+        {
+            return _getter(this);
+        }
+
 
 
 
@@ -175,32 +204,6 @@ namespace Assets._Project.Scripts.SaveAndLoad
         }
 
 
-
-
-        public void Set(T value, RandomId referencedBy)
-        {
-            _Reset();
-
-            ReferencedBy = referencedBy;
-
-            Type typeToVersion = value?.GetType() ?? typeof(T);
-            _versionedType = VersionedType.From(typeToVersion);
-
-            Type instanceType = value?.GetType();
-            SetAccessors(DetermineDataType(instanceType));
-            SetHelpers(this, instanceType, _dataType);
-
-            _Set(value);
-        }
-
-        public void _Set(T value)
-        {
-            _setter(value, this);
-        }
-        public T Get()
-        {
-            return _getter(this);
-        }
 
 
         public void _Reset()

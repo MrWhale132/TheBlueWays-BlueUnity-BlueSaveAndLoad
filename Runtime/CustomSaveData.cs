@@ -23,10 +23,13 @@ namespace Assets._Project.Scripts.SaveAndLoad
         {
             ReadFrom(in instance);
         }
-        public void WriteInto(TStruct instance)
+
+        public TStruct WriteInto(TStruct instance)
         {
             WriteInto(ref instance);
+            return instance;
         }
+
 
 
         public override void SlowReadFrom<T>(in T instance)

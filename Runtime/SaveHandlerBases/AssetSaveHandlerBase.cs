@@ -15,18 +15,19 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
         where TSaveData : AssetSaveData, new()
     {
         public override bool IsValid => __instance != null;
-        public virtual bool SupportsModificationsToTheInstance => false;
+
+        public bool Mutable => __saveData._mutable_;
 
 
         //todo: tmp hack
-        AssetInitContext Context;
+        AssetInitContext _context;
         public override void Init(object instance, InitContext context)
         {
             //if(context is AssetInitContext assetContext)
             //{
             //    __saveData._AssetId_ = assetContext.instantiatedFromAssetId;
             //}
-            Context = context as AssetInitContext;
+            _context = context as AssetInitContext;
 
             base.Init(instance, context);
         }
@@ -36,33 +37,37 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
         {
             base.Init(instance);
             //todo: remove this lone after we no longer need backward compatibility
-            if (Context != null)
+            if (_context != null)
             {
-                __saveData._AssetId_ = Context.instantiatedFromAssetId;
+                __saveData._AssetId_ = _context.instantiatedFromAssetId;
+                __saveData._mutable_ = _context.mutable;
+
+                AssetIdMap.mutable.Add(HandledObjectId, _context.mutable);
+
                 AssetIdMap.ObjectIdToAssetId.Add(HandledObjectId, __saveData._AssetId_);
                 return;
             }
             
-            if(!SupportsInstanceCreation)
-            {
-                Debug.LogError($"not found asset, name: {__instance.name}, type: {__instance.GetType().Name}, objectId: {HandledObjectId}");
-            }
 
-            if (IsExpectedToHaveAssetId(__instance.GetType()))
-                Debug.Log((HandledType?.Name, __instance?.name, Context == null, HandledObjectId, "\nThis asset type was expected to have asset id for all of its instances."), __instance);
+            if (!SupportsInstanceCreation)
+                Debug.LogError((HandledType?.Name, __instance?.name, HandledObjectId, _context == null,
+                    "\nThis asset type does not support instance creation, meaning all of its instances is expected to be preregistered with an assetid. " +
+                    "All you have to do is to preresgister this asset somewhen and somewhere. " +
+                    "If it is a non-shared private copy of a shared property then also set the option that indicates this. " +
+                    "(hint: something like 'expectedToBeModified' or similar meaning)"), __instance);
         }
 
 
         public override void WriteSaveData()
         {
             base.WriteSaveData();
-            __saveData._name = __instance.name;
+            __saveData._name_ = __instance.name;
         }
 
         public override void LoadReferences()
         {
             base.LoadReferences();
-            __instance.name = __saveData._name;
+            __instance.name = __saveData._name_;
         }
 
 
@@ -135,20 +140,13 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
             typeof(PhysicsMaterial),
             typeof(Material),
             typeof(Shader),
+            typeof(Mesh),
         };
-
-        public static HashSet<Type> _assetTypesThatAreExpectedToHaveAssetId = new()
-        {
-            typeof(Material),
-            typeof(Shader),
-        };
-
-        public static bool IsExpectedToHaveAssetId(Type type) => _assetTypesThatAreExpectedToHaveAssetId.Contains(type);
 
         public bool SupportsInstanceCreation {
             get
             {
-                return SupportsModificationsToTheInstance || _assetTypesThatSupportInstanceCreation.Contains(typeof(TAsset));
+                return _assetTypesThatSupportInstanceCreation.Contains(typeof(TAsset));
             }
         }
     }
@@ -157,7 +155,8 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
     public class AssetSaveData : SaveDataBase
     {
         public RandomId _AssetId_;
-        public string _name; //_ is for avoiding shadowing by derived types
+        public bool _mutable_;
+        public string _name_; //_ is for avoiding shadowing by derived types
     }
 
 
@@ -179,6 +178,14 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
         public static Dictionary<RandomId, RandomId> ObjectIdToAssetId = new();
         //note: instance can be null
         public static Dictionary<RandomId, Object> ObjectIdToAssetInstance = new();
+
+        public static Dictionary<RandomId, bool> mutable = new();
+
+        public static bool IsMutable(RandomId id)
+        {
+            if(mutable.TryGetValue(id, out var isMutable)) return isMutable;
+            else return false;
+        }
 
 
         //lol, I missunderstood what I wanted to do and later realized this is not needed... yet. Keeping it anyway in case for future usecase.
@@ -270,6 +277,7 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
     public class AssetInitContext : InitContext
     {
         public RandomId instantiatedFromAssetId;
+        public bool mutable;
     }
 }
 
