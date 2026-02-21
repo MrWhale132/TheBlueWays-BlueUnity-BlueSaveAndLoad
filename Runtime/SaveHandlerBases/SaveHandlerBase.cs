@@ -66,7 +66,7 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
         public Type HandledType { get => __isHandledTypeStatic ? StaticHandlerOf : _handledType; set => _handledType = value; }
         public RandomId HandledObjectId { get; protected set; }
         public virtual int Order { get; set; }
-        public bool IsInitialized => !HandledObjectId.IsDefault;
+        public bool IsInitialized => HandledObjectId.IsNotDefault;
         public Type StaticHandlerOf { get; set; }
         public bool IsSingleton { get; set; }
         public virtual bool IsValid {

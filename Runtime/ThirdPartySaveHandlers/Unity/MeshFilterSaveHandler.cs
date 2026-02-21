@@ -14,7 +14,10 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers
             base.WriteSaveData();
             //note: order is important, first .mesh, then .sharedMesh
             __saveData.sharedMesh = GetObjectId(__instance.sharedMesh);
-
+            //if(HandledObjectId.ToString() == "491339562158449630")
+            //{
+            //    Debug.Log(AssetIdMap.IsMutable(__saveData.sharedMesh));
+            //}
             if (AssetIdMap.IsMutable(__saveData.sharedMesh))
             {
                 __saveData.mesh = GetObjectId(__instance.mesh);

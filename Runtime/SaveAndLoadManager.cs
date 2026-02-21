@@ -3262,8 +3262,8 @@ namespace Assets._Project.Scripts.SaveAndLoad
         {
             if (!saveHandler.IsInitialized)
             {
-                Debug.LogError($"SaveHandler is uninitialized. This api can not be used with an uninitialized savehandler." +
-                    $"handler type name:{saveHandler.GetType().FullName} handler id: {saveHandler.SaveHandlerId}");
+                Debug.LogError($"SaveHandler is uninitialized. This api can not be used with an uninitialized savehandler. " +
+                    $"HandlerTypeName: {saveHandler.GetType().CleanAssemblyQualifiedName()} handler id: {saveHandler.SaveHandlerId}");
                 return;
             }
 
