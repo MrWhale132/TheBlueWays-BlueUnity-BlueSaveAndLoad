@@ -5,9 +5,14 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using Theblueway.Core.Runtime.Packages.com.blueutils.core.Runtime.ArrayUtilScripts;
 using Theblueway.Core.Runtime.Packages.com.blueutils.core.Runtime.BinaryUtilScripts;
+using Theblueway.Core.Runtime.Packages.com.blueutils.core.Runtime.DataStructures;
 using Unity.Collections;
 using UnityEngine;
+using static Theblueway.Core.Runtime.Packages.com.blueutils.core.Runtime.Misc.JsonCompression;
+
+
 namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.UnitySHs
 {
     public class MeshInitContext : AssetInitContext
@@ -19,6 +24,16 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.UnitySHs
     [SaveHandler(118760465134539926, "Mesh", typeof(UnityEngine.Mesh), order: -9)]
     public class MeshSaveHandler : AssetSaveHandlerBase<Mesh, MeshSaveData>
     {
+        public List<Vector2> _uvFlatList = new();
+        public List<int> _indicesFlatList = new();
+
+        public List<Vector2> _tempVector2List = new();
+        public List<Vector3> _tempVector3List = new();
+        public List<Vector4> _tempVector4List = new();
+        public List<Color> _tempColorList = new();
+        public List<int> _tempIntList = new();
+
+
         public MeshInitContext _context;
 
         public bool ShouldWriteOrLoad => __saveData.ShouldWriteOrLoad;
@@ -28,29 +43,28 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.UnitySHs
         {
             _context = context as MeshInitContext;
 
+            if (_context != null)
+            {
+                var other = SaveAndLoadManager.S.GetSaveHandlerById<MeshSaveHandler>(_context.initFromMesh);
+
+                ///base <see cref="Init(object)"/> will save the values from context
+                _context.instantiatedFromAssetId = other.AssetId;
+                _context.mutable = other.Mutable;
+
+                //return;
+            }
+
             base.Init(instance, context);
         }
+
 
 
         public override void Init(object instance)
         {
             base.Init(instance);
 
+
             __saveData.isReadable = __instance.isReadable;
-
-
-            if (_context is not null)
-            {
-                var other = SaveAndLoadManager.S.GetSaveHandlerById<MeshSaveHandler>(_context.initFromMesh);
-
-                __saveData._AssetId_ = other.__saveData._AssetId_;
-                __saveData._mutable_ = other.__saveData._mutable_;
-                __saveData._name_ = other.__saveData._name_;
-                __saveData.ShouldWriteOrLoad = other.__saveData.ShouldWriteOrLoad;
-                return;
-            }
-
-
 
             if (Mutable && !__instance.isReadable)
             {
@@ -81,22 +95,57 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.UnitySHs
             if (!ShouldWriteOrLoad) return;
 
 
+            __saveData.subMeshCount = __instance.subMeshCount;
             __saveData.indexFormat = __instance.indexFormat;
 
-            __saveData._vertices = __instance.vertices;
-            __saveData._triangles = __instance.triangles;
-            __saveData._normals = __instance.normals;
-            __saveData._tangents = __instance.tangents;
-            __saveData.colors = __instance.colors;
-            __saveData.uvs = ExtractUVs(__instance);
 
-            __saveData.subMeshCount = __instance.subMeshCount;
-            __saveData.subMeshTriangles = new int[__instance.subMeshCount][];
-            //todo: make this non alloc
-            for (int i = 0; i < __instance.subMeshCount; i++)
+            _tempVector3List.Clear();
+            __instance.GetVertices(_tempVector3List);
+            ArrayUtils.CopyToPooled(_tempVector3List, ref __saveData._vertices);
+
+
+            __saveData.indexSizes.Clear();
+            __saveData.submeshTopologies.Clear();
+            _indicesFlatList.Clear();
+            for (int i = 0; i < __instance.subMeshCount; ++i)
             {
-                __saveData.subMeshTriangles[i] = __instance.GetTriangles(i);
+                __saveData.submeshTopologies.Add(__instance.GetTopology(i));
+                __saveData.indexSizes.Add((int)__instance.GetIndexCount(i));
+
+                _tempIntList.Clear();
+                __instance.GetIndices(_tempIntList, i);
+
+                _indicesFlatList.AddRange(_tempIntList);
             }
+
+            ArrayUtils.CopyToPooled(_indicesFlatList, ref __saveData._indices);
+
+
+            _tempVector3List.Clear();
+            __instance.GetNormals(_tempVector3List);
+            ArrayUtils.CopyToPooled(_tempVector3List, ref __saveData._normals);
+
+
+            _tempVector3List.Clear();
+            __instance.GetTangents(_tempVector4List);
+            ArrayUtils.CopyToPooled(_tempVector4List, ref __saveData._tangents);
+
+
+            _tempVector3List.Clear();
+            __instance.GetColors(_tempColorList);
+            ArrayUtils.CopyToPooled(_tempColorList, ref __saveData._colors);
+
+
+            _uvFlatList.Clear();
+            for (int i = 0; i < 8; i++)
+            {
+                _tempVector2List.Clear();
+                __instance.GetUVs(i, _tempVector2List);
+                _uvFlatList.AddRange(_tempVector2List);
+            }
+
+            ArrayUtils.CopyToPooled(_uvFlatList, ref __saveData._uvs);
+
 
             __saveData.boneWeights = __instance.boneWeights;
             __saveData.bindposes = __instance.bindposes;
@@ -109,25 +158,43 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.UnitySHs
             __saveData.name = __instance.name;
         }
 
+
+
         public override void LoadReferences()
         {
-            //return;
             if (!ShouldWriteOrLoad) return;
+            int start;
 
-            __instance.indexFormat = __saveData.indexFormat;
-
-            __instance.vertices = __saveData._vertices;
-            __instance.triangles = __saveData._triangles;
-            __instance.normals = __saveData._normals;
-            __instance.tangents = __saveData._tangents;
-            __instance.colors = __saveData.colors;
-            ApplyUVs(__instance, __saveData.uvs);
 
             __instance.subMeshCount = __saveData.subMeshCount;
-            for (int i = 0; i < __instance.subMeshCount; i++)
+            __instance.indexFormat = __saveData.indexFormat;
+
+            __instance.SetVertices(__saveData._vertices, 0, __saveData.vertices.originalBufferElementCount);
+
+            start = 0;
+
+            for (int i = 0; i < __saveData.subMeshCount; i++)
             {
-                __instance.SetTriangles(__saveData.subMeshTriangles[i], i);
+                int size = __saveData.indexSizes[i];
+                var topology = __saveData.submeshTopologies[i];
+                __instance.SetIndices(__saveData._indices, start, size, topology, i, calculateBounds: false);
+                start += size;
             }
+
+
+            __instance.SetNormals(__saveData._normals, 0, __saveData.normals.originalBufferElementCount);
+            __instance.SetTangents(__saveData._tangents, 0, __saveData.tangents.originalBufferElementCount);
+            __instance.SetColors(__saveData._colors, 0, __saveData.colors.originalBufferElementCount);
+
+            start = 0;
+
+            for (int ch = 0; ch < 8; ch++)
+            {
+                int channelSize = __saveData.uvSizes[ch];
+                __instance.SetUVs(ch, __saveData._uvs, start, channelSize);
+                start += channelSize;
+            }
+
 
             __instance.boneWeights = __saveData.boneWeights;
             __instance.bindposes = __saveData.bindposes;
@@ -156,63 +223,31 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.UnitySHs
 
         public override string Serialize()
         {
-            var compressedMeshData = new CompressedMeshSaveData();
-            compressedMeshData._MetaData_ = __saveData._MetaData_;
-            compressedMeshData._ObjectId_ = __saveData._ObjectId_;
-            compressedMeshData._isRootObject_ = __saveData._isRootObject_;
-            compressedMeshData._AssetId_ = __saveData._AssetId_;
-            compressedMeshData._mutable_ = __saveData._mutable_;
-            compressedMeshData._name_ = __saveData._name_;
-
-            //PooledBytes packed = BinaryPacking.PackVector3ArrayIntoPooled(__saveData._vertices);
-            //PooledBytes compressed = BinaryCompression.CompressGzipPooled(ref packed);
-            //string base64 = Base64Util.ToBase64StringPooled(ref compressed);
-            //__saveData.vertices = new CompressedBuffer { codec = "gzip", originalSize = packed.Length, dataBase64 = base64 };
-            __saveData.vertices = GetCompressedBuffer(__saveData._vertices, BinaryPacking.Vector3PackSize);
-            __saveData.triangles = GetCompressedBuffer(__saveData._triangles, sizeof(int));
-            __saveData.normals = GetCompressedBuffer(__saveData._normals, BinaryPacking.Vector3PackSize);
-            __saveData.tangents = GetCompressedBuffer(__saveData._tangents, BinaryPacking.Vector4PackSize);
+            CompressBuffer(__saveData._vertices, __saveData.vertices, BinaryPacking.Vector3PackSize);
+            CompressBuffer(__saveData._indices, __saveData.indices, sizeof(int));
+            CompressBuffer(__saveData._normals, __saveData.normals, BinaryPacking.Vector3PackSize);
+            CompressBuffer(__saveData._tangents, __saveData.tangents, BinaryPacking.Vector4PackSize);
+            CompressBuffer(__saveData._colors, __saveData.colors, BinaryPacking.ColorPackSize);
+            CompressBuffer(__saveData._uvs, __saveData.uvs, BinaryPacking.Vector2PackSize);
 
             return Newtonsoft.Json.JsonConvert.SerializeObject(__saveData, Newtonsoft.Json.Formatting.None);
         }
 
-
-        public CompressedBuffer GetCompressedBuffer<T>(T[] buffer, int size) where T : struct
-        {
-            PooledBytes packed = BinaryPacking.PackIntoPooled<T>(buffer, size);
-            PooledBytes compressed = BinaryCompression.CompressGzipPooled(ref packed);
-            string base64 = Base64Util.ToBase64StringPooled(ref compressed);
-            var result = new CompressedBuffer { codec = "gzip", originalSize = packed.Length, dataBase64 = base64 };
-
-            packed.Dispose();
-            ///todo: <see cref="BinaryCompression.CompressGzipPooled(ref PooledBytes)"/> is not pooling the compressed buffer, so the dispose throws.
-            //compressed.Dispose();
-
-            return result;
-        }
 
 
         public override void Deserialize(string json)
         {
             base.Deserialize(json);
 
-            DecompressBuffer(__saveData.vertices, ref __saveData._vertices, BinaryPacking.Vector3PackSize);
-            DecompressBuffer(__saveData.triangles, ref __saveData._triangles, sizeof(int));
-            DecompressBuffer(__saveData.normals, ref __saveData._normals, BinaryPacking.Vector3PackSize);
-            DecompressBuffer(__saveData.tangents, ref __saveData._tangents, BinaryPacking.Vector4PackSize);
-            //byte[] compressed = Convert.FromBase64String(__saveData.vertices.dataBase64);
-            //byte[] packed = BinaryCompression.DecompressGzip(compressed);
-            //var vertices = BinaryPacking.UnpackVector3Array(packed);
-            //__saveData._vertices = vertices;
+            DecompressBufferIntoPooled(__saveData.vertices, ref __saveData._vertices, BinaryPacking.Vector3PackSize);
+            DecompressBufferIntoPooled(__saveData.indices, ref __saveData._indices, sizeof(int));
+            DecompressBufferIntoPooled(__saveData.normals, ref __saveData._normals, BinaryPacking.Vector3PackSize);
+            DecompressBufferIntoPooled(__saveData.tangents, ref __saveData._tangents, BinaryPacking.Vector4PackSize);
+            DecompressBufferIntoPooled(__saveData.colors, ref __saveData._colors, BinaryPacking.ColorPackSize);
+            DecompressBufferIntoPooled(__saveData.uvs, ref __saveData._uvs, BinaryPacking.Vector2PackSize);
         }
 
 
-        public void DecompressBuffer<T>(CompressedBuffer compressedBuffer, ref T[] buffer, int size) where T : struct
-        {
-            byte[] compressed = Convert.FromBase64String(compressedBuffer.dataBase64);
-            byte[] packed = BinaryCompression.DecompressGzip(compressed);
-            buffer = BinaryPacking.UnpackArray<T>(packed, size);
-        }
 
 
 
@@ -278,34 +313,6 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.UnitySHs
         }
 
 
-
-
-        public static Vector2[][] ExtractUVs(Mesh mesh)
-        {
-            var result = new Vector2[8][];
-            result[0] = mesh.uv;
-            result[1] = mesh.uv2;
-            result[2] = mesh.uv3;
-            result[3] = mesh.uv4;
-            result[4] = mesh.uv5;
-            result[5] = mesh.uv6;
-            result[6] = mesh.uv7;
-            result[7] = mesh.uv8;
-
-            return result;
-        }
-
-        public static void ApplyUVs(Mesh mesh, Vector2[][] uvs)
-        {
-            mesh.uv = uvs[0];
-            mesh.uv2 = uvs[1];
-            mesh.uv3 = uvs[2];
-            mesh.uv4 = uvs[3];
-            mesh.uv5 = uvs[4];
-            mesh.uv6 = uvs[5];
-            mesh.uv7 = uvs[6];
-            mesh.uv8 = uvs[7];
-        }
 
 
         static MeshSaveHandler()
@@ -700,35 +707,46 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.UnitySHs
     public class MeshSaveData : AssetSaveData
     {
         public bool isReadable;
-        public CompressedBuffer vertices;
-        public CompressedBuffer triangles;
-        public CompressedBuffer normals;
-        public CompressedBuffer tangents;
-        [NonSerialized, JsonIgnore]
-        public Vector3[] _vertices;
-        [NonSerialized, JsonIgnore]
-        public int[] _triangles;
-        [NonSerialized, JsonIgnore]
-        public Vector3[] _normals;
-        [NonSerialized, JsonIgnore]
-        public Vector4[] _tangents;
-        public Vector2[][] uvs;
-        public Color[] colors;
+        public CompressedBuffer vertices = new();
+        public CompressedBuffer indices = new();
+        public CompressedBuffer normals = new();
+        public CompressedBuffer tangents = new();
+        public CompressedBuffer colors = new();
+        public CompressedBuffer uvs = new();
+        public int[] uvSizes = new int[8];
+        public List<int> indexSizes = new();
+        [NonSerialized, JsonIgnore] public PooledArray<Vector3> _vertices;
+        [NonSerialized, JsonIgnore] public PooledArray<int> _indices;
+        [NonSerialized, JsonIgnore] public int[] _triangles;
+        [NonSerialized, JsonIgnore] public PooledArray<Vector3> _normals;
+        [NonSerialized, JsonIgnore] public PooledArray<Vector4> _tangents;
+        [NonSerialized, JsonIgnore] public PooledArray<Color> _colors;
+        [NonSerialized, JsonIgnore] public PooledArray<Vector2> _uvs;
 
         public int subMeshCount;
-        public int[][] subMeshTriangles;
 
         public BoneWeight[] boneWeights;
         public Matrix4x4[] bindposes;
 
         public BlendShapeData[] blendShapes;
 
+        public List<MeshTopology> submeshTopologies = new();
         public UnityEngine.Rendering.IndexFormat indexFormat;
         public UnityEngine.GraphicsBuffer.Target vertexBufferTarget;
         public UnityEngine.GraphicsBuffer.Target indexBufferTarget;
 
         public string name;
         public bool ShouldWriteOrLoad; //for debugging purposes, no need to load it back
+
+
+        ~MeshSaveData()
+        {
+            _vertices.Dispose();
+            _normals.Dispose();
+            _tangents.Dispose();
+            _colors.Dispose();
+            _uvs.Dispose();
+        }
     }
 
 
@@ -749,41 +767,6 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.UnitySHs
 
 
 
-    public class CompressedMeshSaveData : AssetSaveData
-    {
-        public bool isReadable;
-
-        public CompressedBuffer vertices;
-        public int[] triangles;
-        public Vector3[] normals;
-        public Vector4[] tangents;
-        public Vector2[][] uvs;
-        public Color[] colors;
-
-        public int subMeshCount;
-        public int[][] subMeshTriangles;
-
-        public BoneWeight[] boneWeights;
-        public Matrix4x4[] bindposes;
-
-        public BlendShapeData[] blendShapes;
-
-        public UnityEngine.Rendering.IndexFormat indexFormat;
-        public UnityEngine.GraphicsBuffer.Target vertexBufferTarget;
-        public UnityEngine.GraphicsBuffer.Target indexBufferTarget;
-
-        public string name;
-        public bool ShouldWriteOrLoad; //for debugging purposes, no need to load it back
-    }
-
-
-    [Serializable]
-    public class CompressedBuffer
-    {
-        public string codec;      // "lz4", "gzip", etc.
-        public int originalSize;  // optional but useful
-        public string dataBase64; // compressed payload
-    }
 
 }
 

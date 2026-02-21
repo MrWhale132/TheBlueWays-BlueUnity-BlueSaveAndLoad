@@ -87,8 +87,9 @@ namespace Theblueway.SaveAndLoad.Packages.com.theblueway.saveandload.Runtime.Inf
         private void Start()
         {
             if (!Application.isPlaying) return;
-
             if (Infra.Singleton == null) return;
+
+
 
             if (IsObjectLoading)
             {

@@ -8,7 +8,6 @@ using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
 using UnityEngine.Rendering;
-using Object = UnityEngine.Object;
 
 namespace UnityEngine_
 {
@@ -72,9 +71,8 @@ namespace UnityEngine_
 
         public override void LoadReferences()
         {
-            //return;
             base.LoadReferences();
-            //order does matter
+            //order matters
 
             foreach (var colorOverride in __saveData.colors)
             {

@@ -16,6 +16,7 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
     {
         public override bool IsValid => __instance != null;
 
+        public RandomId AssetId => __saveData._AssetId_;
         public bool Mutable => __saveData._mutable_;
 
 
@@ -127,6 +128,7 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
         {
             if (AssetIdMap.ObjectIdToAssetId.ContainsKey(HandledObjectId))
                 AssetIdMap.ObjectIdToAssetId.Remove(HandledObjectId);
+            AssetIdMap.mutable.Remove(HandledObjectId);
 
             base.ReleaseObject();
         }
