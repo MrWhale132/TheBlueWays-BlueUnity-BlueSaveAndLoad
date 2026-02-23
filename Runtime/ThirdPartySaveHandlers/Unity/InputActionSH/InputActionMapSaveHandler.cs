@@ -56,9 +56,9 @@ namespace Assets._Project.Scripts.SaveHandlers.Manuals.InputActionSH
         }
 
 
-        public override void LoadReferences()
+        public override void LoadPhase1()
         {
-            base.LoadReferences();
+            base.LoadPhase1();
 
             if (__saveData.enabled)
             {

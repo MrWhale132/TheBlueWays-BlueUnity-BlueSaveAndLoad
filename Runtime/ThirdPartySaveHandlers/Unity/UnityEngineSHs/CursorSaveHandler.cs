@@ -17,9 +17,9 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.Unity.Unity
             __saveData.visible = Cursor.visible;
             __saveData.lockState = Cursor.lockState;
         }
-        public override void LoadReferences()
+        public override void LoadPhase1()
         {
-            base.LoadReferences();
+            base.LoadPhase1();
             Cursor.visible = __saveData.visible;
             Cursor.lockState = __saveData.lockState;
         }

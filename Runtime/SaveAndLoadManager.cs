@@ -2346,7 +2346,7 @@ namespace Assets._Project.Scripts.SaveAndLoad
 
 
 
-
+        [HideInInspector]
         public bool __debugSaveStateMachine = false;
 
         public void _MoveToNextState()
@@ -3086,13 +3086,13 @@ namespace Assets._Project.Scripts.SaveAndLoad
                     foreach (var handler in group)
                     {
                         d_laodingContext.handler = handler;
-                        handler.LoadReferences();
+                        handler.LoadPhase1();
                     }
 
                     foreach (var handler in group)
                     {
                         d_laodingContext.handler = handler;
-                        handler.LoadValues();
+                        handler.LoadPhase2();
                     }
 
 
@@ -3212,6 +3212,7 @@ namespace Assets._Project.Scripts.SaveAndLoad
         }
 
 
+        [Header("Debug")]
         public bool d_continue;
         public bool d_suspendLoading;
         public int d_loadedOrder;
@@ -3783,9 +3784,9 @@ namespace Assets._Project.Scripts.SaveAndLoad
             }
 
 
-            public override void LoadReferences()
+            public override void LoadPhase1()
             {
-                base.LoadReferences();
+                base.LoadPhase1();
                 __instance._prefabDescriptionByPrefabPartInstanceId = GetObjectById<Dictionary<RandomId, PrefabDescription>>(__saveData._prefabDescriptionByPrefabPartInstanceId);
             }
         }
@@ -3808,9 +3809,9 @@ namespace Assets._Project.Scripts.SaveAndLoad
                 __saveData.arrayMemberToElementIdsList = GetObjectId(__instance.arrayMemberToElementIdsList, setLoadingOrder: true);
             }
 
-            public override void LoadReferences()
+            public override void LoadPhase1()
             {
-                base.LoadReferences();
+                base.LoadPhase1();
                 __instance.prefabAssetId = __saveData.prefabAssetId;
                 __instance.memberToInstanceIds = GetObjectById<List<MemberToInstanceId>>(__saveData.memberToInstanceIds);
                 __instance.arrayMemberToElementIdsList = GetObjectById<List<ArrayMemberToElementIds>>(__saveData.arrayMemberToElementIdsList);
@@ -4063,9 +4064,9 @@ namespace Assets._Project.Scripts.SaveAndLoad
                 __saveData._sceneDescriptionBySceneObjectId = GetObjectId(__instance._sceneDescriptionBySceneObjectId, setLoadingOrder: true);
             }
 
-            public override void LoadReferences()
+            public override void LoadPhase1()
             {
-                base.LoadReferences();
+                base.LoadPhase1();
                 __instance._sceneDescriptionBySceneObjectId = GetObjectById<Dictionary<RandomId, SceneDescription>>(__saveData._sceneDescriptionBySceneObjectId);
             }
         }
@@ -4088,9 +4089,9 @@ namespace Assets._Project.Scripts.SaveAndLoad
                 __saveData.arrayMemberToElementIdsList = GetObjectId(__instance.arrayMemberToElementIdsList, setLoadingOrder: true);
             }
 
-            public override void LoadReferences()
+            public override void LoadPhase1()
             {
-                base.LoadReferences();
+                base.LoadPhase1();
                 __instance.sceneId = __saveData.sceneId;
                 __instance.memberToInstanceIds = GetObjectById<List<MemberToInstanceId>>(__saveData.memberToInstanceIds);
                 __instance.arrayMemberToElementIdsList = GetObjectById<List<ArrayMemberToElementIds>>(__saveData.arrayMemberToElementIdsList);

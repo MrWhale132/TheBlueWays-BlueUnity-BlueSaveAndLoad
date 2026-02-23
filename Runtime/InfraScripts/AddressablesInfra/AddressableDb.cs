@@ -268,23 +268,6 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
 
 
 
-        public bool trigger;
-        private void OnValidate()
-        {
-            if (trigger)
-            {
-                trigger = false;
-
-                var paths = AssetDatabase.GetAllAssetPaths();
-
-                var pathToGuid = paths.ToDictionary(path => path, path => AssetDatabase.AssetPathToGUID(path));
-
-                File.WriteAllText("c:/temp/pathstoguids", JsonConvert.SerializeObject(pathToGuid));
-
-            }
-        }
-
-
 
 
         [Tooltip("If true, will reuse existing IDs for addressables with the same asset name. " +
@@ -740,61 +723,6 @@ namespace Assets._Project.Scripts.Infrastructure.AddressableInfra
 
 
 
-
-        [Obsolete]
-        public RandomId GetAssetIdByAssetName(UnityEngine.Object unityObj)
-        {
-            Debug.LogError($"{nameof(AddressableDb.GetAssetIdByAssetName)} is obsolete and ot supported anymore.");
-            if (unityObj == null) return RandomId.Default;
-
-
-            string name = unityObj.name;
-
-            if (unityObj.IsDefensiveCopyOfOriginal())
-            {
-                name = unityObj.name.Substring(0, unityObj.name.LastIndexOf(' '));
-            }
-
-
-            string extendedName = _service.GetExtendedAssetName(name, unityObj.GetType());
-
-            if (_unityBuiltInResourceExtendedNamesToObjectIdsMap.TryGetValue(extendedName, out var id2))
-            {
-                return id2;
-            }
-
-
-            RandomId id = _GetIdByAssetName(extendedName);
-
-            if (id.IsDefault)
-            {
-                //Debug.LogWarning($"AddressableDb: No ID found for asset type {unityObj.GetType().FullName} with name {unityObj.name}. Going to return a default value.", unityObj);
-            }
-
-
-            return id;
-        }
-
-
-
-
-        public RandomId _GetIdByAssetName(string assetName)
-        {
-            if (string.IsNullOrEmpty(assetName))
-            {
-                return RandomId.Default;
-            }
-
-            //if (__db._assetName.TryGetValue(assetName, out var dto))
-            //{
-            //    return dto.id;
-            //}
-            //else
-            {
-                //Debug.LogWarning($"AddressableDb: No ID found for asset name {assetName}. Going to return a default value.");
-                return RandomId.Default;
-            }
-        }
 
 
 

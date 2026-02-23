@@ -65,9 +65,9 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
             __saveData._name_ = __instance.name;
         }
 
-        public override void LoadReferences()
+        public override void LoadPhase1()
         {
-            base.LoadReferences();
+            base.LoadPhase1();
             __instance.name = __saveData._name_;
         }
 

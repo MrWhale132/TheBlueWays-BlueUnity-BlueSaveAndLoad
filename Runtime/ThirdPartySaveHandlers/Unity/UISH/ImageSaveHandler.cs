@@ -37,9 +37,9 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.UnitySHs.UI
             __saveData.enabled = __instance.enabled;
             __saveData.hideFlags = __instance.hideFlags;
         }
-        public override void LoadReferences()
+        public override void LoadPhase1()
         {
-            base.LoadReferences();
+            base.LoadPhase1();
             __instance.sprite = GetAssetById(__saveData.sprite, __instance.sprite);
             __instance.overrideSprite = GetAssetById(__saveData.overrideSprite, __instance.overrideSprite);
             __instance.material = GetAssetById(__saveData.material, __instance.material);

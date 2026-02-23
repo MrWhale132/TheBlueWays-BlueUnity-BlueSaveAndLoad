@@ -86,9 +86,9 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
         }
 
 
-        public override void LoadValues()
+        public override void LoadPhase2()
         {
-            base.LoadValues();
+            base.LoadPhase2();
             __saveData._MetaData_.HandledType = VersionedType.From(__instance.GetType());
         }
 

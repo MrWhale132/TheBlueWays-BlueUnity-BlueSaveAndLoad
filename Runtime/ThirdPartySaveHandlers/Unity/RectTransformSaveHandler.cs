@@ -30,9 +30,9 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.Unity
             }
         }
 
-        public override void LoadReferences()
+        public override void LoadPhase1()
         {
-            base.LoadReferences();
+            base.LoadPhase1();
 
             if (!__saveData.ParentGOId.IsDefault)
             {
@@ -52,12 +52,20 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.Unity
             __instance.pivot = __saveData.pivot;
         }
 
-        public override void LoadValues()
+
+        //doc: SetSiblingIndex can cause issues if the sibling index is out of range (e.g. if the parent has less children than the sibling index). So we set the sibling index in a separate phase after all objects have been loaded and parented to ensure that the sibling index is valid.
+        public override void LoadPhase2()
         {
-            base.LoadValues();
+            base.LoadPhase2();
 
             __instance.SetSiblingIndex(__saveData.SiblingIndex);
         }
+
+
+
+
+
+
 
         static RectTransformSaveHandler()
         {

@@ -29,9 +29,9 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers
             __saveData.hideFlags = __instance.hideFlags;
         }
 
-        public override void LoadReferences()
+        public override void LoadPhase1()
         {
-            base.LoadReferences();
+            base.LoadPhase1();
 
             if (__saveData.mesh.IsNotDefault)
             {

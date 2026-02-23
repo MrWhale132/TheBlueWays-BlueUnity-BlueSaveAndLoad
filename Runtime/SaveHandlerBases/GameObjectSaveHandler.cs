@@ -169,6 +169,24 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
 
 
 
+        public override void LoadPhase1()
+        {
+            base.LoadPhase1();
+
+            if (IsPrefabAsset) return;
+
+            __instance.name = __saveData.GameObjectName;
+            __instance.tag = __saveData.tag;
+            __instance.layer = __saveData.layer;
+            __instance.isStatic = __saveData.IsStatic;
+            __instance.SetActive(__saveData.activeSelf);
+
+            _goInfra = GetObjectById<GOInfra>(__saveData._goInfra);
+            _initContext = __saveData._initContext;
+        }
+
+
+
 
         public override void CreateObject()
         {
@@ -218,25 +236,6 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
                 SceneManager.MoveGameObjectToScene(__instance, scene);
             }
         }
-
-
-
-        public override void LoadValues()
-        {
-            base.LoadValues();
-
-            if (IsPrefabAsset) return;
-
-            __instance.name = __saveData.GameObjectName;
-            __instance.tag = __saveData.tag;
-            __instance.layer = __saveData.layer;
-            __instance.isStatic = __saveData.IsStatic;
-            __instance.SetActive(__saveData.activeSelf);
-
-            _goInfra = GetObjectById<GOInfra>(__saveData._goInfra);
-            _initContext = __saveData._initContext;
-        }
-
 
 
 

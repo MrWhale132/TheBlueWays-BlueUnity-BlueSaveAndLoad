@@ -67,19 +67,18 @@ namespace Theblueway.SaveAndLoad.Packages.com.theblueway.saveandload.Runtime.Uti
                 __saveData.performed = GetObjectId(__instance.performed);
                 __saveData.canceled = GetObjectId(__instance.canceled);
             }
-            public override void LoadValues()
+            public override void LoadPhase1()
             {
-                base.LoadValues();
+                base.LoadPhase1();
 
                 __saveData.__inputAction.AssignById(ref __instance.__inputAction);
                 __instance.performed = Infra.Singleton.GetObjectById<ActionAdapter<InputAction.CallbackContext>>(__saveData.performed);
                 __instance.canceled = Infra.Singleton.GetObjectById<ActionAdapter<InputAction.CallbackContext>>(__saveData.canceled);
 
-                //WARNING: this can not be automatized
                 __instance.__inputAction.performed += Performed;
                 __instance.__inputAction.canceled += Canceled;
-                //__instance.__inputAction.performed += (callback) => Debug.Log("perfomed");
             }
+
 
             void Performed(InputAction.CallbackContext context)
             {

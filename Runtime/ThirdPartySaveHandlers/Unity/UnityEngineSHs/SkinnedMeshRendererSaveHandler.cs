@@ -64,9 +64,11 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.Unity.Unity
         }
 
 
-        public override void LoadValues()
+
+        public override void LoadPhase1()
         {
-            base.LoadValues();
+            base.LoadPhase1();
+
             __instance.sharedMaterials = GetObjectById<UnityEngine.Material[]>(__saveData.sharedMaterials);
             var materials = GetObjectById<UnityEngine.Material[]>(__saveData.materials);
             if (materials != null && materials.All(m => m != null))
@@ -100,7 +102,11 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.Unity.Unity
             __instance.lightProbeProxyVolumeOverride = GetObjectById<UnityEngine.GameObject>(__saveData.lightProbeProxyVolumeOverride);
             __instance.probeAnchor = GetObjectById<UnityEngine.Transform>(__saveData.probeAnchor);
             __instance.hideFlags = __saveData.hideFlags;
+
         }
+
+
+
 
 
         static SkinnedMeshRendererSaveHandler()
@@ -196,9 +202,9 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.Unity.Unity
 
         }
 
-        public override void LoadReferences()
+        public override void LoadPhase1()
         {
-            base.LoadReferences();
+            base.LoadPhase1();
 
         }
         static StaticSkinnedMeshRendererSaveHandler()

@@ -42,9 +42,9 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.Unity
             __saveData.includeLayers = __instance.includeLayers;
             __saveData.hideFlags = __instance.hideFlags;
         }
-        public override void LoadReferences()
+        public override void LoadPhase1()
         {
-            base.LoadReferences();
+            base.LoadPhase1();
             __instance.linearVelocity = __saveData.linearVelocity;
             __instance.angularVelocity = __saveData.angularVelocity;
             __instance.linearDamping = __saveData.linearDamping;

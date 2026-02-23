@@ -69,9 +69,9 @@ namespace UnityEngine_
 
         }
 
-        public override void LoadReferences()
+        public override void LoadPhase1()
         {
-            base.LoadReferences();
+            base.LoadPhase1();
             //order matters
 
             foreach (var colorOverride in __saveData.colors)

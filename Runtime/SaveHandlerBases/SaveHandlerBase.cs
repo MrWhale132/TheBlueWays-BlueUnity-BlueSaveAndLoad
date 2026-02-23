@@ -93,11 +93,6 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
             return Infra.Singleton.GetObjectId(asset, HandledObjectId, setLoadingOrder:true);
             //return AddressableDb.Singleton.GetAssetIdByAssetName(asset);
         }
-        //todo: remove the 2 from the name when GetAssetId is no longer used
-        public RandomId GetAssetId2(UnityEngine.Object asset)
-        {
-            return AddressableDb.Singleton.GetAssetIdByAssetName(asset);
-        }
 
         public InvocationList GetInvocationList<T>(T del) where T : Delegate
         {
@@ -158,14 +153,14 @@ namespace Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases
         {
             throw new System.NotImplementedException("This method should be overriden in every derived type and not be called.");
         }
-
-        public virtual void LoadValues()
+        public virtual void LoadPhase1()
         {
         }
 
-        public virtual void LoadReferences()
+        public virtual void LoadPhase2()
         {
         }
+
 
         public virtual void WriteSaveData()
         {

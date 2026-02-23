@@ -37,9 +37,9 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.Dotnet.Coll
             __instance = new TElement[__saveData.elements.Length];
         }
 
-        public override void LoadReferences()
+        public override void LoadPhase1()
         {
-            base.LoadReferences();
+            base.LoadPhase1();
 
 
             for (int i = 0; i < __saveData.elements.Length; i++)

@@ -1,4 +1,3 @@
-//auto-generated
 using Assets._Project.Scripts.Infrastructure;
 using Assets._Project.Scripts.SaveAndLoad;
 using Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases;
@@ -6,8 +5,6 @@ using Assets._Project.Scripts.UtilScripts;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
-using System.Reflection.Metadata;
-using Theblueway.SaveAndLoad.Packages.com.theblueway.saveandload.Runtime.Exceptions;
 using UnityEngine;
 
 namespace UnityEngine_
@@ -33,9 +30,9 @@ namespace UnityEngine_
             __saveData.hideFlags = __instance.hideFlags;
         }
 
-        public override void LoadReferences()
+        public override void LoadPhase1()
         {
-            base.LoadReferences();
+            base.LoadPhase1();
             //no need to set name here because it already has that name
             __instance.maximumLOD = __saveData.maximumLOD;
             __instance.hideFlags = __saveData.hideFlags;
@@ -72,10 +69,10 @@ namespace UnityEngine_
                     $"Loading this save will not be possbile and will throw error.\n" +
                     $"objectid: {objectId}, shader name: {name}";
 
-#if UNITY_EDITOR
+#if !UNITY_EDITOR
                 if (isLoading)
                 {
-                    throw new InstanceCreationException(message);
+                    throw new Theblueway.SaveAndLoad.Packages.com.theblueway.saveandload.Runtime.Exceptions.InstanceCreationException(message);
                 }
                 else
                     Debug.LogError(message);
@@ -181,9 +178,9 @@ namespace UnityEngine_
             __saveData.globalRenderPipeline = UnityEngine.Shader.globalRenderPipeline;
         }
 
-        public override void LoadReferences()
+        public override void LoadPhase1()
         {
-            base.LoadReferences();
+            base.LoadPhase1();
             UnityEngine.Shader.maximumChunksOverride = __saveData.maximumChunksOverride;
             UnityEngine.Shader.globalMaximumLOD = __saveData.globalMaximumLOD;
             UnityEngine.Shader.globalRenderPipeline = __saveData.globalRenderPipeline;

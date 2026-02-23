@@ -23,9 +23,9 @@ namespace UnityEngine_
 			__saveData.hideFlags = __instance.hideFlags;
 		}
 
-		public override void LoadReferences()
+		public override void LoadPhase1()
 		{
-			base.LoadReferences();
+			base.LoadPhase1();
             __instance.Stop();
             __instance.time = __saveData.time;
 			__instance.randomSeed = __saveData.randomSeed;
@@ -173,9 +173,9 @@ namespace UnityEngine_
 
 		}
 
-		public override void LoadReferences()
+		public override void LoadPhase1()
 		{
-			base.LoadReferences();
+			base.LoadPhase1();
 
 		}
 		static StaticParticleSystemSaveHandler()

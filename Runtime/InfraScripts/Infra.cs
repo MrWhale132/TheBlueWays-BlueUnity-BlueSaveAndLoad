@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using Theblueway.Core.Runtime;
 using Theblueway.SaveAndLoad.Packages.com.theblueway.saveandload.Runtime;
 using Theblueway.SaveAndLoad.Packages.com.theblueway.saveandload.Runtime.InfraScripts;
 using UnityEngine;
@@ -136,20 +137,12 @@ namespace Assets._Project.Scripts.Infrastructure
         }
 
 
-        [HideInInspector]
-        public int d_counter;
 
         //depth first search algorithm
         public HashSet<RandomId> _GetReachableObjects(
                         Dictionary<RandomId, List<RandomId>> objectReferences,
                         IEnumerable<RandomId> rootIds)
         {
-            var json = JsonConvert.SerializeObject(objectReferences);
-            System.IO.File.WriteAllText($"C://temp/objectReferences_{d_counter}.json", json);
-            json = JsonConvert.SerializeObject(rootIds);
-            System.IO.File.WriteAllText($"C://temp/rootIds_{d_counter}.json", json);
-            d_counter++;
-
             var reachable = new HashSet<RandomId>();
             var stack = new Stack<RandomId>(rootIds);
 
@@ -1523,9 +1516,9 @@ namespace Assets._Project.Scripts.Infrastructure
                 base.ReleaseObject();
             }
 
-            public override void LoadReferences()
+            public override void LoadPhase1()
             {
-                base.LoadReferences();
+                base.LoadPhase1();
                 ///note: you see <see cref="SceneManagementSaveData._loadedSceneInfos"/> removed as unreferenced beacuse of this line. It's not assigned back to its field.
                 __instance._savedSceneInfos = GetObjectById<List<SceneInfo>>(__saveData._loadedSceneInfos);
                 __instance._activeSceneInstanceIdFromSaveFile = __saveData.ActiveSceneInstanceIdFromSaveFile;

@@ -71,9 +71,9 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.UnitySHs
         }
 
 
-        public override void LoadReferences()
+        public override void LoadPhase1()
         {
-            base.LoadReferences();
+            base.LoadPhase1();
 
 
             if (__saveData.sharedMaterials.IsNotNullAndNotEmpty())

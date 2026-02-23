@@ -160,7 +160,7 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.UnitySHs
 
 
 
-        public override void LoadReferences()
+        public override void LoadPhase1()
         {
             if (!ShouldWriteOrLoad) return;
             int start;

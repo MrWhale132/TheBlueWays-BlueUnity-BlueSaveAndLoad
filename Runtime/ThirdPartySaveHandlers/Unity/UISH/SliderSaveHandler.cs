@@ -28,9 +28,9 @@ namespace Theblueway.SaveAndLoad.Packages.com.theblueway.saveandload.Runtime.Thi
             __saveData.hideFlags = __instance.hideFlags;
         }
 
-        public override void LoadReferences()
+        public override void LoadPhase1()
         {
-            base.LoadReferences();
+            base.LoadPhase1();
             __instance.maxValue = __saveData.maxValue;
             __instance.minValue = __saveData.minValue;
             __instance.wholeNumbers = __saveData.wholeNumbers;

@@ -55,9 +55,9 @@ namespace DevTest
             __saveData.isPlaying = __instance.isPlaying;
         }
 
-        public override void LoadReferences()
+        public override void LoadPhase1()
         {
-            base.LoadReferences();
+            base.LoadPhase1();
             __instance.volume = __saveData.volume;
 
             //https://discussions.unity.com/t/addressables-audioclip-works-in-play-mode-not-in-build/868360

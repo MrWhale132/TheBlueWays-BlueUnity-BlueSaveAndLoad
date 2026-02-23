@@ -1,9 +1,7 @@
 using Assets._Project.Scripts.Infrastructure;
 using Assets._Project.Scripts.SaveAndLoad.SaveHandlerBases;
 using Assets._Project.Scripts.UtilScripts;
-using Assets._Project.Scripts.UtilScripts.Extensions;
 using Newtonsoft.Json;
-using System;
 using UnityEngine;
 
 
@@ -22,6 +20,7 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers
             __saveData.localRotation = __instance.localRotation;
             __saveData.localScale = __instance.localScale;
             __saveData.localPosition = __instance.localPosition;
+            __saveData.SiblingIndex = __instance.GetSiblingIndex();
 
             if (__instance.parent != null)
             {
@@ -30,9 +29,28 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers
         }
 
 
-        public override string Serialize()
+
+        public override void LoadPhase1()
         {
-            return JsonConvert.SerializeObject(__saveData, Formatting.None);
+            base.LoadPhase1();
+
+            GameObject parent = Infra.Singleton.GetObjectById<GameObject>(__saveData.ParentGOId);
+            if (parent != null)
+                __instance.SetParent(parent.transform);
+            else __instance.SetParent(null);
+
+            __instance.localPosition = __saveData.localPosition;
+            __instance.localRotation = __saveData.localRotation;
+            __instance.localScale = __saveData.localScale;
+        }
+
+
+        //doc: SetSiblingIndex can cause issues if the sibling index is out of range (e.g. if the parent has less children than the sibling index). So we set the sibling index in a separate phase after all objects have been loaded and parented to ensure that the sibling index is valid.
+        public override void LoadPhase2()
+        {
+            base.LoadPhase2();
+
+            __instance.SetSiblingIndex(__saveData.SiblingIndex);
         }
 
 
@@ -46,18 +64,10 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers
 
 
 
-        public override void LoadReferences()
+
+        public override string Serialize()
         {
-            base.LoadReferences();
-
-            GameObject parent = Infra.Singleton.GetObjectById<GameObject>(__saveData.ParentGOId);
-            if (parent != null)
-                __instance.SetParent(parent.transform);
-            else __instance.SetParent(null);
-
-            __instance.localPosition = __saveData.localPosition;
-            __instance.localRotation = __saveData.localRotation;
-            __instance.localScale = __saveData.localScale;
+            return JsonConvert.SerializeObject(__saveData, Formatting.None);
         }
     }
 
@@ -68,6 +78,7 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers
         public Quaternion localRotation;
         public Vector3 localScale;
         public Vector3 localPosition;
+        public int SiblingIndex;
     }
 
 

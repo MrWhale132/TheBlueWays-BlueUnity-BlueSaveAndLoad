@@ -23,9 +23,9 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.UnityShs.An
             __saveData.events = GetObjectId(__instance.events);
             __saveData.hideFlags = __instance.hideFlags;
         }
-        public override void LoadReferences()
+        public override void LoadPhase1()
         {
-            base.LoadReferences();
+            base.LoadPhase1();
             __instance.frameRate = __saveData.frameRate;
             __instance.wrapMode = __saveData.wrapMode;
             //__saveData.localBounds.WriteTo(__instance.localBounds);

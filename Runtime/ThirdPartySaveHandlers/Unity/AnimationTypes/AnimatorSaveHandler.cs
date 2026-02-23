@@ -18,9 +18,9 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.Unity.Anima
             __saveData.avatar = GetAssetId(__instance.avatar);
         }
 
-        public override void LoadReferences()
+        public override void LoadPhase1()
         {
-            base.LoadReferences();
+            base.LoadPhase1();
 
             __instance.runtimeAnimatorController = AddressableDb.Singleton.GetAssetByIdOrFallback(
                 __instance.runtimeAnimatorController, ref __saveData.runtimeAnimatorController);

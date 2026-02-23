@@ -47,9 +47,9 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.UnitySH.Nav
             __saveData.avoidancePriority = __instance.avoidancePriority;
             __saveData.path = GetObjectId(__instance.path);
         }
-        public override void LoadReferences()
+        public override void LoadPhase1()
         {
-            base.LoadReferences();
+            base.LoadPhase1();
             __instance.destination = __saveData.destination;
             __instance.stoppingDistance = __saveData.stoppingDistance;
             __instance.velocity = __saveData.velocity;

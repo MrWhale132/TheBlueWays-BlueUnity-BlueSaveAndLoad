@@ -1386,10 +1386,10 @@ public class SaveAndLoadCodeGenWindow : EditorWindow
 
 
         //dev test/debug
-        var names = discoveredTypes.Select(t => t.Key.FullName).OrderBy(name => name).ToList();
+        //var names = discoveredTypes.Select(t => t.Key.FullName).OrderBy(name => name).ToList();
 
-        if (Directory.Exists("C:/temp") == false) Directory.CreateDirectory("C:/temp");
-        File.WriteAllText("C:/temp/discoveredTypes.txt", string.Join("\n", names));
+        //if (Directory.Exists("C:/temp") == false) Directory.CreateDirectory("C:/temp");
+        //File.WriteAllText("C:/temp/discoveredTypes.txt", string.Join("\n", names));
 
 
 

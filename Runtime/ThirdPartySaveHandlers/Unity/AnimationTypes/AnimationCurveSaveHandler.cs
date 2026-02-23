@@ -16,9 +16,9 @@ namespace Assets._Project.Scripts.SaveAndLoad.ThirdPartySaveHandlers.Unity.Anima
             __saveData.keys = GetObjectId(__instance.keys);
         }
 
-        public override void LoadReferences()
+        public override void LoadPhase1()
         {
-            base.LoadReferences();
+            base.LoadPhase1();
 
             __instance.keys = Infra.Singleton.GetObjectById<Keyframe[]>(__saveData.keys);
         }

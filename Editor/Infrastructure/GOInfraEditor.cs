@@ -4,11 +4,11 @@ using System.Linq;
 using Theblueway.SaveAndLoad.Packages.com.theblueway.saveandload.Runtime.InfraScripts;
 using UnityEditor;
 using UnityEngine;
-using static PlasticGui.WorkspaceWindow.Merge.MergeInProgress;
 
 namespace Assets._Project.Scripts.Infrastructure
 {
     [CustomEditor(typeof(GOInfra))]
+    [CanEditMultipleObjects]
     public class GOInfraEditor : UnityEditor.Editor
     {
         public override void OnInspectorGUI()
