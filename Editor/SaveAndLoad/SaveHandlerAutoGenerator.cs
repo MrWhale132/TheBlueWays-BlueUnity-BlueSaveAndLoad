@@ -1008,9 +1008,9 @@ public class SaveHandlerAutoGenerator : ScriptableObject
         WritingFields + _NewLine +
         "}" + _NewLine +
         _NewLine +
-        $"public override void LoadReferences()" + _NewLine +
+        $"public override void {nameof(ISaveAndLoad.LoadPhase1)}()" + _NewLine +
         "{" + _NewLine +
-        "base.LoadReferences();" +
+        $"base.{nameof(ISaveAndLoad.LoadPhase1)}();" +
         _NewLine +
         ReadingFields + _NewLine +
         "}" + _NewLine +
@@ -1109,9 +1109,9 @@ public class SaveHandlerAutoGenerator : ScriptableObject
         WritingFields + _NewLine +
         "}" + _NewLine +
         _NewLine +
-        $"public override void LoadReferences()" + _NewLine +
+        $"public override void {nameof(ISaveAndLoad.LoadPhase1)}()" + _NewLine +
         "{" + _NewLine +
-        "base.LoadReferences();" +
+        $"base.{nameof(ISaveAndLoad.LoadPhase1)}();" +
         _NewLine +
         ReadingFields + _NewLine +
         "}" + _NewLine +

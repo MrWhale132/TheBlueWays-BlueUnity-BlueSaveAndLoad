@@ -25,9 +25,9 @@
 
 //		}
 
-//		public override void LoadReferences()
+//		public override void LoadPhase1()
 //		{
-//			base.LoadReferences();
+//			base.LoadPhase1();
 
 //		}
 //		static StaticTextMeshProUGUISaveHandler()
